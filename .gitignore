@@ -1,0 +1,30 @@
+
+Nafiseh Damage Data/
+RunFiles/
+MPI_results/
+MPI_results - Copy/
+javab/
+net3/
+out/
+Demand Polygons/
+*.cpg
+*.dbf
+*.prj
+*.sbx
+*.shp
+*.sbn
+*.shx
+*.pptx
+*.pyc
+*.xlsx
+*.xls
+*.inp
+*.docx
+*.bin
+*.net
+*.bak
+*.mat
+*.csv
+*.pkl
+*.txt
+
