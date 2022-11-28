@@ -78,18 +78,4 @@ class Scenario_Settings(base):
                 raise ValueError('key ID not recognized: ' + str(key_ID))
             self.settings[key_ID] = data.loc[scenario_index, key_ID]
             
-class Simulation_Settings:
-    def __init__(self):
-        self.settings={}
-        time      = Time_Settings()
-        hydraulic = Hydraulic_settings()
-        
-class Time_Settings():
-    def __init(self):
-        self.settings={}
-        self.settings['RUN_TIME'                  ]=72 #hours
 
-class Hydraulic_settings():
-    def __init(self):
-        self.settings={}
-        self.settings['WN_INP'                    ]='giraffe3.inp'
