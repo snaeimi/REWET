@@ -61,12 +61,12 @@ class Simulation_Tab_Designer():
         #self.result_folder_addr -- already set
         #self.temp_folder_addr -- already set
         
-        if self.save_time_step_no_radio.isChecked():
+        if self.save_time_step_yes_radio.isChecked():
             self.save_time_step    = True
         elif self.save_time_step_no_radio.isChecked():
             self.save_time_step    = False
         else:
-            raise ValueError("Borh of Time-Save Buttons are not selected which is an error.")
+            raise ValueError("Both of Time-Save Buttons are not selected which is an error.")
         
         self.settings.process['RUN_TIME'            ] = self.simulation_time
         self.settings.process['simulation_time_step'] = self.simulation_time_step

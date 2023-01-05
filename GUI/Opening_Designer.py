@@ -4,6 +4,7 @@ Created on Thu Oct 27 18:06:01 2022
 
 @author: snaeimi
 """
+import sys
 import os
 from PyQt5 import QtWidgets
 from PyQt5.Qt import QUrl, QDesktopServices
@@ -16,7 +17,9 @@ from .Damage_Tab_Designer      import Damage_Tab_Designer
 from .Restoration_Tab_Designer import Restoration_Tab_Designer
 from .Run_Tab_Designer         import Run_Tab_Designer
 from .Main_Help_Designer       import Main_Help_Designer
+from .PP_Data_Tab_Designer     import PP_Data_Tab
 from .Result_Designer          import Result_Designer
+from .Map_Designer             import Map_Designer
 
 from .settings.Settings        import Settings
 
@@ -25,9 +28,9 @@ class Project():
         self.scenario_list    = scenario_list
         self.project_settings = project_settings
 
-class Opening_Designer(Ui_Opening_Window, Simulation_Tab_Designer, Hydraulic_Tab_Designer, Damage_Tab_Designer, Run_Tab_Designer, Restoration_Tab_Designer, Result_Designer):
+class Opening_Designer(Ui_Opening_Window, Simulation_Tab_Designer, Hydraulic_Tab_Designer, Damage_Tab_Designer, Run_Tab_Designer, Restoration_Tab_Designer, PP_Data_Tab, Result_Designer, Map_Designer):
     def __init__(self):
-        
+        self.project = None
         self.scenario_list = None
         self.settings = Settings()
         self.settings.initializeScenarioSettings(None)
@@ -44,7 +47,9 @@ class Opening_Designer(Ui_Opening_Window, Simulation_Tab_Designer, Hydraulic_Tab
         Damage_Tab_Designer.__init__(self)
         Restoration_Tab_Designer.__init__(self)
         Run_Tab_Designer.__init__(self)
+        PP_Data_Tab.__init__(self, self.project)
         Result_Designer.__init__(self)
+        Map_Designer.__init__(self)
         
         
         """
@@ -64,7 +69,7 @@ class Opening_Designer(Ui_Opening_Window, Simulation_Tab_Designer, Hydraulic_Tab
         
     def run(self):
         self.asli_MainWindow.show()
-        self.asli_app.exec_()
+        sys.exit(self.asli_app.exec_())
 
     def errorMSG(self, error_title, error_msg, error_more_msg=None):
         error_widget = QtWidgets.QMessageBox()
@@ -96,7 +101,7 @@ class Opening_Designer(Ui_Opening_Window, Simulation_Tab_Designer, Hydraulic_Tab
         
         with open(file[0], 'rb') as f:
             project = pickle.load(f)
-        
+        self.project = project
         # sina put a possible check of result version here
         self.setSimulationSettings(project.project_settings)
         self.setHydraulicSettings(project.project_settings)
@@ -130,6 +135,7 @@ class Opening_Designer(Ui_Opening_Window, Simulation_Tab_Designer, Hydraulic_Tab
                 self.project_file_addr = file_addr[0]
             
             project = Project(self.settings, self.scenario_list)
+            self.project = project
             with open(self.project_file_addr, 'wb') as f:
                 pickle.dump(project, f)
             
@@ -149,6 +155,7 @@ class Opening_Designer(Ui_Opening_Window, Simulation_Tab_Designer, Hydraulic_Tab
         self.project_file_addr = file_addr[0]
         
         project = Project(self.settings, self.scenario_list)
+        self.project = project
         with open(self.project_file_addr, 'wb') as f:
             pickle.dump(project, f)
     
@@ -166,7 +173,7 @@ class Opening_Designer(Ui_Opening_Window, Simulation_Tab_Designer, Hydraulic_Tab
             else:
                 event.ignore()
         elif return_value == 65536: #None
-            pass
+            event.accept()
         elif return_value == 4194304: #Cancel
             event.ignore()
             return

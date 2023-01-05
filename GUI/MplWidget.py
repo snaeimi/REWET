@@ -15,7 +15,7 @@ import matplotlib
 
 class MplCanvas(Canvas):
     def __init__(self):
-        self.fig = Figure(figsize=(100, 40), dpi=100)
+        self.fig = Figure(figsize=(100, 40), dpi=100, tight_layout=True)
         self.ax = self.fig.add_subplot(111)
         Canvas.__init__(self, self.fig)
         Canvas.setSizePolicy(self, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
