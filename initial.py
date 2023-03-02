@@ -5,18 +5,22 @@ Created on Tue Jun  1 21:04:18 2021
 @author: snaeimi
 """
 
-from restoration.registry import Registry
-from restoration.model import Restoration
 import StochasticModel
 import Damage
 import os
+import signal
 import pickle
 import time
 import pandas as pd
 import logging
+
 import Input.Input_IO as io
-from Input.Settings import Settings
+from Input.Settings             import Settings
 from EnhancedWNTR.network.model import WaterNetworkModel
+from restoration.registry       import Registry
+from restoration.model          import Restoration
+from Project                    import Project
+
 logging.basicConfig(level=50)
 
 log=[]
@@ -79,7 +83,7 @@ class Starter():
         with open(project_file_addr, 'wb') as f:
             pickle.dump(project, f)
     
-    def run(self, project_file_addr=None):
+    def run(self, project_file=None):
         """
         Runs the ptogram. It initiates the Settings class and based on the
         settings, run the program in either single scenario, multiple serial or
@@ -96,9 +100,17 @@ class Starter():
 
         """
         settings = Settings()
+        if type(project_file) != type(None):
+            if type(project_file) == str:
+                settings.importProject(project_file)
+            else:
+                raise ValueError("project type unrecognized")
+            
+            
         damage_list = self.read_damage_list(settings.process['pipe_damage_file_list'], settings.process['pipe_damage_file_directory'])
         settings.process.settings['list'] = damage_list
-        self.createProjectFile(settings, damage_list, "project.prj")
+        if type(project_file) == type(None):
+            self.createProjectFile(settings, damage_list, "project.prj")
         #raise
         if settings.process['number_of_proccessor']==1: #Single mode
             #get damage list as Pandas Dataframe
@@ -190,33 +202,45 @@ class Starter():
         else:
             raise ValueError("Unknown value for settings['Pipe_damage_input_method']")
         
-        if pipe_damages.empty == True and node_damages.empty == True and tank_damages.empty == True and pump_damages.empty == True and settings.process['ignore_empty_pipe_damage']:
+        if pipe_damages.empty == True and node_damages.empty == True and tank_damages.empty == True and pump_damages.empty == True and settings.process['ignore_empty_damage']:
             log.append('Empty pipe damage')
             return 2 #means it didn't  run due to lack of any damage in pipe lines
         
+        """
+            reads WDN definition and checks set the settinsg defined from settings
+        """
         wn = WaterNetworkModel(settings.process['WN_INP'])
         
+        delta_t_h = settings['hydraulic_time_step']
+        wn.options.time.hydraulic_timestep = int(delta_t_h)
+        wn.options.time.pattern_timestep   = int(delta_t_h)
+        #wn.options.time.pattern_timestep   = int(delta_t_h)
+        #Sina What about rule time step. Also one may want to change pattern time step
+        
+        demand_node_name_list = []
         for junction_name, junction in wn.junctions():
             if junction.demand_timeseries_list[0].base_value > 0:
                 junction.demand_timeseries_list[0].base_value = junction.demand_timeseries_list[0].base_value * settings.process['demand_ratio']
-        
-        registry                     = Registry(wn, settings.process)
-        self.registry                = registry
-        self.damage                  = Damage.Damage(registry, settings.scenario)
+                demand_node_name_list.append(junction_name)
+                
+        registry                       = Registry(wn, settings, demand_node_name_list, scenario_name)
+        self.registry                  = registry
+        self.damage                    = Damage.Damage(registry, settings.scenario)
         ##All these data can immigrate to registry
-        self.registry.damage         = self.damage
-        self.damage.pipe_all_damages = pipe_damages
-        self.damage.node_damage      = node_damages
+        self.registry.damage           = self.damage
+        self.damage.pipe_all_damages   = pipe_damages
+        self.damage.node_damage        = node_damages
         if tank_damages.empty == False:
             self.damage.tank_damage      = tank_damages['Tank_ID']
         if pump_damages.empty == False:
             self.damage.damaged_pumps    = pump_damages['Pump_ID']
 
         restoration = Restoration(settings.scenario['Restortion_config_file'], registry, self.damage)
+
         restoration.pump_restoration = pump_damages
         restoration.tank_restoration = tank_damages
                         
-        self.sm  = StochasticModel.StochasticModel(wn, self.damage, self.registry, simulation_end_time=settings.process['RUN_TIME'] * 3600 , restoration = restoration , mode='PDD', i_restoration=settings.process['Restoration_on'])
+        self.sm  = StochasticModel.StochasticModel(wn, self.damage, self.registry, simulation_end_time=settings.process['RUN_TIME'] , restoration = restoration , mode='PDD', i_restoration=settings.process['Restoration_on'])
 
         result   = self.sm.runLinearScenario(self.damage, settings, worker_rank)
         self.res = result
@@ -357,12 +381,12 @@ class Starter():
                         nodal_name       = row['Nodal Damage']
                         pump_damage      = row['Pump Damage']
                         tank_damage_name = row['Tank Damage']
-                        #try:
-                        run_flag   = self.run_local_single(file_name, scenario_name, settings,  worker_rank=repr(scenario_name)+'_'+repr(comm.rank), nodal_damage_file_name=nodal_name, pump_damage_file_name = pump_damage, tank_damage_file_name = tank_damage_name)
-                        print('run_flag for worker: '+ repr(comm.rank)+' --> '+repr(run_flag))
-                        comm.isend(run_flag, dest=0)
-                        #except:
-                            #comm.isend(3, dest=0)
+                        try:
+                            run_flag   = self.run_local_single(file_name, scenario_name, settings,  worker_rank=repr(scenario_name)+'_'+repr(comm.rank), nodal_damage_file_name=nodal_name, pump_damage_file_name = pump_damage, tank_damage_file_name = tank_damage_name)
+                            print('run_flag for worker: '+ repr(comm.rank)+' --> '+repr(run_flag))
+                            comm.isend(run_flag, dest=0)
+                        except:
+                            comm.isend(3, dest=0)
                         last_time_message_recv=time.time()
                     else:
                         worker_exit_flag='Death message recieved!'
@@ -375,7 +399,7 @@ class Starter():
             
     def checkArgument(self, argv):
         if len(argv) > 2:
-            print("REWET USAGE is as ./REWET Project.prj [optional]")
+            print("REWET USAGE is as [./REWET Project.prj: optional]")
         if len(argv) == 1:
             return False
         else:
@@ -386,6 +410,9 @@ if __name__ == "__main__":
     start = Starter()
     if_project = start.checkArgument(sys.argv)
     if if_project:
-        tt = start.run(sys.argv[1])
+        if os.path.exists(sys.argv[1]):
+            tt = start.run(sys.argv[1])
+        else:
+            print("Project file address is not valid: " + repr(sys.argv[1]) )
     else:
         tt = start.run()

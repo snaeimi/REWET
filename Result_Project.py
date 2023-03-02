@@ -11,6 +11,7 @@ import numpy as np
 import os
 import pickle
 from collections import OrderedDict
+import copy
 #import Report_Reading
 from Output.Map import Map
 from Output.Map import Helper
@@ -27,13 +28,16 @@ class Project():
     
 
 class Project_Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
-    #def __init__(self, project_file_addr, ignore_not_found=False, to_neglect_file='Large_users.xlsx',node_col='NodeID', result_file_dir = None):
-    def __init__(self, project_file_addr, ignore_not_found=False, to_neglect_file=None,node_col='', result_file_dir = None):
+    def __init__(self, project_file_addr, ignore_not_found=False, to_neglect_file=None,node_col='', result_file_dir = None, iObject=False):
         
-        self.readPorjectFile(project_file_addr)
+        if iObject==False:
+            self.readPorjectFile(project_file_addr)
+        else:
+            self.project = copy.deepcopy(project_file_addr)
+        
+        self.project.scenario_list = self.project.scenario_list.set_index('Scenario Name')
         if result_file_dir != None:
             self.project.project_settings.process.settings['result_directory'] = result_file_dir
-        
         self.demand_node_name_list    = []
         self._list                    = []
         self.pipe_damages             = {}
@@ -56,6 +60,7 @@ class Project_Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
         self.rest_data                = None
         self._RequiredDemandForAllNodesandtime = {}
         self.demand_ratio             = self.project.project_settings.process['demand_ratio']
+        self.scn_name_list_that_result_file_not_found = []
         
         self.wn = wntr.network.WaterNetworkModel(self.project.project_settings.process['WN_INP']    )    
         to_neglect=[];
@@ -70,34 +75,42 @@ class Project_Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
                 self.demand_node_name_list.append(node_name)
             
         self.node_name_list   = self.wn.node_name_list.copy()
-        self.checkForNotExistingFile(ignore_not_found)
+        ret_val = self.checkForNotExistingFile(ignore_not_found)
         self.prepareData()
+        return ret_val
         
     def readPorjectFile(self, project_file_addr):
         print(project_file_addr)
         with open(project_file_addr, 'rb') as f:
             self.project = pickle.load(f)
-
-        self.project.scenario_list = self.project.scenario_list.set_index('Scenario Name')
+    
+    def loadPopulation(self, popuation_data, node_id_header, population_header):
+        pop = popuation_data.copy()
+        pop = pop.set_index(node_id_header)
+        pop = pop[population_header]
+        self._population_data = pop
         
     def checkForNotExistingFile(self, ignore_not_found):
-        scn_name_list_that_result_file_not_found = []
+        self.scn_name_list_that_result_file_not_found = []
         
         result_directory = self.project.project_settings.process['result_directory']
-        
+        print(self.project.scenario_list)
         for scn_name, row in self.project.scenario_list.iterrows():
             scenario_registry_file_name = scn_name+"_registry.pkl"
+            print(result_directory)
+            print(scenario_registry_file_name)
             registry_file_data_addr = os.path.join(result_directory, scenario_registry_file_name)
             if not os.path.exists(registry_file_data_addr):
-                scn_name_list_that_result_file_not_found.append(scn_name)
+                self.scn_name_list_that_result_file_not_found.append(scn_name)
         
-        if len(scn_name_list_that_result_file_not_found)> 0:
+        if len( self.scn_name_list_that_result_file_not_found)> 0:
             if ignore_not_found:
-                print(str(len(scn_name_list_that_result_file_not_found)) +" out of "+ repr(len(self.project.scenario_list)) +" Result Files are not found and ignored" )
-                print(scn_name_list_that_result_file_not_found)
-                self.project.scenario_list.drop(scn_name_list_that_result_file_not_found, inplace=True)
+                print(str(len(self.scn_name_list_that_result_file_not_found)) +" out of "+ repr(len(self.project.scenario_list)) +" Result Files are not found and ignored" )
+                print(self.scn_name_list_that_result_file_not_found)
+                self.project.scenario_list.drop(self.scn_name_list_that_result_file_not_found, inplace=True)
             else:
-                raise ValueError("Res File Not Found: "+ repr(scn_name_list_that_result_file_not_found))
+                raise ValueError("Res File Not Found: "+ repr(self.scn_name_list_that_result_file_not_found) +" in "+repr(result_directory))
+            
             
     def prepareData(self):
         i=0
@@ -200,7 +213,7 @@ class Project_Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
         all_time_list = data.maximum_trial_time
         result_time_list = data.node['demand'].index.to_list()
         result_time_max_trailed_list = [ time for time in result_time_list if time in all_time_list]
-        
+        print(result_time_max_trailed_list)
         demand_data = data.node['demand']
         demand_data.drop(result_time_max_trailed_list, inplace=True)
         
@@ -295,134 +308,34 @@ class Project_Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
         self._RequiredDemandForAllNodesandtime[scn_name] = req_node_demand.filter(self.demand_node_name_list)
         return self._RequiredDemandForAllNodesandtime[scn_name]
     
-    def getDLIndexPopulation_4(self, scn_name , ratio= False, consider_leak=False, leak_ratio=1):
-        self.loadScneariodata(scn_name)
-        res = self.data[scn_name]
-        
-        if type(self._population_data) == type(None):
-            raise ValueError("Population Data Must be provided")
-        else:
-            pop = self._population_data
-        
-        total_pop = pop.sum()
-        
-        result = []
-        refined_result = res.node['demand'][self.demand_node_name_list]
-        demands = self.getRequiredDemandForAllNodesandtime(scn_name)
-        demands = demands[self.demand_node_name_list]
-        
-        union_ = set(res.node['leak'].columns).union(set(self.demand_node_name_list) -(set(res.node['leak'].columns) ) - set(self.demand_node_name_list)) - (set(self.demand_node_name_list) - set(res.node['leak'].columns))
-        leak_res    = res.node['leak'][union_]
-        
-        leak_data = []
-        
-        if consider_leak:
-            for name in leak_res:
-                demand_name = demands[name]
-                leak_res_name = leak_res[name].dropna()
-                time_list = set(leak_res[name].dropna().index)
-                time_list_drop = set(demands.index) - time_list
-                demand_name = demand_name.drop(time_list_drop)
-                leak_more_than_criteria = leak_res_name >=  leak_ratio * demand_name
-                if leak_more_than_criteria.any(0):
-                    leak_data.append(leak_more_than_criteria)
-        leak_data = pd.DataFrame(leak_data).transpose()
-        
-        s = refined_result > demands * 0.1
-        for name in s:
-            if name in leak_data.columns:
-                leak_data_name = leak_data[name]
-                for time in leak_data_name.index:
-                    if leak_data_name.loc[time] == True:
-                        s.loc[time, name] = False
-                        
-        
-        s = s * pop[s.columns]
-        
-        if ratio==False:
-            total_pop = 1
-        else:
-            total_pop = pop.sum()
-            
-        result = s.sum(axis=1)/total_pop
-        
-        return result
     
-    def getQNIndexPopulation_4(self, scn_name, ratio=False, consider_leak=False, leak_factor=0.75):
-        self.loadScneariodata(scn_name)
-        res = self.data[scn_name]
-
-        if type(self._population_data) == type(None):
-            raise ValueError("Population Data Must be provided")
-        else:
-            pop = self._population_data
-        
-        
-        result = []
-        union_ = set(res.node['leak'].columns).union(set(self.demand_node_name_list) -(set(res.node['leak'].columns) ) - set(self.demand_node_name_list)) - (set(self.demand_node_name_list) - set(res.node['leak'].columns))   
-        refined_result = res.node['demand'][self.demand_node_name_list]
-        demands = self.getRequiredDemandForAllNodesandtime(scn_name)
-        demands        = demands[self.demand_node_name_list]
-        
-        leak_res    = res.node['leak'][union_]
-        leak_data = []
-        if consider_leak: 
-            for name in leak_res:
-                demand_name = demands[name]
-                leak_res_name = leak_res[name].dropna()
-                time_list = set(leak_res_name.index)
-                time_list_drop = set(demands.index) - time_list
-                demand_name = demand_name.drop(time_list_drop)
-                leak_more_than_criteria = leak_res_name >= leak_factor * demand_name
-                if leak_more_than_criteria.any(0):
-                    leak_data.append(leak_more_than_criteria)
-        leak_data = pd.DataFrame(leak_data).transpose()
-        
-        s = refined_result + 0.00000001 >= demands  #sina bug
-        
-        for name in s:
-            if name in leak_data.columns:
-                leak_data_name = leak_data[name]
-                for time in leak_data_name.index:
-                    if leak_data_name.loc[time] == True:
-                        s.loc[time, name] = False
-
-        s = s * pop[s.columns]
-        if ratio==False:
-            total_pop = 1
-        else:
-            total_pop = pop.sum()
-        
-        result = s.sum(axis=1) / total_pop
-       
-        return result
-    
-    def AS_getDLIndexPopulation(self, ratio=False, consider_leak=False, leak_factor=0.75):
+    def AS_getDLIndexPopulation(self, iPopulation="No", ratio=False, consider_leak=False, leak_ratio=0.75):
         scenario_list = list(self.data.keys() )
         all_scenario_DL_data = {}
         for scn_name in scenario_list:
-            cur_scn_DL = self.getDLIndexPopulation_4(scn_name, ratio=False, consider_leak=consider_leak, leak_factor=0.75)
+            cur_scn_DL = self.getDLIndexPopulation_4(scn_name, iPopulation=iPopulation, ratio=ratio, consider_leak=consider_leak, leak_ratio=leak_ratio)
             cur_scn_DL = cur_scn_DL.to_dict()
             all_scenario_DL_data[scn_name] = cur_scn_DL
         
         return pd.DataFrame.from_dict(all_scenario_DL_data)
     
-    def AS_getQNIndexPopulation(self, ratio=False, consider_leak=False, leak_factor=0.75):
+    def AS_getQNIndexPopulation(self, iPopulation="No", ratio=False, consider_leak=False, leak_ratio=0.75):
         scenario_list = list(self.data.keys() )
         all_scenario_QN_data = {}
         for scn_name in scenario_list:
-            cur_scn_QN = self.getQNIndexPopulation_4(scn_name, ratio=ratio, consider_leak=consider_leak, leak_factor=0.75)
+            self.loadScneariodata(scn_name)
+            cur_scn_QN = self.getQNIndexPopulation_4(scn_name, iPopulation=iPopulation, ratio=ratio, consider_leak=consider_leak, leak_ratio=leak_ratio)
             cur_scn_QN = cur_scn_QN.to_dict()
             all_scenario_QN_data[scn_name] = cur_scn_QN
         
         return pd.DataFrame.from_dict(all_scenario_QN_data)
     
-    def AS_getOutage_4(self, LOS='DL', leak_ratio=0, consistency_time_window=7200):
+    def AS_getOutage_4(self, LOS='DL', iConsider_leak=False, leak_ratio=0, consistency_time_window=7200):
         scenario_list = list(self.data.keys() )
         all_scenario_outage_data = {}
         i = 0
         for scn_name in scenario_list:
-            cur_scn_outage = self.getOutageTimeGeoPandas_4(scn_name, LOS='DL', leak_ratio=leak_ratio, consistency_time_window=consistency_time_window)
+            cur_scn_outage = self.getOutageTimeGeoPandas_4(scn_name, LOS=LOS, iConsider_leak=iConsider_leak, leak_ratio=leak_ratio, consistency_time_window=consistency_time_window)
             cur_scn_outage = cur_scn_outage['restoration_time'].to_dict()
             all_scenario_outage_data[scn_name] = cur_scn_outage
             i+=1
@@ -471,20 +384,21 @@ class Project_Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
        
         return restore_data
     
-    def PR_getCurveExcedence(self, data_frame, result_type='mean', daily=False):
+    def PR_getCurveExcedence(self, data_frame, result_type='mean', daily=False, min_time=0, max_time=24*3600*1000):
         data_size = len(data_frame.columns)
         table_temp = []
         
         for i in np.arange(data_size):
-            if i % ((data_size-1)/10) == 0:
-                print(int(np.round(i/(data_size-1) * 100) ) )
             scn_name     = data_frame.columns[i]
             prob         = self.scenario_prob[scn_name]    
             cur_scn_data = data_frame[scn_name]
             dmg_index_list = []
-        
+            
+            cur_scn_data = cur_scn_data[cur_scn_data.index >= min_time]
+            cur_scn_data = cur_scn_data[cur_scn_data.index <= max_time]
+            
             if daily == True:
-                cur_scn_data = self.getResultSeperatedDaily(cur_scn_data, 4*3600)
+                cur_scn_data = self.getResultSeperatedDaily(cur_scn_data)
     
             if result_type == 'mean':
                 cur_mean_res = cur_scn_data.mean()
@@ -508,6 +422,19 @@ class Project_Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
                         temp_dmg_index = 'min_dmg_'+day_time
                         temp_res.update({temp_dmg_index:value})
                         dmg_index_list.append(temp_dmg_index)
+            elif result_type == 'max':
+                dmg_max_res = cur_scn_data.min()
+                if type(dmg_max_res) != pd.core.series.Series:
+                    temp_res = {'max_dmg' : dmg_max_res}
+                    dmg_index_list.append('max_dmg')
+                else:
+                    temp_res = {}
+                    for day_time, value in dmg_max_res.iteritems():
+                        temp_dmg_index = 'max_dmg_'+day_time
+                        temp_res.update({temp_dmg_index:value})
+                        dmg_index_list.append(temp_dmg_index)
+            else:
+                raise ValueError("Unknown group method: "+repr(result_type))
                         
             loop_res = {'prob':prob, 'index':scn_name}
             loop_res.update(temp_res) 
@@ -528,7 +455,7 @@ class Project_Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
         
         return res
     
-    def getResultSeperatedDaily(self, data, begin_time):
+    def getResultSeperatedDaily(self, data, begin_time=0):
         data = data[data.index >= begin_time]
         data.index = (data.index - begin_time)/(24*3600)
         

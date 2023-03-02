@@ -10,6 +10,7 @@ from PyQt5 import QtWidgets
 from PyQt5.Qt import QUrl, QDesktopServices
 import pickle
 
+from Project                   import Project
 from .Opening_Window           import Ui_Opening_Window
 from .Simulation_Tab_Designer  import Simulation_Tab_Designer
 from .Hydraulic_Tab_Designer   import Hydraulic_Tab_Designer
@@ -21,12 +22,7 @@ from .PP_Data_Tab_Designer     import PP_Data_Tab
 from .Result_Designer          import Result_Designer
 from .Map_Designer             import Map_Designer
 
-from .settings.Settings        import Settings
-
-class Project():
-    def __init__(self, project_settings, scenario_list):
-        self.scenario_list    = scenario_list
-        self.project_settings = project_settings
+from Input.Settings        import Settings
 
 class Opening_Designer(Ui_Opening_Window, Simulation_Tab_Designer, Hydraulic_Tab_Designer, Damage_Tab_Designer, Run_Tab_Designer, Restoration_Tab_Designer, PP_Data_Tab, Result_Designer, Map_Designer):
     def __init__(self):
@@ -97,8 +93,9 @@ class Opening_Designer(Ui_Opening_Window, Simulation_Tab_Designer, Hydraulic_Tab
         if file[0] == '':
             return
         split_addr = os.path.split(file[0])
-        current_project_directory = split_addr
+        self.current_project_directory = split_addr
         
+        self.project_file_addr = file[0]
         with open(file[0], 'rb') as f:
             project = pickle.load(f)
         self.project = project
@@ -124,12 +121,12 @@ class Opening_Designer(Ui_Opening_Window, Simulation_Tab_Designer, Hydraulic_Tab
         if data_retrived == False:
             return False
         
-        if save_as==False:
+        if save_as == False:
             if self.project_file_addr == None:
                 file_addr = QtWidgets.QFileDialog.getSaveFileName(self.asli_MainWindow, 'Save project file', 
                                                          self.project_file_addr,"Project file (*.prj)")
                 if file_addr[0] == '':
-                    return
+                    return False
                 split_addr = os.path.split(file_addr[0])
                 self.current_project_directory = split_addr[0]
                 self.project_file_addr = file_addr[0]

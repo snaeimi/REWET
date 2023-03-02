@@ -5,11 +5,12 @@ Created on Fri Dec 25 05:09:25 2020
 @author: snaeimi
 """
 
+import logging
+#import warnings
 import restoration.io as rio
 import restoration.base as base
 import pandas as pd
 import numpy  as np
-import logging
 import copy
 import random
 from restoration.base import get_node_name
@@ -22,39 +23,54 @@ class Restoration():
     def __init__(self, conifg_file_name, registry, damage):
         self.ELEMENTS                  = ['PIPE', 'DISTNODE', 'GNODE', 'TANK','PUMP', 'RESERVOIR']
         self._CONDITIONS               = ['EQ','BG','LT','BG-EQ','LT-EQ','NOTEQ']
+        self.reserved_priority_names   = ["CLOSEST", "MOSTLEAKATCHECK"]
         self._hard_event_table         = pd.DataFrame(columns=['Requester', 'New', 'Detail'])
         self._reminder_time_hard_event = {}
         self.shifting                  = base.Shifting()
         self.jobs                      = base.Jobs(self)
-        self.agents                    = base.Agents(self.shifting, self.jobs, registry.restoration_log_book)
+        self.agents                    = base.Agents(registry, self.shifting, self.jobs, registry.restoration_log_book)
+        self.proximity_points          = {}
         self.priority                  = base.Priority(self)
         self.repair                    = Repair(registry)
         self.eq_time                   = None
         self.restoration_start_time    = None
         self.earthquake                = None
+        self.if_initiated              = False
         self.sequence                  = {}
         self.entity                    = {}
         self.entity_rule               = {}
         self.group                     = {}
         self.pump_restoration          = pd.DataFrame()
         self._damage                   = damage
-        self.temp =[]
+        #self.temp =[]
         
         for el in self.ELEMENTS:
             self.group[el]=OrderedDict()
         
         self._registry = registry
-        self.dispatch  = base.Dispatch(self, method='new')
+        self.dispatch  = base.Dispatch(self, registry.settings, method='new')
         
-        rdata = rio.RestorationIO(self, conifg_file_name)
+        rio.RestorationIO(self, conifg_file_name)
         retoration_data             = {}
         retoration_data['sequence'] = self.sequence
         retoration_data['entity'  ] = self.entity
         retoration_data['group'   ] = self.group
         registry.retoration_data    = retoration_data
         
+        self.ApplyOverrides()
+    
+    def ApplyOverrides(self):
+        overrides = self._registry.settings.overrides
+        
+        if "POINTS" in overrides:
+            points_overrides = overrides["POINTS"]
+            for point_group_name in points_overrides:
+                if point_group_name not in self.proximity_points:
+                    logger.warning("CAUTION!" + "\n" + "Override Point Group " + repr(point_group_name) + " is not a defined point group in the restoration plan." )
+                self.proximity_points[point_group_name] = points_overrides[point_group_name]
+        
     def perform_action(self, wn, stop_time):
-        logger.warning(stop_time)
+        logger.debug(stop_time)
         
         #checks if the restoration is started
         if self.eq_time == None or self.restoration_start_time == None:
@@ -166,9 +182,10 @@ class Restoration():
                     order_counter += 1
                     action = list(prime_priority)[0]
                     entity = list(prime_priority)[1]
-                     
                     damage_data = self._registry.getDamageData(self.entity[entity])
                     entity_data = self.refineEntityDamageTable(damage_data, agent_group_name, agent_group_tag, self.entity[entity])
+                    if len(entity_data) == 0:
+                        continue
                     entity_data = entity_data[(entity_data['discovered']==True)]
                     entity_data = entity_data[(entity_data[entity]==True)]
                     entity_data = entity_data[(entity_data[action]==False)]
@@ -201,7 +218,7 @@ class Restoration():
         self._registry.restoration_log_book.updateAgentHistory(self.agents._agents, stop_time)
         
         #self._registry.updatePipeDamageTableTimeSeries(stop_time)
-        self.temp.append((stop_time, copy.deepcopy(self._registry._pipe_damage_table)))
+       #self.temp.append((stop_time, copy.deepcopy(self._registry._pipe_damage_table)))
         return new_events
     
     
@@ -212,7 +229,7 @@ class Restoration():
                 raise RuntimeError('Ongoing and zero-length emtity data does must never appen together.')
             return 'continue'
         #print(entity_data)
-        entity_data = self.priority.sortDamageTable(wn, entity_data, agent_type, 2, order_counter) # sort according to the possible secondary priority
+        entity_data = self.priority.sortDamageTable(wn, entity_data, entity, agent_type, 2, order_counter) # sort according to the possible secondary priority
         
         for node_name, damage_data in entity_data.iterrows():
             
@@ -420,6 +437,33 @@ class Restoration():
                         self._registry.addNodalDemandChange(vir_nodal_damage_list, required_demand, total_demand)
                 else:        
                     self._registry.addNodalDemandChange(damage_node_name, required_demand, total_demand)
+            
+            elif element_type == "PIPE":
+                 
+                pipe_damage_table  = self._registry._pipe_damage_table
+                pipe_break_history = self._registry._pipe_break_history
+                damage_type = pipe_damage_table.loc[damage_node_name, 'damage_type']
+                leak_sum = 0
+                available_node_results = self._registry.result.node['demand'].loc[stop_time].dropna()
+                available_node_results = available_node_results.index
+                if damage_type == "break":
+                    if damage_node_name in pipe_damage_table.index:
+                        break_node_B      = pipe_break_history.loc[damage_node_name, 'Node_B']
+                        if break_node_B in available_node_results:
+                            leak_beark_node_B = self._registry.result.node['demand'].loc[stop_time, break_node_B]
+                            leak_sum         += leak_beark_node_B
+                    else:
+                        break_node_A      = (pipe_break_history[pipe_break_history['Node_B'] == damage_node_name]).iloc[0]["Node_A"]
+                        if break_node_A in available_node_results:
+                            leak_beark_node_A = self._registry.result.node['demand'].loc[stop_time, break_node_A]
+                            leak_sum         += leak_beark_node_A
+                
+                if damage_node_name in available_node_results:
+                    leak_damaged_node = self._registry.result.node['demand'].loc[stop_time, damage_node_name]
+                    leak_sum         += leak_damaged_node
+                
+                self._registry._pipe_damage_table.loc[damage_node_name, 'LeakAtCheck'] = leak_sum
+                                
                 
         elif effect_type=='RECONNECT':
             self._registry.addRestorationDataOnPipe(damage_node_name, stop_time, 'RECONNECT')
@@ -559,6 +603,7 @@ class Restoration():
             self.agents.setChangeShift(time, working_check=True)
     
     def updateAvailability(self, time):
+        
         agent_type_list = self.agents._agents['type'].unique()
         availible_agent_table =  self.agents._agents[self.agents._agents['available'].eq(True)]
         for agent_type in agent_type_list:
@@ -814,8 +859,9 @@ class Restoration():
             if len(ret)==0:
                 logger.warning('Empty damage table in element type='+repr(element_type)+'group name='+repr(group_name)+', group_tag='+repr(agent_group_tag))
         else:
+            #print("VVVVVVVVVVVVVVVVVVVVVVVVVAAAAAAAAAAAAAAAAAAAAAYYYYYYYYYYYYYYYY")
             #logger.warning('3')
-            ret = pd.DataFrame(columns=damaged_table)
+            ret = pd.DataFrame(columns=damaged_table.columns)
         
         return ret
             
@@ -1061,19 +1107,20 @@ class Restoration():
         if detail != None and current_time == None:
             raise ValueError('When detail is provided, current time cannot be None')
         
+        minimum_time_devision = int(self._registry.settings["simulation_time_step"])
         if current_time != None:
             if next_time < current_time:
                 raise ValueError('Time is smaller than current time')
             if detail == None:
                 raise ValueError('When current time is provided, detail cannot be None')
-            if self._registry.minimum_time_devision < 0:
+            if minimum_time_devision < 0:
                 raise ValueError('Minimum time devision cannot be negative')
         
             name      = requester + '-' + detail
             
             time      = next_time-current_time 
             
-            minimum_time_devision = int(self._registry.minimum_time_devision)
+            
             _b = np.round(time/minimum_time_devision)
             
             if abs(_b)<0.01:
@@ -1166,7 +1213,7 @@ class Restoration():
         
     
     def initialize(self, wn, stop_time, delay = 0, earthquake=None):
-        
+        self.if_initiated = True
         self.eq_time = stop_time
         if delay < 0:
             raise ValueError('delay value is less than 0: ' + str(delay))
@@ -1232,3 +1279,133 @@ class Restoration():
         
         event_time_list = event_time_list[1:]
         return event_time_list
+    
+    def iRestorationStopTime(self):
+        if self.if_initiated == False:
+            return False
+        logger.debug("Func: node functionality")
+        pipe_damage_end      = self.iAllPipeLastActionDone()
+        node_damage_end      = self.iAllNodeLastActionDone()
+        pump_damage_end      = self.iAllPumpLastActionDone()
+        GNODE_damage_end     = self.iAllGNodeLastActionDone()
+        tank_damage_end      = self.iAllTankLastActionDone()
+        reservoir_damage_end = self.iAllReservoirLastActionDone()
+        #print("pipe: "      + repr(pipe_damage_end)      )
+        #print("node: "      + repr(node_damage_end)      )
+        #print("pump: "      + repr(pump_damage_end)      )
+        #print("GNODE: "     + repr(GNODE_damage_end)     )
+        #print("tank: "      + repr(tank_damage_end)      )
+        #print("reservoir: " + repr(reservoir_damage_end) )
+        
+        logger.debug("pipe: "      + repr(pipe_damage_end)      )
+        logger.debug("node: "      + repr(node_damage_end)      )
+        logger.debug("pump: "      + repr(pump_damage_end)      )
+        logger.debug("GNODE: "     + repr(GNODE_damage_end)     )
+        logger.debug("tank: "      + repr(tank_damage_end)      )
+        logger.debug("reservoir: " + repr(reservoir_damage_end) )
+        
+        if pipe_damage_end and node_damage_end and pump_damage_end and GNODE_damage_end and tank_damage_end and reservoir_damage_end:
+            return True
+        else:
+            return False
+        
+    def iAllPipeLastActionDone(self):
+        if "PIPE" in self.sequence["PIPE"]:
+            if len(self._registry._pipe_damage_table) == 0:
+                return True
+            
+            pipe_action = self.sequence["PIPE"][-1]
+            pipe_last_action_values  = self._registry._pipe_damage_table[pipe_action]
+            if_pipe_last_action_true = (pipe_last_action_values==True | (pipe_last_action_values=="Collective")).all()
+            
+            if if_pipe_last_action_true:
+                return True
+            else:
+                return False
+        else:
+            return True
+        
+    def iAllNodeLastActionDone(self):
+        if  "DISTNODE" in self.sequence:
+            if len(self._registry._node_damage_table) == 0:
+                return True
+            
+            node_action = self.sequence["DISTNODE"][-1]
+            node_last_action_values  = self._registry._node_damage_table[node_action]
+            if_node_last_action_true = (node_last_action_values==True | (node_last_action_values=="Collective")).all()
+            
+            if if_node_last_action_true == True:
+                return True
+            else:
+                return False
+        else:
+            return True
+        
+    def iAllPumpLastActionDone(self):
+        if  "PUMP" in self.sequence:
+            if len(self._registry._pump_damage_table) == 0:
+                return True
+            
+            pump_action = self.sequence["PUMP"][-1]
+            pump_last_action_values  = self._registry._pump_damage_table[pump_action]
+            
+            if len(self._registry._pump_damage_table) == 0:
+                return True
+            
+            if_pump_last_action_true = (pump_last_action_values==True).all()
+            
+            if if_pump_last_action_true == True:
+                return True
+            else:
+                return False
+        else:
+            return True
+        
+    def iAllGNodeLastActionDone(self):
+        if  "GNODE" in self.sequence:
+            if len(self._registry._gnode_damage_table) == 0:
+                return True
+                
+            gnode_action = self.sequence["GNODE"][-1]
+            gnode_last_action_values  = self._registry._gnode_damage_table[gnode_action]
+            if_gnode_last_action_true = (gnode_last_action_values==True).all()
+            
+            if if_gnode_last_action_true == True:
+                return True
+            else:
+                return False
+        else:
+            return True
+    
+    def iAllTankLastActionDone(self):
+        if  "TANK" in self.sequence:
+            if len(self._registry._tank_damage_table) == 0:
+                return True
+            
+            tank_action = self.sequence["TANK"][-1]
+            tank_last_action_values  = self._registry._tank_damage_table[tank_action]
+            if_tank_last_action_true = (tank_last_action_values==True).all()
+            
+            if if_tank_last_action_true == True:
+                return True
+            else:
+                return False
+        else:
+            return True
+    
+    def iAllReservoirLastActionDone(self):
+        if  "RESERVOIR" in self.sequence:
+            if len(self._registry._reservoir_damage_table) == 0:
+                return True
+            
+            reservoir_action = self.sequence["RESERVOIR"][-1]
+            reservoir_last_action_values  = self._registry._reservoir_damage_table[reservoir_action]
+            if_reservoir_last_action_true = (reservoir_last_action_values==True).all()
+            
+            if if_reservoir_last_action_true == True:
+                return True
+            else:
+                return False
+        else:
+            return True
+        

@@ -24,7 +24,7 @@ class PP_Data_Tab():
         #self.results_tabs_widget.setTabEnabled(1, False)
         self.project_result = None
         self.current_population_directory = ''
-        
+                
     def initalizeResultData(self):
         if self.project == None:
             self.errorMSG("Error", "No project is found. open or save a new project.")
@@ -59,7 +59,6 @@ class PP_Data_Tab():
                     return
         
         self.results_tabs_widget.setTabEnabled(1, True)
-            
         
     def clearResultData(self):
         for i in range(self.result_file_status_table.rowCount()):

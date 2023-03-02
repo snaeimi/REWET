@@ -24,7 +24,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>1</number>
+     <number>0</number>
     </property>
     <widget class="QWidget" name="main_process">
      <attribute name="title">
@@ -53,7 +53,7 @@
        <enum>QTabWidget::Triangular</enum>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>4</number>
       </property>
       <property name="iconSize">
        <size>
@@ -1661,10 +1661,10 @@ p, li { white-space: pre-wrap; }
        <widget class="QPushButton" name="run_button">
         <property name="geometry">
          <rect>
-          <x>260</x>
-          <y>320</y>
+          <x>50</x>
+          <y>50</y>
           <width>181</width>
-          <height>23</height>
+          <height>31</height>
          </rect>
         </property>
         <property name="font">
@@ -1678,23 +1678,57 @@ p, li { white-space: pre-wrap; }
          <string>RUN</string>
         </property>
        </widget>
-       <widget class="QProgressBar" name="progressBar">
+       <widget class="QPushButton" name="stop_button">
         <property name="geometry">
          <rect>
-          <x>60</x>
-          <y>380</y>
-          <width>671</width>
-          <height>23</height>
+          <x>50</x>
+          <y>520</y>
+          <width>181</width>
+          <height>31</height>
          </rect>
         </property>
-        <property name="value">
-         <number>24</number>
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+          <weight>50</weight>
+          <bold>false</bold>
+         </font>
         </property>
-        <property name="textVisible">
+        <property name="text">
+         <string>Stop</string>
+        </property>
+       </widget>
+       <widget class="QPlainTextEdit" name="ouput_textedit">
+        <property name="geometry">
+         <rect>
+          <x>50</x>
+          <y>110</y>
+          <width>651</width>
+          <height>391</height>
+         </rect>
+        </property>
+        <property name="readOnly">
          <bool>true</bool>
         </property>
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
+       </widget>
+       <widget class="QLabel" name="label_42">
+        <property name="geometry">
+         <rect>
+          <x>50</x>
+          <y>80</y>
+          <width>51</width>
+          <height>31</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>11</pointsize>
+          <weight>50</weight>
+          <bold>false</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>Log</string>
         </property>
        </widget>
       </widget>
@@ -2160,7 +2194,7 @@ p, li { white-space: pre-wrap; }
           <x>590</x>
           <y>110</y>
           <width>181</width>
-          <height>271</height>
+          <height>201</height>
          </rect>
         </property>
         <property name="selectionMode">
@@ -2242,8 +2276,8 @@ p, li { white-space: pre-wrap; }
        <widget class="QPushButton" name="save_map_button">
         <property name="geometry">
          <rect>
-          <x>590</x>
-          <y>650</y>
+          <x>600</x>
+          <y>680</y>
           <width>131</width>
           <height>23</height>
          </rect>
@@ -2255,8 +2289,8 @@ p, li { white-space: pre-wrap; }
        <widget class="QLabel" name="label_38">
         <property name="geometry">
          <rect>
-          <x>590</x>
-          <y>630</y>
+          <x>600</x>
+          <y>660</y>
           <width>131</width>
           <height>21</height>
          </rect>
@@ -2267,42 +2301,6 @@ p, li { white-space: pre-wrap; }
         <property name="alignment">
          <set>Qt::AlignCenter</set>
         </property>
-       </widget>
-       <widget class="QCheckBox" name="annotation_checkbox">
-        <property name="geometry">
-         <rect>
-          <x>600</x>
-          <y>420</y>
-          <width>91</width>
-          <height>31</height>
-         </rect>
-        </property>
-        <property name="text">
-         <string>Annotation</string>
-        </property>
-       </widget>
-       <widget class="QComboBox" name="annotation_event_combo">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
-        <property name="geometry">
-         <rect>
-          <x>600</x>
-          <y>450</y>
-          <width>141</width>
-          <height>22</height>
-         </rect>
-        </property>
-        <item>
-         <property name="text">
-          <string>Mouse hover</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Mouse click</string>
-         </property>
-        </item>
        </widget>
        <widget class="QLabel" name="label_39">
         <property name="geometry">
@@ -2343,34 +2341,164 @@ p, li { white-space: pre-wrap; }
          </rect>
         </property>
        </widget>
-       <widget class="QLineEdit" name="annotation_radius_line">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
+       <widget class="QGroupBox" name="groupBox_12">
         <property name="geometry">
          <rect>
-          <x>600</x>
-          <y>500</y>
-          <width>113</width>
-          <height>20</height>
+          <x>590</x>
+          <y>330</y>
+          <width>171</width>
+          <height>131</height>
          </rect>
         </property>
-        <property name="text">
-         <string>0.01</string>
+        <property name="title">
+         <string>Annotation</string>
         </property>
+        <widget class="QCheckBox" name="annotation_checkbox">
+         <property name="geometry">
+          <rect>
+           <x>10</x>
+           <y>20</y>
+           <width>91</width>
+           <height>31</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>On</string>
+         </property>
+        </widget>
+        <widget class="QComboBox" name="annotation_event_combo">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="geometry">
+          <rect>
+           <x>10</x>
+           <y>50</y>
+           <width>141</width>
+           <height>22</height>
+          </rect>
+         </property>
+         <item>
+          <property name="text">
+           <string>Mouse hover</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>Mouse click</string>
+          </property>
+         </item>
+        </widget>
+        <widget class="QLabel" name="label_40">
+         <property name="geometry">
+          <rect>
+           <x>10</x>
+           <y>80</y>
+           <width>81</width>
+           <height>21</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Radius</string>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="annotation_radius_line">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="geometry">
+          <rect>
+           <x>10</x>
+           <y>100</y>
+           <width>113</width>
+           <height>20</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>0</string>
+         </property>
+        </widget>
        </widget>
-       <widget class="QLabel" name="label_40">
+       <widget class="QGroupBox" name="groupBox_13">
         <property name="geometry">
          <rect>
-          <x>600</x>
-          <y>480</y>
-          <width>81</width>
-          <height>21</height>
+          <x>590</x>
+          <y>470</y>
+          <width>171</width>
+          <height>51</height>
          </rect>
         </property>
-        <property name="text">
-         <string>Radius</string>
+        <property name="title">
+         <string>Substitute Layer</string>
         </property>
+        <widget class="QPushButton" name="spatial_join_button">
+         <property name="geometry">
+          <rect>
+           <x>20</x>
+           <y>20</y>
+           <width>121</width>
+           <height>21</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Setup</string>
+         </property>
+        </widget>
+       </widget>
+       <widget class="QGroupBox" name="groupBox_14">
+        <property name="geometry">
+         <rect>
+          <x>590</x>
+          <y>540</y>
+          <width>171</width>
+          <height>111</height>
+         </rect>
+        </property>
+        <property name="title">
+         <string>Map Appearance</string>
+        </property>
+        <widget class="QPushButton" name="symbology_button">
+         <property name="geometry">
+          <rect>
+           <x>20</x>
+           <y>20</y>
+           <width>121</width>
+           <height>31</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Symbology</string>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="major_tick_size_line">
+         <property name="geometry">
+          <rect>
+           <x>110</x>
+           <y>60</y>
+           <width>31</width>
+           <height>20</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>10</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_41">
+         <property name="geometry">
+          <rect>
+           <x>20</x>
+           <y>60</y>
+           <width>81</width>
+           <height>21</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Grid Font Size</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
        </widget>
       </widget>
      </widget>

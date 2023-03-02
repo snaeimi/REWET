@@ -15,54 +15,61 @@ from restoration.base import get_node_name
 logger = logging.getLogger(__name__)
 
 class Registry():
-    def __init__(self, WaterNetwork, settings):
-        #for damage registery
-        #self._pipe_node_damage_status = pd.Series() # a list of raw damaged locations and their status 
-        self._registry_version = 0.1
-        self.settings      = settings
-        self.EQCoordinates = (6398403.298, 1899243.660)
-        self.proximity_points  = {'WaterSource':[(6435903.606431,1893248.592426),(6441950.711447,1897369.022871),
-                                                 (6424377.955317,1929513.408731),(6467146.075381,1816296.452238),
-                                                 (6483259.266246,1803209.907606),(6436359.6420960,1905761.7390040),
-                                                 (6492204.110122,1758379.158018),(6464169.549436,1738989.098520),
-                                                 (6504097.778564,1875687.031985),(6414434.124,1929805.346),
-                                                 (6412947.370,1936851.950)]}
+    def __init__(self, WaterNetwork, settings, demand_node_name_list, scenario_name):
+        
+        self._registry_version     = 0.15
+        self.wn                    = WaterNetwork
+        self.settings              = settings
+        self.demand_node_name_list = demand_node_name_list
+        self.scenario_name         = scenario_name
+        #self.EQCoordinates         = (6398403.298, 1899243.660)
+        #self.proximity_points      = {'WaterSource':[(6435903.606431,1893248.592426),(6441950.711447,1897369.022871),
+                                                 #(6424377.955317,1929513.408731),(6467146.075381,1816296.452238),
+                                                 #(6483259.266246,1803209.907606),(6436359.6420960,1905761.7390040),
+                                                 #(6492204.110122,1758379.158018),(6464169.549436,1738989.098520),
+                                                 #(6504097.778564,1875687.031985),(6414434.124,1929805.346),
+                                                 #(6412947.370,1936851.950)]}
         self._pipe_break_node_coupling = {} # for broken points that each has two nodes
         self._break_point_attached_to_mainPipe = [] # for broken points to show which node is attached to the main point. For easier and faster coding in removals of damage
         #self._occupancy = pd.Series() # for agent occupency
         #self._pipe_RepairAgentNameRegistry=[] # MAYBE NOT NEEDED for agent occupency
-        self._tank_damage_table      = pd.DataFrame(columns=['damage_type'])
-        self._reservoir_damage_table = pd.DataFrame(columns=['damage_type'])
-        self._pump_damage_table      = pd.DataFrame(columns=['damage_type', 'element_name', 'start_node', 'end_node'])
-        self._gnode_damage_table     = pd.DataFrame(columns=['damage_type'])
-        self._pipe_damage_table      = pd.DataFrame(columns=['damage_type', 'damage_sub_type', 'Orginal_element', 'attached_element','number'])
-        self._pipe_data              = pd.DataFrame(columns=['diameter'])
-        self._node_damage_table      = pd.DataFrame(columns=['Demand1','Demand2','Number_of_damages'])
-        self._pipe_break_history     = pd.DataFrame(columns=['Pipe_A','Pipe_B','Orginal_pipe', 'Node_A','Node_B'])
-        self._pipe_leak_history      = pd.DataFrame(columns=['Pipe_A','Pipe_B','Orginal_pipe','Node_name'])
-        self._long_task_data         = pd.DataFrame(columns=['Node_name', 'Action', 'Entity', 'Time', 'cur_agent_name'])
-        self.restoration_log_book    = RestorationLog()
-        self.explicit_leak_node      = pd.Series()
-        self.demand_node_name_list   = []
-        self.all_node_name_list      = WaterNetwork.node_name_list.copy()
-        self.demand_node_users       = pd.Series()
-        self.minimum_time_devision   = 60*60
+        self._tank_damage_table        = pd.DataFrame(columns=['damage_type'])
+        self._reservoir_damage_table   = pd.DataFrame(columns=['damage_type'])
+        self._pump_damage_table        = pd.DataFrame(columns=['damage_type', 'element_name', 'start_node', 'end_node'])
+        self._gnode_damage_table       = pd.DataFrame(columns=['damage_type'])
+        self._pipe_damage_table        = pd.DataFrame(columns=['damage_type', 'damage_sub_type', 'Orginal_element', 'attached_element','number', 'LeakAtCheck'])
+        self._pipe_data                = pd.DataFrame(columns=['diameter'])
+        self._node_damage_table        = pd.DataFrame(columns=['Demand1','Demand2','Number_of_damages'])
+        self._pipe_break_history       = pd.DataFrame(columns=['Pipe_A','Pipe_B','Orginal_pipe', 'Node_A','Node_B'])
+        self._pipe_leak_history        = pd.DataFrame(columns=['Pipe_A','Pipe_B','Orginal_pipe','Node_name'])
+        self._long_task_data           = pd.DataFrame(columns=['Node_name', 'Action', 'Entity', 'Time', 'cur_agent_name'])
+        self.pre_event_demand_met      = pd.DataFrame()
+        self.if_first_event_occured    = 0
+        self.restoration_log_book      = RestorationLog(settings)
+        self.explicit_leak_node        = pd.Series()
+        self.demand_node_name_list     = []
+        self.all_node_name_list        = WaterNetwork.node_name_list.copy()
+        self.demand_node_users         = pd.Series()
+        #self.minimum_time_devision     = 60*60
         self.nodal_equavalant_diameter = None
-        self.original_pipe_data      = {}
-        self.Pipe_Damage_restoration_report =[] 
-        self.result                  = None
-        self.active_pipe_damages     = OrderedDict()
-        self.active_nodal_damages    = OrderedDict()
-        self.active_collectives      = pd.DataFrame(columns=['action','Orginal_pipe'])
-        self.virtual_node_data       = OrderedDict()
-        self._nodal_data             = OrderedDict()
+        self.original_pipe_data        = {}
+        self.result                    = None
+        self.active_pipe_damages       = OrderedDict()
+        self.active_nodal_damages      = OrderedDict()
+        self.active_collectives        = pd.DataFrame(columns=['action','Orginal_pipe'])
+        self.virtual_node_data         = OrderedDict()
+        self._nodal_data               = OrderedDict()
+        self.result                    = None
+        self.result_dump_file_list     = []
+        self.Pipe_Damage_restoration_report = []
+
                 
         for name, pipe in WaterNetwork.pipes():
             self._pipe_data.loc[name] = [pipe.diameter]
         
         
         for node_name, node in WaterNetwork.junctions():
-            if node.demand_timeseries_list[0].base_value>0:
+            if node.demand_timeseries_list[0].base_value>0.00000008:
                 self.demand_node_name_list.append(node_name)
                 
         for demand_node_name in self.demand_node_name_list:
@@ -1153,3 +1160,14 @@ class Registry():
         if stop_time in self._pipe_damage_table_history:
             return ValueError("Time exists in pipe damage hostry: " + str(stop_time))
         self._pipe_damage_table_history['stop_time'] = self._pipe_damage_table_history
+    
+    def getMostLeakAtCheck(self, real_node_name_list, element_type):
+        if element_type == "DISTNODE":
+            total_demand = self._node_damage_table.loc[real_node_name_list, 'Demand2']
+            return total_demand
+        elif element_type == "PIPE":
+            leak = self.self._pipe_damage_table.loc[real_node_name_list, 'LeakAtCheck']
+            return leak
+        else:
+            return None
+        

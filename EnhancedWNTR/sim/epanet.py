@@ -172,7 +172,7 @@ class EpanetSimulator(WaterNetworkSimulator):
         hydfile : str
             Optionally specify a filename for the hydraulics file other than the `file_prefix`
 
-        """
+        """    
         solver_parameters_list = [(10,100, 0.01), (10, 100, 0), (1,10, 0)]
         balanced_system = False
         run_successful= False
@@ -205,6 +205,7 @@ class EpanetSimulator(WaterNetworkSimulator):
                 try:
                     enData.ENsolveH()
                 except Exception as err:
+                    enData.ENclose()
                     if err.args[0] == 'EPANET Error 110':
                         print(enData.errcode)
                         run_successful= False
@@ -220,10 +221,15 @@ class EpanetSimulator(WaterNetworkSimulator):
             if save_hyd:
                 enData.ENsavehydfile(hydfile)
                 logger.debug('Saved hydraulics')
-            enData.ENsolveQ()
-            logger.debug('Solved quality')
-            enData.ENreport()
-            logger.debug('Ran quality')
+            
+            try:
+                enData.ENsolveQ()
+                logger.debug('Solved quality')
+                enData.ENreport()
+                logger.debug('Ran quality')
+            except Exception as err:
+                enData.ENclose()
+                raise err
             enData.ENclose()
             logger.debug('Completed run')
             result_data = self.reader.read(outfile, start_time=start_time)
@@ -389,6 +395,7 @@ class EpanetSimulator(WaterNetworkSimulator):
             if link.initial_status == wntr.network.LinkStatus.closed:
                 vals.append(0)
                 vals.append(0)
+                #sina remove comment amrks
             elif link.link_type == 'Pipe':
                 if link.cv:
                     vals.append(1)

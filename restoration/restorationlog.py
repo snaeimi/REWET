@@ -9,15 +9,22 @@ from collections import OrderedDict
 import pandas as pd
 
 class RestorationLog():
-    def __init__(self):
+    def __init__(self, settings):
+        self.settings = settings
         self._agent_state_log_book  = pd.DataFrame(columns=['Time','Name', 'Type','Lable','Action','EFN','MN','Location','X','Y'])
         self._agent_action_log_book = pd.DataFrame(columns=['Agent', 'Node', 'Entity', 'Action', 'Time', 'End_time', 'Travel_time', 'effect_definition_name', 'method_name', 'iFinished'])
         self.crew_history = OrderedDict()
         
     def updateAgentHistory(self, agent_table, time):
+        if self.settings["record_restoration_agent_logs"] == False:
+            return
+        
         self.crew_history[time] = agent_table.copy()
     
     def updateAgentLogBook(self, agent_table, time):
+        if self.settings["record_restoration_agent_logs"] == False:
+            return
+        
         for agent_name, line in agent_table.iterrows():
             temp = None
             if line['active']==True and line['ready']==False:
@@ -38,10 +45,16 @@ class RestorationLog():
             self._agent_state_log_book=self._agent_state_log_book.append(temp, ignore_index=True)
                 
     def addAgentActionToLogBook(self, agent_name, node_name, entity, action, time, end_time, travel_time, effect_definition_name ,method_name, iFinished=True):
+        if self.settings["record_restoration_agent_logs"] == False:
+            return
+        
         temp = pd.Series(data=[agent_name, node_name, entity, action, time, end_time, travel_time, effect_definition_name, method_name, iFinished], index=['Agent', 'Node', 'Entity', 'Action', 'Time', 'End_time', 'Travel_time', 'effect_definition_name', 'method_name', 'iFinished'])
         self._agent_action_log_book = self._agent_action_log_book.append(temp, ignore_index=True)
     
     def addEndTimegentActionToLogBook(self, agent_name, time, modified_end_time):
+        if self.settings["record_restoration_agent_logs"] == False:
+            return
+        
         temp = self._agent_action_log_book[['Agent','Time']]==[agent_name, time]
         temp = self._agent_action_log_book[temp.all(1)]
         
@@ -55,12 +68,14 @@ class RestorationLog():
         
         self._agent_action_log_book.loc[ind, 'Modified_end_time'] = modified_end_time
         
-    def getAgentActioLogBookat(self, time, end_time=True):
-        res=None
-        
-        if end_time==True:
-            res=self._agent_action_log_book[self._agent_action_log_book['Modified_end_time']==time]
-        else:
-            res=self._agent_action_log_book[self._agent_action_log_book['Time']==time]
-            
-        return res
+# =============================================================================
+#     def getAgentActioLogBookat(self, time, end_time=True):
+#         res=None
+#         
+#         if end_time==True:
+#             res=self._agent_action_log_book[self._agent_action_log_book['Modified_end_time']==time]
+#         else:
+#             res=self._agent_action_log_book[self._agent_action_log_book['Time']==time]
+#             
+#         return res
+# =============================================================================

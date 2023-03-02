@@ -54,7 +54,7 @@ class Location():
         
         
 class AgentData():
-    def __init__(self, agent_name, agent_type, cur_x, cur_y, shift_name, base_name, base_x, base_y, shift_obj ):
+    def __init__(self, agent_name, agent_type, cur_x, cur_y, shift_name, base_name, base_x, base_y, shift_obj , agent_speed):
         
         if type(agent_type) != str:
             raise ValueError('agent type must be string')
@@ -69,14 +69,14 @@ class AgentData():
             raise ValueError("base_x must be float")
         if type(base_y) != float:
             raise ValueError("base_y must be float")
-        
+
         self.name              = agent_name
         self.agent_type        = agent_type
         self.current_location  = Location('current', cur_x, cur_y)
         self.base_location     = Location(base_name, base_x, base_y)
         self.shift             = AgentShift(self.name, shift_name)
         self._shifting         = shift_obj
-        self._avg_speed        = 20*3/3.6
+        self._avg_speed        = agent_speed #20*3/3.6
         self.isWorking         = False
         self.cur_job_location  = None
         self.cur_job_action    = None
@@ -182,7 +182,7 @@ class AgentData():
         
 
 class Agents():
-    def __init__(self, shifting, jobs, restoration_log_book):
+    def __init__(self, registry, shifting, jobs, restoration_log_book):
         
         # data:    is the
         # type:    agent type
@@ -194,6 +194,7 @@ class Agents():
         self._shifting             = shifting
         self._jobs                 = jobs
         self.restoration_log_book  = restoration_log_book
+        self.registry              = registry
         
     def addAgent(self, agent_name, agent_type, definition):
         """
@@ -213,7 +214,8 @@ class Agents():
         """
 
         #number_of_agents = int(definition['Number'])
-        temp_agent_data                = AgentData(agent_name, agent_type, float(definition['cur_x']), float(definition['cur_y']), definition['shift_name'], definition['group'], float(definition['base_x']), float(definition['base_y']), self._shifting)
+        agent_speed                    = self.registry.settings["crew_travel_speed"]
+        temp_agent_data                = AgentData(agent_name, agent_type, float(definition['cur_x']), float(definition['cur_y']), definition['shift_name'], definition['group'], float(definition['base_x']), float(definition['base_y']), self._shifting, agent_speed)
         self._agents.loc[agent_name]   = [temp_agent_data, agent_type, definition['group'], False, False, False] 
         if agent_type not in self.group_names:
             self.group_names[agent_type]=definition['group_name']
@@ -398,10 +400,10 @@ class Agents():
         agent_shift_change_time = self._agents.loc[agent_name,'data'].getAgentShiftEndTime(time)
         shift_length            = self._agents.loc[agent_name,'data'].getShiftLength()
         
+        minimum_job_time = self._jobs._rm._registry.settings['minimum_job_time']
         if end_time<=agent_shift_change_time:
             iget="INSIDE_SHIFT"
             iOnGoing=False
-
         elif end_time>agent_shift_change_time and _ETJ > (shift_length-2*3600) and (time + _ETA + 2*3600) < agent_shift_change_time:
             iget="OUTSIDE_SHIFT"
             iOnGoing=True
@@ -581,40 +583,33 @@ class Shifting():
     
 
 class DispatchRule():
-    def __init__(self, method = "deterministic", method_data = None, exclude=None):
-        self._rules={}
-        self._cumulative={}
-        if method_data==None:
-            data=pd.Series([0, 0.67, 0.07, 0.07, 0.07, 0.07, 0.05], index = [3600*n for n in [0, 12, 24, 36, 48, 60, 72]])
-            data.name='DISTNODE'
+    def __init__(self, settings, method = "deterministic", exclude=None):
+        self.settings    = settings
+        self._rules      = {}
+        self._cumulative = {}
+        
+        if "PIPE" not in exclude:
             
-            data2=pd.Series([0.90, 0.01, 0.01, 0.04, 0.04, 0, 0], index = [3600*n for n in [0, 12, 24, 36, 48, 60, 72]])
-            data2.name='PIPE'
+            self._rules["PIPE"] = self.settings['pipe_damage_discovery_model']['time_discovery_ratio']
+            #data2=pd.Series([0.90, 0.01, 0.01, 0.04, 0.04, 0, 0], index = [3600*n for n in [0, 12, 24, 36, 48, 60, 72]])
             
-            data3=pd.Series([1], index = [3600*n for n in [0]])
-            data3.name='GNODE'
-            
-            data4=pd.Series([1], index = [3600*n for n in [0]])
-            data4.name='TANK'
-            
-            data5=pd.Series([1], index = [3600*n for n in [0]])
-            data5.name='PUMP'
-            
-            data6=pd.Series([1], index = [3600*n for n in [0]])
-            data6.name='RESERVOIR'
-            
+        if "DISTNODE" not in exclude:
+            self._rules["DISTNODE"] = self.settings['node_damage_discovery_model']['time_discovery_ratio']
+            #data=pd.Series([0, 0.67, 0.07, 0.07, 0.07, 0.07, 0.05], index = [3600*n for n in [0, 12, 24, 36, 48, 60, 72]])
+        
+        
+        self._rules['GNODE']      = self.settings['Gnode_damage_discovery_model']['time_discovery_ratio']
+        self._rules['TANK']       = self.settings['tank_damage_discovery_model']['time_discovery_ratio']
+        self._rules['PUMP']       = self.settings['pump_damage_discovery_model']['time_discovery_ratio']
+        self._rules['RESERVOIR']  = self.settings['reservoir_damage_discovery_model']['time_discovery_ratio']
+                    
         if method == "deterministic":
-            self._rules[data.name]  = data
-            self._rules[data2.name] = data2
-            self._rules[data3.name] = data3
-            self._rules[data4.name] = data4
-            self._rules[data5.name] = data5
-            self._rules[data6.name] = data6
+            pass
         else:
             raise ValueError("Unknown dispatch Rule: " + method)
             
-        for key in exclude:
-            self._rules.pop(key)
+        #for key in exclude:
+            #self._rules.pop(key)
         
         for key, d in self._rules.items():
             self._cumulative[key] = self._rules[key].cumsum()
@@ -638,19 +633,31 @@ class DispatchRule():
         return res
         
 class Dispatch():
-    def __init__(self, restoration, discovery_interval = 0, method='old'):
+    def __init__(self, restoration, settings, discovery_interval = 0, method='old'):
+        self.settings = settings
         self.method = method
         self.discovery_interval = discovery_interval
         self._rm = restoration
         self._discovered_entity={}
         self._init_time = self._rm.restoration_start_time
         
-        if method =='new':
-            exclude = ['PIPE', 'DISTNODE']
-        else:
-            exclude = []
+        exclude = []
         
-        self._rules = DispatchRule(exclude=exclude)
+        if settings['pipe_damage_discovery_model']['method'] == 'leak_based':
+            exclude.append('PIPE')
+        elif settings['pipe_damage_discovery_model']['method'] == 'time_based':
+            pass
+        else:
+            raise ValueError("Unknown pipe damage discovery method in settings: " + repr(settings['pipe_damage_discovery_model']['method']))
+        
+        if settings['node_damage_discovery_model']['method'] == 'leak_based':
+            exclude.append('DISTNODE')
+        elif settings['node_damage_discovery_model']['method'] == 'time_based':
+            pass
+        else:
+            raise ValueError("Unknown Node damage discovery method in settings: " + repr(settings['node_damage_discovery_model']['method']))
+        
+        self._rules = DispatchRule(settings, exclude=exclude)
         self._last_discovered_number = {}
         for el in self._rm.ELEMENTS:
             if el in exclude:
@@ -665,12 +672,17 @@ class Dispatch():
             print("Time is less than init time")
             
         else:
-            if self.method == 'old':
-                time_since_dispatch_activity = time - self._rm.restoration_start_time
-                discovered_ratios         = self._rules.getDiscoveredPrecentage(time_since_dispatch_activity)
-                discovered_damage_numbers = self._getDamageNumbers(discovered_ratios)
-                self._updateDamagesNumbers(discovered_damage_numbers)
-            elif self.method == 'new':
+            #if self.method == 'old':
+                #time_since_dispatch_activity = time - self._rm.restoration_start_time
+                #discovered_ratios         = self._rules.getDiscoveredPrecentage(time_since_dispatch_activity)
+                #discovered_damage_numbers = self._getDamageNumbers(discovered_ratios)
+                #self._updateDamagesNumbers(discovered_damage_numbers)
+                
+            if self.settings['pipe_damage_discovery_model']['method'] == 'leak_based':
+                
+                pipe_leak_criteria  = self.settings['pipe_damage_discovery_model']['leak_amount']
+                pipe_leak_time_span = self.settings['pipe_damage_discovery_model']['leak_time'  ]
+                 
                 pipe_damage_table  = self._rm._registry._pipe_damage_table
                 not_discovered_pipe_damage_table        = pipe_damage_table[pipe_damage_table['discovered']==False]
                 to_be_checked_node_list = list(not_discovered_pipe_damage_table.index)
@@ -683,13 +695,13 @@ class Dispatch():
                 #breaks_not_discovered_pipe_damage_table
                 #all_nodes_name_list = set(self._rm._registry.result.columns)
                 available_nodes = set(self._rm._registry.result.node['demand'].columns)
-                to_be_checked_node_list    = set(to_be_checked_node_list)
-                shared_nodes_name_list = to_be_checked_node_list.union(available_nodes) -  (available_nodes - to_be_checked_node_list) - (to_be_checked_node_list - available_nodes)
+                to_be_checked_node_list = set(to_be_checked_node_list)
+                shared_nodes_name_list  = to_be_checked_node_list.union(available_nodes) -  (available_nodes - to_be_checked_node_list) - (to_be_checked_node_list - available_nodes)
                 if len(shared_nodes_name_list) > 0:
                     leaking_nodes_result = self._rm._registry.result.node['demand'][list(shared_nodes_name_list)]
                     
-                    leaking_nodes_result = leaking_nodes_result.loc[(leaking_nodes_result.index > time-3600*12)]
-                    discovered_bool = leaking_nodes_result >= 0.025
+                    leaking_nodes_result = leaking_nodes_result.loc[(leaking_nodes_result.index > (time - pipe_leak_time_span) )]
+                    discovered_bool = leaking_nodes_result >= pipe_leak_criteria
                     discovered_bool_temp = discovered_bool.any()
                     discovered_bool_temp = discovered_bool_temp[discovered_bool_temp==True]
                     to_be_discoverd = discovered_bool_temp.index.to_list()
@@ -713,7 +725,13 @@ class Dispatch():
                             discovery_list.add(discovery_candidate)
                     #discovery_list = list(discovery_list)
                     pipe_damage_table.loc[discovery_list, 'discovered'] = True
+                    
+            if self.settings['node_damage_discovery_model']['method'] == 'leak_based':
                 
+                node_leak_criteria  = self.settings['node_damage_discovery_model']['leak_amount']
+                node_leak_time_span = self.settings['node_damage_discovery_model']['leak_time'  ]
+                
+
                 nodal_damage_table                = self._rm._registry._node_damage_table
                 not_discovered_nodal_damage_table = nodal_damage_table[nodal_damage_table['discovered']==False]
                 if 'virtual_of' in not_discovered_nodal_damage_table.columns:
@@ -735,10 +753,11 @@ class Dispatch():
                     else:
                         leaking_number_of_damages = not_discovered_nodal_damage_table.loc[shared_nodes_name_list, "Number_of_damages"]
                     
-                    leaking_nodes_result = leaking_nodes_result.loc[(leaking_nodes_result.index > time-3600*12)]
+                    leaking_nodes_result = leaking_nodes_result.loc[(leaking_nodes_result.index > (time - node_leak_time_span) )]
                     # = leaking_nodes_result[leaking_nodes_result>=0.002]
                     normalized_summed_water_loss = leaking_nodes_result / leaking_number_of_damages
-                    discovered_bool = normalized_summed_water_loss >= 0.001
+                    discovered_bool = normalized_summed_water_loss >= node_leak_criteria
+                    #print("sssssssss "+repr(leaking_nodes_result) )
                     discovered_bool_temp = discovered_bool.any()
                     discovered_bool_temp = discovered_bool_temp[discovered_bool_temp==True]
                     discovered_list = discovered_bool_temp.index.to_list()
@@ -746,6 +765,7 @@ class Dispatch():
                     #discovered_leaks.index()
                     if 'virtual_of' in not_discovered_nodal_damage_table.columns:
                         discovered_list = (nodal_damage_table[nodal_damage_table['virtual_of'].isin(discovered_list)]).index
+
                     nodal_damage_table.loc[discovered_list, 'discovered'] = True
                     
                     #time1    = leaking_nodes_result.index[1:]
@@ -853,40 +873,25 @@ class Priority():
         
         return temp.loc[priority]
     
-    def sortDamageTable(self, wn, entity_data, agent_type,target_priority_index, order_index):
-        temp = self._data[agent_type]
-        target_priority_list    = temp.loc[target_priority_index]
+    def sortDamageTable(self, wn, entity_data, entity, agent_type, target_priority_index, order_index, target_priority = None):
+        all_priority_data    = self._data[agent_type]
+        target_priority_list = all_priority_data.loc[target_priority_index]
         
-        #prim_priority_list = prim_priority_list.iloc[0]
-        
-        prio=None
-        
-        #if len(target_priority) > 1:
-            #raise ValueError('Something wrong here')
         if len(target_priority_list) == 0:
             return entity_data
         
         name_sugest = 'Priority_'+str(target_priority_index)+'_dist'
-        target_priority = target_priority_list[order_index]
+        if target_priority == None:
+            target_priority = target_priority_list[order_index]
+        
         if target_priority == None:
             return entity_data
-        
-        
-        elif target_priority == 'EPICENTERDIST':
-            #name_sugest = str(random.randint(800000,90000000))
-            
-            eq_coord = self._rm._registry.EQCoordinates
-            for node_name, val in entity_data.iterrows():
-                node_name_vir = get_node_name(node_name, entity_data)
-                coord = wn.get_node(node_name_vir).coordinates
-                dist  = ((eq_coord[0]-coord[0])**2 + (eq_coord[1]-coord[1])**2)**0.5
-                entity_data.loc[node_name, name_sugest] = dist
-            entity_data.sort_values(by=name_sugest, ascending=True, inplace =True)
-            entity_data.drop(columns=name_sugest, inplace= True)
-        elif target_priority == 'WaterSource':
-            Proximity_list = self._rm._registry.proximity_points['WaterSource']
+
+        elif target_priority in self._rm.proximity_points:
+            Proximity_list = self._rm.proximity_points[target_priority]
             node_name_list = list(entity_data.index)
             for node_name in node_name_list:
+                #Sina: you can enhance the run time speed with having x, y coordinates in the damage table and not producing and droping them each time
                 node_name_vir = get_node_name(node_name, entity_data)
                 coord = wn.get_node(node_name_vir).coordinates
                 entity_data.loc[node_name, 'X_COORD'] = coord[0]
@@ -897,6 +902,7 @@ class Priority():
                 name_sug_c = name_sugest+'_'+str(counter)
                 columns_to_drop.append(name_sug_c)
                 entity_data[name_sug_c] = ( (entity_data['X_COORD']-x)**2 + (entity_data['Y_COORD']-y)**2 ) ** 0.5
+                counter += 1
             dist_only_entity_table      = entity_data[columns_to_drop]
             min_dist_entity_table       = dist_only_entity_table.min(axis=1)
             entity_data[name_sugest]    = min_dist_entity_table
@@ -905,9 +911,34 @@ class Priority():
             columns_to_drop.append('X_COORD')
             columns_to_drop.append('Y_COORD')
             entity_data.drop(columns=columns_to_drop, inplace= True)
-
+        elif target_priority in self._rm.proximity_points:
+            #Sina: It does nothing. When there are less damage location within
+            #the priority definition for the crew type, thsi works fine, but 
+            #when there are more damage location within the priority definiton,
+            #it does not gurantee that only teh cloest damage locations to the
+            #crew-type agents are matched to jobs
+            if target_priority.upper() == "CLOSEST":
+                pass
+            #If element type is not leakable, it does nothing. IF nodes are not
+            #Checked (i.e. check is not at the sequnce before the current action)
+            #the leak data is real time leak for the damage location.
+            elif target_priority.upper() == "MOSTLEAKATCHECK":
+                real_node_name_list = []
+                node_name_list = list(entity_data.index)
+                name_sugest = 'Priority_'+str(target_priority_index)+'_leak_sina' #added sina so the possibility of a conflic of name is minimized
+                for node_name in node_name_list:
+                    node_name_vir = get_node_name(node_name, entity_data)
+                    real_node_name_list.append(node_name_vir)
+                element_type = self._rm.entity[entity]
+                leak_data = self._rm._registry.start.registry.getMostLeakAtCheck(real_node_name_list, element_type)
+                if type(leak_data) != type(None):
+                    entity_data[name_sugest] = leak_data
+                    entity_data.sort_values(by=name_sugest, ascending=True, inplace =True)
+                    entity_data.drop(columns=[name_sugest], inplace= True)
+                else:
+                    entity_data = self.sortDamageTable(entity_data, entity, agent_type, target_priority_index, order_index, target_priority = "CLOSEST")
         else:
-            raise ValueError('Unrcognized key')
+            raise ValueError('Unrcognized Secondary Primary')
         
         return entity_data
     

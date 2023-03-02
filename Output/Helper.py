@@ -5,7 +5,7 @@ Created on Mon Oct 24 18:10:31 2022
 @author: snaeimi
 """
 
-import numba
+#import numba
 import numpy as np
 
 def hhelper(x):
@@ -14,7 +14,7 @@ def hhelper(x):
     else:
         return x
     
-@numba.jit()
+#@numba.jit()
 def EPHelper(prob_mat):
     ep_mat = np.ndarray(prob_mat.size)
     for i in np.arange(prob_mat.size):

@@ -4,15 +4,19 @@ Created on Wed Apr  8 20:19:10 2020
 
 @author: snaeimi
 """
+import os
+import pickle
 import wntr
 import Damage
 import pandas as pd
 import logging
 from timeline import Timeline
+import sys
 #from wntrplus import WNTRPlus
 from wntr.utils.ordered_set import OrderedSet
 from Sim.Simulation import Hydraulic_Simulation
 import EnhancedWNTR.network.model
+from EnhancedWNTR.sim.results import SimulationResults
 
 
 logger = logging.getLogger(__name__)
@@ -26,7 +30,7 @@ class StochasticModel():
         self.wn               = water_network
         self.damage_model     = damage_model
         self._simulation_time = simulation_end_time
-        self.timeline         = Timeline(simulation_end_time)
+        self.timeline         = Timeline(simulation_end_time, restoration, registry)
         damage_distict_time   = self.damage_model.get_damage_distinct_time()
         self.timeline.addEventTime(damage_distict_time)
         self.timeline.checkAndAmendTime()
@@ -48,7 +52,6 @@ class StochasticModel():
         self._prev_isolated_junctions = OrderedSet()
         self._prev_isolated_links     = OrderedSet()
         self.first_leak_flag          = True
-        
 
     def runLinearScenario(self, damage, settings, worker_rank=None):
         """
@@ -64,7 +67,9 @@ class StochasticModel():
         Result.
 
         """
+        
         while self.timeline.iContinue():
+            sys.stdout.flush()
             current_stop_time = self.timeline.getCurrentStopTime()
             print('--------------------------------------')
             print('At stop Time: ' + repr(current_stop_time/3600))
@@ -80,6 +85,7 @@ class StochasticModel():
 # =============================================================================
 #           Damage (earthquake) event block   
             if self.timeline.iCurrentTimeDamageEvent():
+                self.registry.if_first_event_occured = True
                 logger.debug('\t DAMAGE EVENT')
                 damage.applyPipeDamages(self.wn, current_stop_time)
                 damage.applyNodalDamage(self.wn, current_stop_time)
@@ -92,8 +98,9 @@ class StochasticModel():
                
 # =============================================================================
 #           This is for updatng the pipe damage log
-            self.restoration._registry.updatePipeDamageTableTimeSeries(current_stop_time)
-            self.restoration._registry.updateNodeDamageTableTimeSeries(current_stop_time)
+            if settings["record_damage_table_logs"] == True:
+                self.restoration._registry.updatePipeDamageTableTimeSeries(current_stop_time)
+                self.restoration._registry.updateNodeDamageTableTimeSeries(current_stop_time)
 # =============================================================================
 #           runing the model
             next_event_time = self.timeline.getNextTime()
@@ -101,7 +108,7 @@ class StochasticModel():
 
             self.wn.implicitLeakToExplicitReservoir(self.registry)
             
-            print('***** Running at time '+ repr(current_stop_time/3600)+' *****')
+            print('***** Running hydraulic *****')
             
             if type(worker_rank) != str:
                 worker_rank = str(worker_rank)
@@ -140,20 +147,24 @@ class StochasticModel():
                                         rr, i_run_successful = hyd_sim.performSimulation(next_event_time, False)
                                     except Exception as epa_err_4:
                                         if epa_err_4.args[0] == 'EPANET Error 110':
-                                            #try:
-                                            self.wn.options.time.duration        = duration
-                                            self.wn.options.time.report_timestep = report_time_step
-                                            print("Method 4 failed. Performing method 5")
-                                            # Extend result from teh reult at the begining of teh time step with modified EPANET V2.2
-                                            rr, i_run_successful = hyd_sim.estimateRun(next_event_time, False)
-                                            #except Exception as epa_err_5:
-                                                #if epa_err_5.args[0] == 'EPANET Error 110':
-                                                    #print("Method 5 failed. Performing method 6")
-                                                    #self.wn.options.time.duration        = duration
-                                                    #self.wn.options.time.report_timestep = report_time_step
-                                                    #rr, i_run_successful = hyd_sim.estimateWithoutRun(self._linear_result ,next_event_time)
-                                                #else:
-                                                    #raise epa_err_5
+                                            try:
+                                                self.wn.options.time.duration        = duration
+                                                self.wn.options.time.report_timestep = report_time_step
+                                                print("Method 4 failed. Performing method 5")
+                                                # Extend result from teh reult at the begining of teh time step with modified EPANET V2.2
+                                                rr, i_run_successful = hyd_sim.estimateRun(next_event_time, False)
+                                            except Exception as epa_err_5:
+                                                if epa_err_5.args[0] == 'EPANET Error 110':
+                                                    try:
+                                                        print("Method 5 failed. Performing method 6")
+                                                        self.wn.options.time.duration        = duration
+                                                        self.wn.options.time.report_timestep = report_time_step
+                                                        rr, i_run_successful = hyd_sim.estimateWithoutRun(self._linear_result, next_event_time)
+                                                    except Exception as epa_err_6:        
+                                                        print("ERROR in rank="+repr(worker_rank)+" and time="+repr(current_stop_time))
+                                                        raise epa_err_6
+                                                else:
+                                                    raise epa_err_5
                                         else:
                                             raise epa_err_4
                                 else:
@@ -171,9 +182,12 @@ class StochasticModel():
             self.wn.updateWaterNetworkModelWithResult(rr, self.restoration._registry)
             
             self.KeepLinearResult(rr, self._prev_isolated_junctions, node_attributes=['pressure','head','demand', 'leak'], link_attributes=['status', 'setting', 'flowrate'])
-            
+            if self.registry.settings["limit_result_file_size"] > 0:
+                self.dumpPartOfResult()
             #self.wp.unlinkBreackage(self.registry)
             self.wn.resetExplicitLeak()
+        
+        
 
 # =============================================================================
         #self.resoration._registry.updateTankTimeSeries(self.wn, current_stop_time)
@@ -182,6 +196,10 @@ class StochasticModel():
         return self._linear_result
    
     def KeepLinearResult(self, result, isolated_nodes, node_attributes=None, link_attributes=None, iCheck=False):#, iNeedTimeCorrection=False, start_time=None):
+        
+        if self.registry.if_first_event_occured == False:
+            self.registry.pre_event_demand_met = self.registry.pre_event_demand_met.append(result.node['demand'])
+        
         if node_attributes == None:
             node_attributes = ['pressure','head','demand','quality']
         if link_attributes == None:
@@ -215,6 +233,19 @@ class StochasticModel():
         real_demand_nodes    = list(temp_active.values() )
         
         if len(temp_active) > 0:
+            #this must be here in the case that a node that is not isolated at
+            # this step has not result. This can happen if the result is being
+            #simulated without run.. For example, in the latest vallid result
+            #some nodes were isolated, but not in the current run.
+            available_nodes_in_current_result = result.node['demand'].columns.to_list()
+            not_available_virtual_node_names = set(virtual_demand_nodes) - set(available_nodes_in_current_result)
+            if len(not_available_virtual_node_names):
+                not_available_real_node_names = [temp_active[virtual_node_name] for virtual_node_name in not_available_virtual_node_names]
+                virtual_demand_nodes = set(virtual_demand_nodes) - not_available_virtual_node_names
+                real_demand_nodes    = set(real_demand_nodes) - set(not_available_real_node_names)
+                virtual_demand_nodes = list(virtual_demand_nodes)
+                real_demand_nodes    = list(real_demand_nodes)
+                
             result.node['demand'][real_demand_nodes] = result.node['demand'][virtual_demand_nodes]
             result.node['demand'].drop(virtual_demand_nodes, axis =1, inplace=True)
         
@@ -229,11 +260,22 @@ class StochasticModel():
         real_demand_nodes    = list(temp_active.values() )
         
         if len(temp_active) > 0:
+            #this must be here in the case that a node that is not isolated at
+            # this step has not result. This can happen if the result is being
+            #simulated without run.. For example, in the latest vallid result
+            #some nodes were isolated, but not in the current run.
+            available_nodes_in_current_result = result.node['demand'].columns.to_list()
+            not_available_virtual_node_names = set(virtual_demand_nodes) - set(available_nodes_in_current_result)
+            if len(not_available_virtual_node_names):
+                not_available_real_node_names = [temp_active[virtual_node_name] for virtual_node_name in not_available_virtual_node_names]
+                virtual_demand_nodes = set(virtual_demand_nodes) - not_available_virtual_node_names
+                real_demand_nodes    = set(real_demand_nodes) - set(not_available_real_node_names)
+                virtual_demand_nodes = list(virtual_demand_nodes)
+                real_demand_nodes    = list(real_demand_nodes)
+            
             non_isolated_pairs  = dict(zip(virtual_demand_nodes, real_demand_nodes))
             result.node['leak'] = result.node['demand'][virtual_demand_nodes].rename(non_isolated_pairs, axis=1)
-        
-
-        
+            
             
         if just_initialized_flag == False:
             self._linear_result.maximum_trial_time.extend(result.maximum_trial_time)
@@ -250,14 +292,18 @@ class StochasticModel():
 
                 leak_first_time_result = None
                 if att == 'leak' and 'leak' in result.node: #the second condition is not needed. It's there only for assurance
-                    _leak_flag = True
+                    
                     former_nodes_list = set(self._linear_result.node['leak'].columns)
                     to_add_nodes_list = set(result.node[att].columns)
                     complete_result_node_list  = (to_add_nodes_list - former_nodes_list)
+                    if len(complete_result_node_list) > 0:
+                        _leak_flag = True
+                        
                     leak_first_time_result     = result.node['leak'][complete_result_node_list].iloc[0]
-                    
-                result.node[att].drop(result.node[att].index[0], inplace=True)
-                self._linear_result.node[att] = self._linear_result.node[att].append(result.node[att])
+                
+                if att in result.node:
+                    result.node[att].drop(result.node[att].index[0], inplace=True)
+                    self._linear_result.node[att] = self._linear_result.node[att].append(result.node[att])
                 
                 if _leak_flag:
                     self._linear_result.node['leak'].loc[leak_first_time_result.name, leak_first_time_result.index] = leak_first_time_result
@@ -266,4 +312,91 @@ class StochasticModel():
             for att in link_attributes:
                 result.link[att].drop(result.link[att].index[0], inplace=True)
                 self._linear_result.link[att] = self._linear_result.link[att].append(result.link[att])
+    
+    def dumpPartOfResult(self):
+        limit_size = self.registry.settings["limit_result_file_size"]
+        limit_size_byte = limit_size * 1024 * 1024
         
+        total_size = 0
+        
+        for att in self._linear_result.node:
+            att_size = sys.getsizeof(self._linear_result.node[att] )
+            total_size += att_size
+        
+        for att in self._linear_result.link:
+            att_size = sys.getsizeof(self._linear_result.link[att] )
+            total_size += att_size
+        
+        print("total size= "+repr(total_size/1024/1024))
+        
+        if total_size >= limit_size_byte:
+            dump_result = SimulationResults()
+            dump_result.node = {}
+            dump_result.link = {}
+            for att in self._linear_result.node:
+                #just to make sure. it obly add tens of micro seconds for each
+                #att
+                
+                self._linear_result.node[att].sort_index(inplace=True)
+                att_result       = self._linear_result.node[att]
+                if att_result.empty:
+                    continue
+                #first_time_index = att_result.index[0]
+                last_valid_time  = []
+                att_time_index   = att_result.index.to_list()
+                last_valid_time  = [cur_time for cur_time in att_time_index if cur_time not in self._linear_result.maximum_trial_time]
+                last_valid_time.sort()
+                
+                if len(last_valid_time) > 0:
+                    last_valid_time = last_valid_time[-2]
+                else:
+                    print(att_time_index)
+                    last_valid_time = att_time_index[-2]
+                
+                dump_result.node[att] = att_result.loc[:last_valid_time]
+                last_valid_time_index = att_result.index.searchsorted(last_valid_time)
+                self._linear_result.node[att].drop(att_result.index[:last_valid_time_index+1], inplace=True)
+                
+            for att in self._linear_result.link:
+                #just to make sure. it obly add tens of micro seconds for each
+                #att
+                self._linear_result.link[att].sort_index(inplace=True)
+                att_result       = self._linear_result.link[att]
+                if att_result.empty:
+                    continue
+                #first_time_index = att_result.index[0]
+                last_valid_time  = []
+                att_time_index   = att_result.index.to_list()
+                last_valid_time  = [cur_time for cur_time in att_time_index if cur_time not in self._linear_result.maximum_trial_time]
+                last_valid_time.sort()
+                
+                if len(last_valid_time) > 0:
+                    last_valid_time = last_valid_time[-2]
+                else:
+                    last_valid_time = att_time_index[-2]
+                
+                dump_result.link[att] = att_result.loc[:last_valid_time]
+                last_valid_time_index = att_result.index.searchsorted(last_valid_time)
+                self._linear_result.link[att].drop(att_result.index[:last_valid_time_index+1], inplace=True)
+            
+            dump_file_index = len(self.registry.result_dump_file_list) + 1
+            
+            if dump_file_index == 1:
+                list_file_opening_mode = "at"
+            else:
+                list_file_opening_mode = "wt"
+            
+            result_dump_file_name = self.registry.scenario_name + ".part"+str(dump_file_index)
+            result_dump_file_dst  = os.path.join(self.registry.settings.process['result_directory'], result_dump_file_name)
+            
+            with open(result_dump_file_dst, "wb") as resul_file:
+                pickle.dump(dump_result, resul_file)
+            
+            dump_list_file_name = self.registry.scenario_name + ".dumplist"
+            list_file_dst       = os.path.join(self.registry.settings.process['result_directory'], dump_list_file_name)
+            
+            with open(list_file_dst, list_file_opening_mode) as part_list_file:
+                part_list_file.writelines([result_dump_file_name])
+            
+            
+            self.registry.result_dump_file_list.append(result_dump_file_name)

@@ -19,30 +19,48 @@ class Timeline():
 # We need to modify their codes, so their usage be safe and bug-free.
 # =============================================================================
 
-    def __init__(self, simulation_end_time):
+    def __init__(self, simulation_end_time, restoration, registry):
         if  simulation_end_time<0:
             raise ValueError('simulation end time must be zero or bigger than zero')
         self._current_time = 0
         self._event_time_register = pd.DataFrame(dtype = 'bool') #craete event at time 0 with No event marked as True
         self._event_time_register = self._event_time_register.append(pd.DataFrame(data = False , index = [0], columns = EVENT_TYPE)) #create event at time 0 with No event marked as True
         self._event_time_register = self._event_time_register.append(pd.DataFrame(data = False , index = [simulation_end_time], columns = EVENT_TYPE)) #create event at time simulation end time with No event marked as True
-        
+        self.restoration          = restoration
         self._simulation_end_time = simulation_end_time
-        self._ending_Event_ignore_time = 100 # in seconds - events in less than this value is ignored
+        self._ending_Event_ignore_time = 0 # in seconds - events in less than this value is ignored
         self._iFirst_time_zero = True
         self._current_time_indexOfIndex = 0
+        self.registry = registry
         
     def iContinue(self):
         if self._current_time==0 and self._iFirst_time_zero == True: #So that the other condition happens
             self._iFirst_time_zero = False
-            return True
+  
         else:
             self._current_time               = self.getNextTime()
-            self._current_time_indexOfIndex += 1
-            if abs(self._simulation_end_time - self._current_time) < abs(self._ending_Event_ignore_time):
+            self._current_time_indexOfIndex  += 1
+            if abs(self._simulation_end_time - self._current_time) <= abs(self._ending_Event_ignore_time):
+                print("End_Time_Reached")
                 return False
-            else:
-                return True
+            
+            simulation_minimum_time = self.restoration._registry.settings["minimum_simulation_time"]
+            minimum_simulation_time_satisfied = self._current_time >= simulation_minimum_time
+            consider_last_sequence_termination = self.registry.settings.process['last_sequence_termination']
+            consider_node_demand_temination    = self.registry.settings.process['node_demand_temination']
+            
+            if minimum_simulation_time_satisfied == True:
+                if  consider_last_sequence_termination == True:
+                    if self.restoration.iRestorationStopTime():
+                        print("Last_sequence_termination")
+                        return False
+                
+                if  consider_node_demand_temination == True:
+                    if self.iFunctionalityRequirementReached():
+                        print("FunctionalityRequirementReached")
+                        return False
+            
+        return True
             
     def getNextTime(self):
         if not self._event_time_register.index.is_monotonic_increasing: # for just in case if the index of event time register is not sorted
@@ -191,3 +209,94 @@ class Timeline():
     #def add_repair(self, time_of_repair, sim_end_time):
         #self.addEventTime(time_of_repair, event_type = 'rpr')
         
+    def iFunctionalityRequirementReached(self):
+        
+        logger.debug("Func: node functionality")
+        ratio_criteria = self.registry.settings.process['node_demand_termination_ratio']
+        time_window    = self.registry.settings.process.settings['node_demand_termination_time' ]
+        stop_time      = self.getCurrentStopTime()
+        if self.registry.if_first_event_occured == False:
+            return False
+
+        elif self.registry.if_first_event_occured == True:
+            if self.registry.result == None:
+                return False
+            
+            #for checking if we have still any leak in the system, since we
+            #cannot measure the effect of exessive leak in the LDN
+            if stop_time in self.registry.result.node['leak'].index:
+                return False
+            
+            last_pre_event_time  = self.registry.pre_event_demand_met.index.max()
+            pre_event_demand     = self.registry.pre_event_demand_met[self.registry.pre_event_demand_met.index <= (last_pre_event_time - time_window)]
+            demand_met           = self.registry.result.node['demand']
+            begining_time_window = stop_time - time_window 
+            demand_met           = demand_met.loc[demand_met.index > begining_time_window]
+    
+            """
+            calcualting requried demand for each dmeand node
+            """
+            0
+            #demand_ratio      = self.registry.settings['demand_ratio']
+            time_index        = demand_met.index
+            req_node_demand   = {}
+            default_pattern   = self.registry.wn.options.hydraulic.pattern
+            #node_pattern_list = pd.Series(index=self.registry.demand_node_name_list, dtype=str)
+            
+            #req_node_demand = req_node_demand.transpose()
+            
+            demand_nodes_list = [self.registry.wn.get_node(node_name) for node_name in self.registry.demand_node_name_list]
+            
+            if type(default_pattern) != type(None):
+                node_pattern_list = [(node.name, node.demand_timeseries_list.pattern_list()[0]) if node.demand_timeseries_list.pattern_list()[0] != None else (node.name, default_pattern) for node in demand_nodes_list]
+            else:
+                node_pattern_list = [(node.name, node.demand_timeseries_list.pattern_list()[0]) for node in demand_nodes_list if node.demand_timeseries_list.pattern_list()[0] != None]
+                
+            base_demand_list = [ node.base_demand for node in demand_nodes_list]
+            one_time_base_demand = dict(zip(self.registry.demand_node_name_list, base_demand_list))
+            req_node_demand = pd.DataFrame.from_dict([one_time_base_demand] * len(time_index))
+            req_node_demand.index = time_index
+
+                    
+            req_node_demand = pd.DataFrame.from_dict(req_node_demand)
+
+            #node_pattern_list = node_pattern_list.dropna()
+            if len(node_pattern_list) > 0:
+                node_pattern_list = pd.Series(index=[node_pattern_iter[0] for node_pattern_iter in node_pattern_list], data=[node_pattern_iter[1] for node_pattern_iter in node_pattern_list])
+                patterns_list     = node_pattern_list.unique()
+                multiplier = pd.DataFrame(index=time_index, columns = list(patterns_list) )
+                
+                for pattern_name in patterns_list:
+                    cur_pattern = self.registry.wn.get_pattern(pattern_name)
+                    time_index = time_index.unique()
+                    cur_patern_time = [cur_pattern.at(time) for time in iter(time_index)]
+                    multiplier.loc[:, pattern_name] = cur_patern_time
+    
+                for node_name, pattern_name in node_pattern_list.items():
+                    cur_node_req_demand = multiplier[pattern_name] * self.registry.wn.get_node(node_name).demand_timeseries_list[0].base_value 
+                    cur_node_req_demand.name = node_name
+                    cur_node_req_demand=pd.DataFrame(cur_node_req_demand).transpose()
+                    req_node_demand = req_node_demand.append(cur_node_req_demand)
+
+            #print(req_node_demand)
+            #raise
+            #req_node_demand = req_node_demand.transpose()
+            req_node_demand  = req_node_demand.filter(self.registry.demand_node_name_list)
+            req_node_demand  = req_node_demand.filter(pre_event_demand.columns)
+            demand_met       = demand_met.filter(self.registry.demand_node_name_list)
+            demand_met       = demand_met.filter(pre_event_demand.columns)
+            demand_met       = demand_met.dropna(axis=1)
+            
+            pre_event_demand = demand_met.filter(self.registry.demand_node_name_list)
+            
+            if len(demand_met.columns) < len(pre_event_demand.columns):
+                return False
+            
+            ratio = demand_met.mean() / pre_event_demand.mean()
+            mean_of_ratio_satisfied = (ratio >= ratio_criteria).sum() / len(ratio)
+            logger.debug("ratio that is= " + repr(mean_of_ratio_satisfied))
+            if (ratio >= ratio_criteria).all():
+                return True
+            else:
+                return False
+            

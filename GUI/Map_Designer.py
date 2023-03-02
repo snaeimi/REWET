@@ -5,15 +5,25 @@ Created on Thu Nov 10 18:29:50 2022
 @author: snaeimi
 """
 
+
 from PyQt5 import QtWidgets, QtGui
-#import pandas as pd
+import numpy as np
+import pandas as pd
+import geopandas as gpd
 from shapely.geometry import Point
 import matplotlib.pyplot as plt
+from GUI.Subsitute_Layer_Designer import Subsitute_Layer_Designer
+from GUI.Symbology_Designer       import Symbology_Designer
 
-single_scenario_map_options = ['', 'Quantity Return', 'Delivery Return']
-multi_scenario_map_options = ['','Quantity Exceedance','Delivery Exceedance']
+
+single_scenario_map_options = ['', 'Quantity Return', 'Delivery Return', ]
+multi_scenario_map_options = ['','Quantity Outage vs. Exceedance','Delivery Outage vs. Exceedance', 'Quantity Exceedance vs. Time', 'Delivery Exceedance vs. Time']
 map_settings = {  'Quantity Return':[{"Label":"Time", "Type":"Time", "Default":"seconds"}, {"Label":"LDN leak", "Type":"Yes-No_Combo", "Default":"No"}, {"Label":"leak Criteria", "Type":"Float Line", "Default":"0.75"}, {"Label":"Time Window", "Type":"Int Line", "Default":"7200"}],
-                  'Delivery Return':[{"Label":"Time", "Type":"Time", "Default":"seconds"}, {"Label":"LDN leak", "Type":"Yes-No_Combo", "Default":"No"}, {"Label":"leak Criteria", "Type":"Float Line", "Default":"1.25"}, {"Label":"Time Window", "Type":"Int Line", "Default":"7200"}]}
+                  'Delivery Return':[{"Label":"Time", "Type":"Time", "Default":"seconds"}, {"Label":"LDN leak", "Type":"Yes-No_Combo", "Default":"No"}, {"Label":"leak Criteria", "Type":"Float Line", "Default":"1.25"}, {"Label":"Time Window", "Type":"Int Line", "Default":"7200"}],
+                  'Quantity Outage vs. Exceedance':[{"Label":"Time", "Type":"Time", "Default":"seconds"}, {"Label":"LDN leak", "Type":"Yes-No_Combo", "Default":"No"}, {"Label":"leak Criteria", "Type":"Float Line", "Default":"1.25"}, {"Label":"Time Window", "Type":"Int Line", "Default":"7200"}, {"Label":"Ex. Prob.", "Type":"Float Line", "Default":"0.09", "Validator":{"Min":0, "Max":1}}],
+                  'Delivery Outage vs. Exceedance':[{"Label":"Time", "Type":"Time", "Default":"seconds"}, {"Label":"LDN leak", "Type":"Yes-No_Combo", "Default":"No"}, {"Label":"leak Criteria", "Type":"Float Line", "Default":"1.25"}, {"Label":"Time Window", "Type":"Int Line", "Default":"7200"}, {"Label":"Ex. Prob.", "Type":"Int Line", "Default":str(24*3600), "Validator":{"Min":0, "Max":1000*24*3600}}],
+                  'Quantity Exceedance vs. Time':[{"Label":"Time", "Type":"Time", "Default":"seconds"}, {"Label":"LDN leak", "Type":"Yes-No_Combo", "Default":"No"}, {"Label":"leak Criteria", "Type":"Float Line", "Default":"1.25"}, {"Label":"Time Window", "Type":"Int Line", "Default":"7200"}, {"Label":"Outage Time", "Type":"Float Line", "Default":"0.09", "Validator":{"Min":0, "Max":1}}],
+                  'Delivery Exceedance vs. Time':[{"Label":"Time", "Type":"Time", "Default":"seconds"}, {"Label":"LDN leak", "Type":"Yes-No_Combo", "Default":"No"}, {"Label":"leak Criteria", "Type":"Float Line", "Default":"1.25"}, {"Label":"Time Window", "Type":"Int Line", "Default":"7200"}, {"Label":"Outage Time", "Type":"Int Line", "Default":str(24*3600), "Validator":{"Min":0, "Max":1000*24*3600}}]}
 norm = plt.Normalize(1,4)
 cmap = plt.cm.RdYlGn
 
@@ -55,10 +65,16 @@ class Yes_No_Combo(QtWidgets.QComboBox):
 class Map_Designer():
     def __init__(self):
 
-        self.current_raw_map = None
-        self.current_map     = None
-        self.annotation_map  = None
-        self.map_settings_widgets = {}
+        self.current_raw_map       = None
+        self.current_map           = None
+        self.annotation_map        = None
+        self.plotted_map           = None   
+        self.subsitute_layer_addr  = None
+        self.subsitute_layer       = None
+        self.iUse_substitute_layer = False
+        self.map_settings_widgets  = {}
+        self.symbology             = {"Method":"FisherJenks", "kw":{"k":5}, "Color":"Blues"}
+        
         self.main_tab.currentChanged.connect(self.tabChangedMap)
         self.map_all_scenarios_checkbox.stateChanged.connect(self.mapAllScenarioCheckboxChanged)
         self.save_map_button.clicked.connect(self.saveCurrentMapByButton)
@@ -68,8 +84,22 @@ class Map_Designer():
         self.annotation_event_combo.currentTextChanged.connect(self.getAnnotationtype)
         self.mpl_map.canvas.fig.canvas.mpl_connect("motion_notify_event", self.mouseHovered)
         self.mpl_map.canvas.fig.canvas.mpl_connect("button_press_event", self.mouseClicked)
-        self.annotation_radius_line.setValidator(QtGui.QDoubleValidator(0, 1000000, 20, notation=QtGui.QDoubleValidator.StandardNotation) )
+                
+        
+        
+        """
+        Signals
+        """
         self.annotation_radius_line.editingFinished.connect(self.annotationRadiusChanegd)
+        self.spatial_join_button.clicked.connect(self.openSubsituteLayerWindow)
+        self.major_tick_size_line.editingFinished.connect(self.majorTickSet)
+        self.symbology_button.clicked.connect(self.symbologyByButton)
+        
+        """
+        Validators
+        """
+        self.annotation_radius_line.setValidator(QtGui.QDoubleValidator(0, 1000000, 20, notation=QtGui.QDoubleValidator.StandardNotation) )
+        self.major_tick_size_line.setValidator(QtGui.QIntValidator(0, 64) )
         
         self.map_value_columns_name = None
         self.anottation_type = "None"
@@ -84,8 +114,35 @@ class Map_Designer():
         self.map_scenario_combo.addItems(self.result_scenarios)
         #self.current_map_data = None
     
+    def symbologyByButton(self):
+        sym = Symbology_Designer(self.symbology, self.plotted_map, self.map_value_columns_name)
+        val = sym._window.exec_()
+        
+        if val == 1:
+            self.symbology = sym.sym
+            self.plotMap(self.map_value_columns_name)
+    
+    def majorTickSet(self):
+        major_tick_fond_size = self.major_tick_size_line.text()
+        major_tick_fond_size = float(major_tick_fond_size)
+               
+        self.mpl_map.canvas.ax.tick_params(axis='both', which='major', labelsize=major_tick_fond_size)
+        self.mpl_map.canvas.fig.canvas.draw_idle()
+    
+    def openSubsituteLayerWindow(self):
+        demand_node_temporary_layer = self.project_result.createGeopandasPointDataFrameForNodes()
+        sub_layer = Subsitute_Layer_Designer(self.subsitute_layer_addr, self.subsitute_layer, self.iUse_substitute_layer, demand_node_temporary_layer)
+        val = sub_layer._window.exec_()
+
+        if val == 1:
+            self.subsitute_layer_addr  = sub_layer.subsitute_layer_addr
+            self.subsitute_layer       = sub_layer.subsitute_layer
+            self.iUse_substitute_layer = sub_layer.iUse_substitute_layer
+            self.plotMap(self.map_value_columns_name)
+    
     def annotationRadiusChanegd(self):
         annotation_radius = self.annotation_radius_line.text()
+        self.annotation_map = self.plotted_map.copy(deep=True)
         if annotation_radius=="":
             annotation_radius = 0
             self.annotation_radius_line.settext("0")
@@ -156,7 +213,10 @@ class Map_Designer():
             
             if cont:
                 #print(len(s_index_list))
-                text = repr(self.current_map.loc[s_index, self.map_value_columns_name] )
+                data = self.annotation_map.loc[s_index, self.map_value_columns_name]
+                if type(data) == pd.core.series.Series:
+                    data = data.iloc[0]
+                text = repr(data)
                 self.update_annot(text, event)
                 self.annot.set_visible(True)
                 self.mpl_map.canvas.fig.canvas.draw_idle()
@@ -177,25 +237,61 @@ class Map_Designer():
         self.mpl_map.canvas.ax.cla()
         
     def plotMap(self, value_columns_name):
+        self.clearMapPlot()
+        self.mpl_map.canvas.ax.clear()
         #for ind, val in self.current_map.geometry.iteritems():
             #self.current_map.geometry.loc[ind] = val.buffer(2000)
         #self.mpl_map.canvas.ax.clear()
         data = self.current_map
         #print(data.head() )
         
-        self.annot = self.mpl_map.canvas.ax.annotate("", xy=(0,0), xytext=(20,20),textcoords="offset points",
+        self.annot = self.mpl_map.canvas.ax.annotate("", xy=(0, 0), xytext=(20, 20),textcoords="offset points",
                     bbox=dict(boxstyle="round", fc="w"),
                     arrowprops=dict(arrowstyle="->"))
         self.annot.set_visible(False)
-        
-        data.plot(ax=self.mpl_map.canvas.ax, column=value_columns_name, cmap="Blues")
+
+        if self.iUse_substitute_layer == True:
+            data = data.set_crs(crs=self.subsitute_layer.crs)
+            joined_map = gpd.sjoin(self.subsitute_layer, data)
+            #joined_map.plot(ax=self.mpl_map.canvas.ax, column=value_columns_name, cmap="Blues", legend=True)
+            data = joined_map
+        else:
+            pass
+        self.annotation_map = data.copy(deep=True)
+        #data.to_file("Northridge/ss2.shp")
+        self.plotted_map = self.prepareForLegend(data, value_columns_name)
+        self.plotted_map.plot(ax=self.mpl_map.canvas.ax, column=value_columns_name, cmap=self.symbology["Color"], categorical=True, legend="True", scheme=self.symbology["Method"], classification_kwds=self.symbology["kw"])
         self.mpl_map.canvas.ax.ticklabel_format(axis='both', style='plain')
-        labels = self.mpl_map.canvas.ax.get_xticks()
-        self.mpl_map.canvas.ax.set_xticklabels(labels, rotation=45, ha='right')
+        #self.majorTickSet()
+        
+        #labels = self.mpl_map.canvas.ax.get_xticks()
+        #self.mpl_map.canvas.ax.set_xticklabels(labels, rotation=45, ha='right')
         #self.mpl_map.canvas.ax.plot(self.current_map.index, self.current_map.to_list())  
         
         self.mpl_map.canvas.draw() 
         self.mpl_map.canvas.fig.tight_layout()
+        
+    def prepareForLegend(self, data, value_columns_name):
+        return data.copy(deep=True)
+        data = data.copy(deep=True)
+        min_value = data[value_columns_name].min()
+        max_value = data[value_columns_name].max()
+        step = (max_value - min_value)/5
+
+        
+        step_array = np.arange(min_value, max_value, step)
+        step_array = step_array.tolist()
+        step_array.append(max_value)
+        
+        for i in range(len(step_array) - 1):
+            step_max = step_array[i+1]
+            step_min = step_array[i]
+            index_list = data[(data[value_columns_name] < step_max) & (data[value_columns_name] > step_min)].index
+            #print(index_list)
+            for ind in index_list:
+                data.loc[ind, value_columns_name]= step_max
+        
+        return data
         
         
     def setMapAllScenarios(self, flag):
@@ -227,73 +323,109 @@ class Map_Designer():
     def calculateCurrentMap(self):
         
         map_type = self.current_map_type
-        if map_type == 'Quantity Exceedance':
-           return
-           iPopulation     = self.map_settings_widgets["Population"].currentText()
-           iRatio          = self.map_settings_widgets["Percentage"].currentText()
-           iConsider_leak  = self.map_settings_widgets["LDN leak"].currentText()
-           leak_ratio      = self.map_settings_widgets["leak Criteria"].text()
-           group_method    = self.map_settings_widgets["Group method"].currentText()
-           daily_bin       = self.map_settings_widgets["Daily bin"].currentText()
-           min_time                = self.map_settings_widgets["Min time"].text()
-           max_time                = self.map_settings_widgets["Max time"].text()
+        if map_type == 'Quantity Outage vs. Exceedance':
+           
+           iConsider_leak          = self.map_settings_widgets["LDN leak"].currentText()
+           leak_ratio              = self.map_settings_widgets["leak Criteria"].text()
+           time_window             = self.map_settings_widgets["Time Window"].text()
+           exeedance_probability   = self.map_settings_widgets["Ex. Prob."].text()
            
            if iConsider_leak == "Yes":
                iConsider_leak = True
            else:
                iConsider_leak = False
            
-           if iRatio == "Yes":
-               iRatio = True
-           else:
-               iRatio = False
+           leak_ratio            = float(leak_ratio) 
+           time_window           = int(float(time_window) )
+           exeedance_probability = float(exeedance_probability)
            
-           if daily_bin == "Yes":
-               daily_bin = True
-           else:
-               daily_bin = False
-
-           group_method = group_method.lower()
-           min_time = int(float(min_time) )
-           max_time = int(float(max_time) )
+           self.map_value_columns_name = "res"
+           map_data = self.project_result.AS_getOutage_4(LOS='QN', iConsider_leak=iConsider_leak, leak_ratio=leak_ratio, consistency_time_window=time_window)
+           #print(map_data)
+           self.current_raw_map  = self.project_result.getDLQNExceedenceProbabilityMap(map_data, ihour=True , param=exeedance_probability)
+           #self.current_map      = self.current_raw_map.copy()
+           self.current_map      = self.time_combo.changeMapTimeUnit(self.current_raw_map, self.map_value_columns_name)
            
-           self.current_raw_map  = self.project_result.getQuantityExceedanceMap(iPopulation=iPopulation, ratio=iRatio, consider_leak=iConsider_leak, leak_ratio=leak_ratio, result_type=group_method, daily=daily_bin, min_time=min_time, max_time=max_time)
-           self.current_map      = self.time_combo.changeMapTimeUnit(self.current_raw_map)
-           self.plotMap("Exceedance Probability", "Time")
+           #print(exeedance_probability)
+           self.plotMap(self.map_value_columns_name)
        
-        elif map_type == 'Delivery Exceedance':
-            return
-            iPopulation     = self.map_settings_widgets["Population"].currentText()
-            iRatio          = self.map_settings_widgets["Percentage"].currentText()
-            iConsider_leak  = self.map_settings_widgets["LDN leak"].currentText()
-            leak_ratio      = self.map_settings_widgets["leak Criteria"].text()
-            group_method    = self.map_settings_widgets["Group method"].currentText()
-            daily_bin       = self.map_settings_widgets["Daily bin"].currentText()
-            min_time                = self.map_settings_widgets["Min time"].text()
-            max_time                = self.map_settings_widgets["Max time"].text()
+        elif map_type == 'Delivery Outage vs. Exceedance':
             
-            if iConsider_leak == "Yes":
-                iConsider_leak = True
-            else:
-                iConsider_leak = False
+           iConsider_leak          = self.map_settings_widgets["LDN leak"].currentText()
+           leak_ratio              = self.map_settings_widgets["leak Criteria"].text()
+           time_window             = self.map_settings_widgets["Time Window"].text()
+           exeedance_probability   = self.map_settings_widgets["Ex. Prob."].text()
+           
+           if iConsider_leak == "Yes":
+               iConsider_leak = True
+           else:
+               iConsider_leak = False
+           
+           leak_ratio            = float(leak_ratio) 
+           time_window           = int(float(time_window) )
+           exeedance_probability = float(exeedance_probability)
+           
+           self.map_value_columns_name = "res"
+           map_data = self.project_result.AS_getOutage_4(LOS='DL', iConsider_leak=iConsider_leak, leak_ratio=leak_ratio, consistency_time_window=time_window)
+           #print(map_data)
+           self.current_raw_map  = self.project_result.getDLQNExceedenceProbabilityMap(map_data, ihour=True , param=exeedance_probability)
+           #self.current_map      = self.current_raw_map.copy()
+           self.current_map      = self.time_combo.changeMapTimeUnit(self.current_raw_map, self.map_value_columns_name)
+           
+           #print(exeedance_probability)
+           self.plotMap(self.map_value_columns_name)
+        
+        elif map_type == 'Quantity Exceedance vs. Time':
+           
+           iConsider_leak          = self.map_settings_widgets["LDN leak"].currentText()
+           leak_ratio              = self.map_settings_widgets["leak Criteria"].text()
+           time_window             = self.map_settings_widgets["Time Window"].text()
+           outage_time             = self.map_settings_widgets["Outage Time"].text()
+           
+           if iConsider_leak == "Yes":
+               iConsider_leak = True
+           else:
+               iConsider_leak = False
+           
+           leak_ratio            = float(leak_ratio) 
+           time_window           = int(float(time_window) )
+           outage_time           = int(float(outage_time) )
+           
+           self.map_value_columns_name = "res"
+           map_data = self.project_result.AS_getOutage_4(LOS='QN', iConsider_leak=iConsider_leak, leak_ratio=leak_ratio, consistency_time_window=time_window)
+           #print(map_data)
+           self.current_raw_map  = self.project_result.getDLQNExceedenceProbabilityMap(map_data, ihour=False , param=outage_time)
+           #self.current_map      = self.current_raw_map.copy()
+           self.current_map      = self.time_combo.changeMapTimeUnit(self.current_raw_map, self.map_value_columns_name)
+           
+           #print(exeedance_probability)
+           self.plotMap(self.map_value_columns_name)
+       
+        elif map_type == 'Delivery Exceedance vs. Time':
             
-            if iRatio == "Yes":
-                iRatio = True
-            else:
-                iRatio = False
-            
-            if daily_bin == "Yes":
-                daily_bin = True
-            else:
-                daily_bin = False
-
-            group_method = group_method.lower()
-            min_time = int(float(min_time) )
-            max_time = int(float(max_time) )
-            
-            self.current_raw_map  = self.project_result.getDeliveryExceedanceMap(iPopulation=iPopulation, ratio=iRatio, consider_leak=iConsider_leak, leak_ratio=leak_ratio, result_type=group_method, daily=daily_bin, min_time=min_time, max_time=max_time)
-            self.current_map      = self.time_combo.changeMapTimeUnit(self.current_raw_map)
-            self.plotMap("Exceedance Probability", "Time")
+           iConsider_leak          = self.map_settings_widgets["LDN leak"].currentText()
+           leak_ratio              = self.map_settings_widgets["leak Criteria"].text()
+           time_window             = self.map_settings_widgets["Time Window"].text()
+           outage_time             = self.map_settings_widgets["Outage Time"].text()
+           
+           if iConsider_leak == "Yes":
+               iConsider_leak = True
+           else:
+               iConsider_leak = False
+           
+           leak_ratio            = float(leak_ratio) 
+           time_window           = int(float(time_window) )
+           outage_time           = int(float(outage_time) )
+           
+           self.map_value_columns_name = "res"
+           map_data = self.project_result.AS_getOutage_4(LOS='DL', iConsider_leak=iConsider_leak, leak_ratio=leak_ratio, consistency_time_window=time_window)
+           #print(map_data)
+           self.current_raw_map  = self.project_result.getDLQNExceedenceProbabilityMap(map_data, ihour=False , param=outage_time)
+           #self.current_map      = self.current_raw_map.copy()
+           self.current_map      = self.time_combo.changeMapTimeUnit(self.current_raw_map, self.map_value_columns_name)
+           
+           #print(exeedance_probability)
+           self.plotMap(self.map_value_columns_name)
         
         elif map_type == 'Quantity Return':
             iConsider_leak          = self.map_settings_widgets["LDN leak"].currentText()
@@ -350,7 +482,7 @@ class Map_Designer():
         else:
             raise
         
-        self.annotation_map = self.current_raw_map.copy()
+        #self.annotation_map = self.current_raw_map.copy()
         self.annotationRadiusChanegd()
             
         
@@ -370,6 +502,7 @@ class Map_Designer():
         cell_type_list  = []
         default_list    = []
         content_list    = []
+        validator_list  = []
         for row in settings_content:
             for k in row:
                 if k == "Label":
@@ -383,7 +516,12 @@ class Map_Designer():
                 content_list.append(row["Content" ])
             else:
                 content_list.append(None)
-        
+            
+            if "Validator" in row:
+                validator_list.append(row["Validator" ])
+            else:
+                validator_list.append(None)
+    
         self.map_settings_table.setColumnCount(1 )
         self.map_settings_table.setRowCount(len(settings_content))
         self.map_settings_table.setVerticalHeaderLabels(vertical_header)
@@ -421,8 +559,11 @@ class Map_Designer():
                 current_widget = QtWidgets.QLineEdit()
                 self.map_settings_table.setCellWidget(i,0, current_widget)
                 current_widget.editingFinished.connect(self.mapSettingChanged )
-                current_widget.setValidator(QtGui.QDoubleValidator(0, 1000000, 20, notation=QtGui.QDoubleValidator.StandardNotation) )
-                
+                if validator_list[i] == None:
+                    current_widget.setValidator(QtGui.QDoubleValidator(0, 1000000, 20, notation=QtGui.QDoubleValidator.StandardNotation) )
+                else:
+                    current_widget.setValidator(QtGui.QDoubleValidator(validator_list[i]["Min"], validator_list[i]["Max"], 20, notation=QtGui.QDoubleValidator.StandardNotation) )
+                    
                 default_value = default_list[i]
                 current_widget.setText(default_value)
                 self.map_settings_widgets[vertical_header[i]] = current_widget
@@ -431,8 +572,12 @@ class Map_Designer():
                 current_widget = QtWidgets.QLineEdit()
                 self.map_settings_table.setCellWidget(i,0, current_widget)
                 current_widget.editingFinished.connect(self.mapSettingChanged )
-                current_widget.setValidator(QtGui.QIntValidator(0, 3600*24*1000) )
                 
+                if validator_list[i] == None:
+                    current_widget.setValidator(QtGui.QIntValidator(0, 3600*24*1000) )
+                else:
+                    current_widget.setValidator(QtGui.QIntValidator(validator_list[i]["Min"], validator_list[i]["Max"]) )
+                    
                 default_value = default_list[i]
                 current_widget.setText(default_value)
                 self.map_settings_widgets[vertical_header[i]] = current_widget

@@ -11,7 +11,6 @@ from PyQt5 import QtGui, QtWidgets
 class Simulation_Tab_Designer():
     def __init__(self):
         
-        
         """
         These are variables that are shared between ui and settings.
         """
@@ -50,7 +49,7 @@ class Simulation_Tab_Designer():
             self.errorMSG("REWET", "Temp folder must be provided")
             return False
         
-        self.simulation_time      = int(self.simulation_time_step_line.text() )
+        self.simulation_time      = int(self.simulation_time_line.text() )
         self.simulation_time_step = int(self.simulation_time_step_line.text() )
         if self.single_radio.isChecked():
             self.number_of_damages    = 'single'

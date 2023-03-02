@@ -193,8 +193,13 @@ class Curve():
     def getWaterLeakingFromNode(self, scn_name):
         self.loadScneariodata(scn_name)
         res = self.data[scn_name]
-
-        return res.sum(axis=1)
+        sum_amount = 0
+        try:
+            res = res.node['leak']
+            sum_amount = res.sum(axis=1)
+        except:
+            sum_amount = 0
+        return sum_amount 
     
     def getWaterLeakingFromPipe(self, scn_name, mode='all'):
         self.loadScneariodata(scn_name)
@@ -228,34 +233,186 @@ class Curve():
         
         leak_from_pipe      = res.node['demand'][available_nodes]
         
-        leak = leak_from_pipe < 0
+        leak = leak_from_pipe < 0.1
         if leak.any().any():
             raise ValueError("There is negative leak")
         
         return leak_from_pipe.sum(axis=1)
         
-    def getSystemServiceabilityIndexCurve(self, scn_name, iPlot=False):
-        #scn_name = list(self.data.keys())[file_index]
+    def getSystemServiceabilityIndexCurve(self, scn_name, iPopulation="No"):
         s4 = self.getRequiredDemandForAllNodesandtime(scn_name)
         sat_node_demands = self.data[scn_name].node['demand'].filter(self.demand_node_name_list)
         sat_node_demands = sat_node_demands.applymap(hhelper)
+        
+        if iPopulation=="Yes":
+            s4               = s4 * self._population_data
+            sat_node_demands = sat_node_demands * self._population_data
+        elif iPopulation=="No":
+            pass
+        else:
+            raise ValueError("unknown iPopulation value: "+repr(iPopulation))
+            
         s=sat_node_demands.sum(axis=1)/s4.sum(axis=1)
         
-        last_valid_value = None
         for time_index, val in s.iteritems():
-            if not (val < 0 or val >1):
-                last_valid_value= val
-            else:
-                print('problem in time: '+repr(time_index)+ ' -> '+repr(val))
-                if val < 0:
-                    val = 0
-                elif val > 1:
-                    val = 1
+            if val < 0:
+                val = 0
+            elif val > 1:
+                val = 1
             s.loc[time_index] = val
                 
-        if iPlot == False:
-            return s
+        return s
+    
+    def getDLIndexPopulation_4(self, scn_name , iPopulation="No", ratio= False, consider_leak=False, leak_ratio=1):
+        if type(leak_ratio) != float:
+            leak_ratio = float(leak_ratio)
+        
+        self.loadScneariodata(scn_name)
+        res = self.data[scn_name]
+        
+        if type(self._population_data) == type(None) or iPopulation=="No":
+            pop = pd.Series(index=self.demand_node_name_list, data=1)
+        elif type(self._population_data) == type(None) and iPopulation=="Yes":
+            raise ValueError("Population data is not available")
         else:
-            s.index=s.index/3600
-            s.plot()
+            pop = self._population_data
+        
+        total_pop = pop.sum()
+        
+        result = []
+        refined_result = res.node['demand'][self.demand_node_name_list]
+        demands = self.getRequiredDemandForAllNodesandtime(scn_name)
+        demands = demands[self.demand_node_name_list]
+        
+        union_ = set(res.node['leak'].columns).union(set(self.demand_node_name_list) -(set(res.node['leak'].columns) ) - set(self.demand_node_name_list)) - (set(self.demand_node_name_list) - set(res.node['leak'].columns))
+        leak_res    = res.node['leak'][union_]
+        
+        leak_data = []
+        
+        if consider_leak:
+            for name in leak_res:
+                demand_name = demands[name]
+                leak_res_name = leak_res[name].dropna()
+                time_list = set(leak_res[name].dropna().index)
+                time_list_drop = set(demands.index) - time_list
+                demand_name = demand_name.drop(time_list_drop)
+                leak_more_than_criteria = leak_res_name >=  leak_ratio * demand_name
+                if leak_more_than_criteria.any(0):
+                    leak_data.append(leak_more_than_criteria)
+        leak_data = pd.DataFrame(leak_data).transpose()
+        
+        s = refined_result > demands * 0.1
+        for name in s:
+            if name in leak_data.columns:
+                leak_data_name = leak_data[name]
+                for time in leak_data_name.index:
+                    if leak_data_name.loc[time] == True:
+                        s.loc[time, name] = False
+        
+        s = s * pop[s.columns]
+        
+        if ratio==False:
+            total_pop = 1
+        else:
+            total_pop = pop.sum()
             
+        result = s.sum(axis=1)/total_pop
+        
+        return result
+    
+    def getQNIndexPopulation_4(self, scn_name, iPopulation="No", ratio=False, consider_leak=False, leak_ratio=0.75):
+        if type(leak_ratio) != float:
+            leak_ratio = float(leak_ratio)
+            
+        self.loadScneariodata(scn_name)
+        res = self.data[scn_name]
+
+        if type(self._population_data) == type(None) or iPopulation=="No":
+            pop = pd.Series(index=self.demand_node_name_list, data=1)
+        elif type(self._population_data) == type(None) and iPopulation=="Yes":
+            raise ValueError("Population data is not available")
+        else:
+            pop = self._population_data
+        
+        result = []
+        union_ = set(res.node['leak'].columns).union(set(self.demand_node_name_list) -(set(res.node['leak'].columns) ) - set(self.demand_node_name_list)) - (set(self.demand_node_name_list) - set(res.node['leak'].columns))   
+        refined_result = res.node['demand'][self.demand_node_name_list]
+        demands = self.getRequiredDemandForAllNodesandtime(scn_name)
+        demands        = demands[self.demand_node_name_list]
+        
+        leak_res    = res.node['leak'][union_]
+        leak_data = []
+        if consider_leak: 
+            for name in leak_res:
+                demand_name = demands[name]
+                leak_res_name = leak_res[name].dropna()
+                time_list = set(leak_res_name.index)
+                time_list_drop = set(demands.index) - time_list
+                demand_name = demand_name.drop(time_list_drop)
+                leak_more_than_criteria = leak_res_name >= leak_ratio * demand_name
+                if leak_more_than_criteria.any(0):
+                    leak_data.append(leak_more_than_criteria)
+        leak_data = pd.DataFrame(leak_data).transpose()
+        
+        s = refined_result + 0.00000001 >= demands  #sina bug
+        
+        for name in s:
+            if name in leak_data.columns:
+                leak_data_name = leak_data[name]
+                for time in leak_data_name.index:
+                    if leak_data_name.loc[time] == True:
+                        s.loc[time, name] = False
+
+        s = s * pop[s.columns]
+        if ratio==False:
+            total_pop = 1
+        else:
+            total_pop = pop.sum()
+        
+        result = s.sum(axis=1) / total_pop
+       
+        return result
+    
+    def getQuantityExceedanceCurve(self, iPopulation="No", ratio=False, consider_leak=False, leak_ratio=0.75, result_type='mean', daily=False, min_time=0, max_time=999999999999999):
+        all_scenarios_qn_data = self.AS_getQNIndexPopulation(iPopulation="No", ratio=ratio, consider_leak=consider_leak, leak_ratio=leak_ratio)
+        exceedance_curve      = self.PR_getCurveExcedence(all_scenarios_qn_data, result_type=result_type, daily=daily, min_time=min_time, max_time=max_time)
+        columns_list          = exceedance_curve.columns.to_list()
+        
+        dmg_vs_ep_list = {}
+        
+        for i in range(0, len(columns_list), 2):
+            dmg_col = columns_list[i]
+            ep_col  = columns_list[i+1]
+            dmg_vs_ep_list[dmg_col] = ep_col
+        res = {}
+        
+        for dmg_col in dmg_vs_ep_list:
+            ep_col                = dmg_vs_ep_list[dmg_col]
+            exceedance_curve_temp = exceedance_curve.set_index(dmg_col)
+            exceedance_curve_temp = exceedance_curve_temp[ep_col]
+            res[dmg_col]          = exceedance_curve_temp
+            
+        return res
+    
+    def getDeliveryExceedanceCurve(self, iPopulation="No", ratio=False, consider_leak=False, leak_ratio=0.75, result_type='mean', daily=False, min_time=0, max_time=999999999999999):
+        all_scenarios_qn_data = self.AS_getDLIndexPopulation(iPopulation=iPopulation, ratio=ratio, consider_leak=consider_leak, leak_ratio=leak_ratio)
+        exceedance_curve      = self.PR_getCurveExcedence(all_scenarios_qn_data, result_type=result_type, daily=daily, min_time=min_time, max_time=max_time)
+        columns_list          = exceedance_curve.columns.to_list()
+        
+        dmg_vs_ep_list = {}
+        
+        for i in range(0, len(columns_list), 2):
+            dmg_col = columns_list[i]
+            ep_col  = columns_list[i+1]
+            dmg_vs_ep_list[dmg_col] = ep_col
+        res = {}
+        
+        for dmg_col in dmg_vs_ep_list:
+            ep_col                = dmg_vs_ep_list[dmg_col]
+            exceedance_curve_temp = exceedance_curve.set_index(dmg_col)
+            exceedance_curve_temp = exceedance_curve_temp[ep_col]
+            res[dmg_col]          = exceedance_curve_temp
+            
+        return res
+    
+    

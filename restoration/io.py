@@ -48,8 +48,9 @@ class RestorationIO():
         
         #some of the following lines have been addopted from WNTR
         self.rm= restoration_model
-        self.crew_data={}
-        expected_sections=['[FILES]','[ENTITIES]', '[JOBS]','[AGENTS]','[GROUPS]','[PRIORITIES]', '[SHIFTS]','[SEQUENCES]', '[DEFINE]']
+        self.crew_data = {}
+
+        expected_sections=['[FILES]','[ENTITIES]', '[JOBS]','[AGENTS]','[GROUPS]','[PRIORITIES]', '[SHIFTS]','[SEQUENCES]', '[DEFINE]', '[POINTS]']
         
         self.config_file_comment = []
         self.edata = []       
@@ -95,6 +96,7 @@ class RestorationIO():
         self._read_agents()
         self._read_groups()
         self._read_sequences()
+        self._read_points()
         self._read_priorities()
         self._read_jobs()
         self._read_define()
@@ -388,47 +390,123 @@ class RestorationIO():
                     raise ValueError('The Group is already identified: '+repr(group_name)+' in line: '+repr(lnum))
                 
                 self.rm.group[element_type][group_name]=group_list
-               
-                
-    def _read_priorities(self):
-        for lnum, line in self.sections['[PRIORITIES]']:
+    
+    def _read_points(self):
+        for lnum, line in self.sections['[POINTS]']:
             words, comments = _split_line(line)
             
-            if words is not None and len(words) > 0:
-                if not len(words) >= 3:
-                    raise ValueError('error in line: ' + str(lnum))
-                agent_type      = words[0]
+            if words is None or len(words) < 1: #Empty Line
+                continue
+            
+            if not len(words) >= 2: #Syntax Error
+                raise ValueError('Syntax error in line: ' + str(lnum) + "\n" + "Each Point Group must have at least one name and one point coordinate sperated by a ':'" + "\n" + "Example= 'PointGroupName X1:Y1 [X2:Y2 ...]'")
+            
+            group_name               = words[0]
+            current_group_point_list = []
+            
+            if group_name.upper() in self.rm.reserved_priority_names:
+                raise ValueError('Syntax error in line: ' + str(lnum) + "\n" + "Group name " + "'" + group_name + "'"+ " is ambiguous. " + "'" + group_name + " is a reserved priority")
+
+            for word in words[1:]:
+                if ":" not in word:
+                    raise ValueError('Syntax error in line: ' + str(lnum) + "\n" + "'" + word + "'" + " is not an accpetable point coordinate. It must be point coordinate sperated by a ':'" + "\n" + "Example= 'X1:Y1'")
                 
-                priority=None
+                x_y_coord = word.split(":")
+                if len(x_y_coord) > 2:
+                    raise ValueError('Syntax error in line: ' + str(lnum) + "\n" + "Multiple devider (':') in "+ "'" + word + "'" + "It must be point coordinate sperated by a ':'" + "\n" + "Example= 'X1:Y1'")
+                
+                x_coord = x_y_coord[0]
+                y_coord = x_y_coord[1]
+                
                 try:
-                    priority        = int(words[1])
+                    x_coord = float(x_coord)
                 except:
-                    print('exeption handled in _read_priorities')
-                if type(priority) != int:
-                    raise ValueError('Priority casting failed:'+str(priority)+'in line: '+repr(lnum))
-                arg=[]
-                for word in words[2:]:
-                    temp = None
-                    if word.find(':')!=-1:
-                        split_temp = word.split(':')
-                        arg.append((split_temp[0],split_temp[1]))
-                        if split_temp[1] not in self.rm.entity:
-                            raise ValueError('Entity value is used which is not defined before: '+split_temp[1]+', Line: ' + str(lnum))
-                        if split_temp[0] not in self.rm.sequence[self.rm.entity[split_temp[1]]]:
-                            raise ValueError('There is no action: '+repr(split_temp[0]) +' in element: '+repr(self.rm.entity[split_temp[1]]))
-                    else:
-                        arg.append(word)
-                        if word not in ['EPICENTERDIST', 'WaterSource']:
-                            raise ValueError('Unnown value in line: ' + str(lnum))
+                    raise ValueError('Syntax error in line: ' + str(lnum) + "\n" + "'" + x_coord + "'" + " in " "'" + word + "'" +" is not a number")
                 
-                self.rm.priority.addData(agent_type, priority, arg)
+                try:
+                    y_coord = float(y_coord)
+                except:
+                    raise ValueError('Syntax error in line: ' + str(lnum) + "\n" + "'" + y_coord + "'" + " in " "'" + word + "'" +" is not a number")
+                
+                current_group_point_list.append((x_coord, y_coord) )
+            #print(group_name)
+            #print(words[1:])
+            if group_name in self.rm.proximity_points: #To Support mutiple line assigment of the same group
+                self.rm.proximity_points[group_name].extend(current_group_point_list)
+            else:
+                self.rm.proximity_points[group_name] = current_group_point_list
+                
+    def _read_priorities(self):
+        agent_type_list = self.rm.agents.getAllAgentTypes()
+        for lnum, line in self.sections['[PRIORITIES]']:
+            words, comments = _split_line(line)
+
+            if words is None or len(words) < 1:
+                continue
+            
+            if not len(words) >= 3:
+                raise ValueError('Syntax error in line: ' + str(lnum) + "\n" + "Inadequate parametrs to define priority. There must be at least three parametrs, " + repr(len(words))+ " is given." + "\n" + "Example= 'CREW TYPE   PriorityType[1 or 2], Action:DamageGroup")
+            
+            agent_type      = words[0]
+            
+            if agent_type not in agent_type_list:
+                raise ValueError('Logical error in line: ' + str(lnum) + "\n" + "Crew type " + "'" + agent_type + "'" + " is not defiend in the crew section.")
+            
+            try:
+                priority_type = int(words[1])
+            except:
+                try:
+                    priority_type = int(float(words[1]) )
+                except:
+                    raise ValueError('Syntax error in line: ' + str(lnum) + "\n" + "'" + priority_type + "'" + " is not an acceptable priority type. Priority type must be either 1 or 2 to define the first or secondary prioirty consecutively." + "\n" + "Example= 'CREW TYPE   Prioritytype[1 or 2], Action:DamageGroup")
+            
+            if priority_type not in [1,2]:
+                raise ValueError('Syntax error in line: ' + str(lnum) + "\n" + "'" + priority_type + "'" + " is not an acceptable priority type. Priority type must be either 1 or 2 to define the first or secondary prioirty consecutively." + "\n" + "Example= 'CREW TYPE   Prioritytype[1 or 2], Action:DamageGroup")
+
+            arg = []
+            for word in words[2:]:
+                if priority_type == 1:
+                    if word.find(':') == -1:
+                        raise ValueError('Syntax error in line: ' + str(lnum) + "\n" + "The devider (':') is lacking. The primary priority "  + "'" + word + "'" + " is not an acceptable Primary Priority. A Priority Priority is a consisted of an Action:DamageGroup." + "\n" + "Example= 'CREW TYPE   Prioritytype[1], Action:DamageGroup")
+                    split_temp = word.split(':')
+                    
+                    if len(split_temp) > 2:
+                        raise ValueError('Syntax error in line: ' + str(lnum) + "\n" + "More than one devider (':') In the Primary Priority. The primary priority "  + "'" + word + "'" + " is not an acceptable Primary Priority. A Priority Priority is a consisted of an Action:DamageGroup." + "\n" + "Example= 'CREW TYPE   Prioritytype[1], Action:DamageGroup")
+                    
+                    action       = split_temp[0]
+                    damage_group = split_temp[1]
+                    
+                    if damage_group not in self.rm.entity:
+                        raise ValueError('Logical error in line: ' + str(lnum) + "\n" + "DamageGroup "  + "'" + damage_group + "'" + " is not an defined. A Priority Priority is a consisted of an Action:DamageGroup." + "\n" + "Example= 'CREW TYPE   Prioritytype[1], Action:DamageGroup")
+                    
+                    if action not in self.rm.sequence[self.rm.entity[damage_group]]:
+                        raise ValueError('Logical error in line: ' + str(lnum) + "\n" + "Action "  + "'" + action + "'" + " is not an defined in Action Sequence. A Priority Priority is a consisted of an Action:DamageGroup." + "\n" + "Example= 'CREW TYPE   Prioritytype[1], Action:DamageGroup")
+                    
+                    arg.append((action, damage_group) )
+                    
+                elif priority_type == 2:
+                    if word not in self.rm.proximity_points and word not in self.rm.reserved_priority_names:
+                        raise ValueError('Logical error in line: ' + str(lnum) + "\n" + "Secondary Priority "  + "'" + word + "'" + " is not defined as a Point Group and is not a Reserved Secondary Priority." + "\n" + "Example= 'CREW TYPE   Prioritytype[2] ['Point Group' or 'Reserved Secondary Priority']")
+                    arg.append(word)
+                else:
+                    raise ValueError("Uknown Priority type: "+repr(priority_type))
+                
+            self.rm.priority.addData(agent_type, priority_type, arg)
+        
+        for crew_type in self.rm.priority._data:
+            priority_list = self.rm.priority._data[crew_type]
+            primary_priority_order_list = priority_list[1]
+            secondary_priority_order_list = priority_list[2]
+            if len(primary_priority_order_list) != len(secondary_priority_order_list):
+                raise ValueError("Logical error. The number of Primary Priority and Secondary Primary does not match for Crew Trye: " + repr(crew_type) )
+        
         not_defined=[]
-        for agent_type in self.rm.agents.getAllAgentTypes():
+        for agent_type in agent_type_list:
             if not self.rm.priority.isAgentTypeInPriorityData(agent_type):
                 not_defined.append(agent_type)
         
         if len(not_defined)>0:
-            raise ValueError('The following agent types are not defined in the prioirty sections:\n'+repr(not_defined))
+            raise ValueError('Logical error. The following agent types are not defined in the prioirty sections:\n'+repr(not_defined))
     
     def _read_jobs(self):
         for lnum, line in self.sections['[JOBS]']:

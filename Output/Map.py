@@ -37,12 +37,12 @@ class Map():
             
         return joined_map
     
-    def createGeopandasPointDataFrameForNodes(self, node_list):
+    def createGeopandasPointDataFrameForNodes(self):
         s = gpd.GeoDataFrame(index=self.demand_node_name_list)
         point_list      = []
         point_name_list = []
         
-        for name in node_list:
+        for name in self.demand_node_name_list:
             coord = self.wn.get_node(name).coordinates
             point_list.append(shapely.geometry.Point(coord[0],coord[1]))
             point_name_list.append(name)
@@ -128,17 +128,18 @@ class Map():
         s.geometry=point_list
         s['res']=res
     
-        polygon = gpd.read_file('Northridge\GIS\Demand\demand_polygons.shp')
-        s = s.set_crs(epsg=polygon.crs.to_epsg())
-        joined_map = gpd.sjoin(polygon, s)
+        #polygon = gpd.read_file('Northridge\GIS\Demand\demand_polygons.shp')
+        #s = s.set_crs(epsg=polygon.crs.to_epsg())
+        #joined_map = gpd.sjoin(polygon, s)
         #joined_map.plot(column='res', legend=True, categorical=True, cmap='Accent', ax=ax)
         #ax.get_legend().set_title('Hours without service')
         #ax.get_legend()._loc=3
         #props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
             
-        return joined_map
+        return s
     
-    def getOutageTimeGeoPandas_4(self, scn_name, LOS='DL' , leak_ratio=0, consistency_time_window=7200):
+    def getOutageTimeGeoPandas_4(self, scn_name, LOS='DL' , iConsider_leak=False, leak_ratio=0, consistency_time_window=7200):
+        print(repr(LOS) + "   " + repr(iConsider_leak)+"  "+ repr(leak_ratio)+"   "+repr(consistency_time_window  ) )
         self.loadScneariodata(scn_name)
         res         = self.data[scn_name]
         map_res     = pd.Series(data=0 , index=self.demand_node_name_list, dtype=np.int64)
@@ -149,15 +150,16 @@ class Map():
         leak_res    = res.node['leak'][union_]
         
         leak_data = []
-        for name in leak_res:
-            demand_name = demands[name]
-            current_leak_res = leak_res[name].dropna()
-            time_list = set(leak_res[name].dropna().index)
-            time_list_drop = set(demands.index) - time_list
-            demand_name = demand_name.drop(time_list_drop)
-            leak_more_than_criteria = current_leak_res >=  leak_ratio * demand_name
-            if leak_more_than_criteria.any(0):
-                leak_data.append(leak_more_than_criteria)
+        if iConsider_leak:
+            for name in leak_res:
+                demand_name = demands[name]
+                current_leak_res = leak_res[name].dropna()
+                time_list = set(leak_res[name].dropna().index)
+                time_list_drop = set(demands.index) - time_list
+                demand_name = demand_name.drop(time_list_drop)
+                leak_more_than_criteria = current_leak_res >=  leak_ratio * demand_name
+                if leak_more_than_criteria.any(0):
+                    leak_data.append(leak_more_than_criteria)
         leak_data = pd.DataFrame(leak_data).transpose()
 
         demands = demands[self.demand_node_name_list]
@@ -208,7 +210,7 @@ class Map():
             map_res.loc[name] = latest_time
 
         #map_res = map_res/(3600*24)
-        geopandas_df = self.createGeopandasPointDataFrameForNodes(self.demand_node_name_list, )
+        geopandas_df = self.createGeopandasPointDataFrameForNodes()
         geopandas_df.loc[map_res.index.to_list(), 'restoration_time'] = map_res.to_list()
         
         return geopandas_df
