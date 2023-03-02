@@ -370,21 +370,77 @@ class Damage:
     
     def getNd(self, mp, number_of_damages, sum_of_length):
             rr = number_of_damages/sum_of_length*1000
-            nd = 0.0036*mp + 0.9012 + (0.0248*mp-0.877)*rr
+            
+            node_damage_parametrs = self._registry.settings['node_damage_model']
+            #{'a':0.0036, 'aa':1, 'b':0, 'bb':0, 'c':-0.877, 'cc':1, 'd':0, 'dd':0, 'e':0.0248, 'ee1':1, 'ee2':1, 'f':0, 'ff1':0, 'ff2':0, "damage_node_model": "equal_diameter_emitter"}
+            x   = node_damage_parametrs['x'  ]
+            a   = node_damage_parametrs['a'  ]
+            aa  = node_damage_parametrs['aa' ]
+            b   = node_damage_parametrs['b'  ]
+            bb  = node_damage_parametrs['bb' ]
+            c   = node_damage_parametrs['c'  ]
+            cc  = node_damage_parametrs['cc' ]
+            d   = node_damage_parametrs['d'  ]
+            dd  = node_damage_parametrs['dd' ]
+            e   = node_damage_parametrs['e'  ]
+            ee1 = node_damage_parametrs['ee1']
+            ee2 = node_damage_parametrs['ee2']
+            f   = node_damage_parametrs['f'  ]
+            ff1 = node_damage_parametrs['ff1']
+            ff2 = node_damage_parametrs['ff2']
+            
+            #nd = 0.0036*mp + 0.9012 + (0.0248*mp-0.877)*rr
+            nd = a*mp**aa + b*mp**bb + c*rr**cc + d*rr**dd + e*(mp**ee1)*(rr**ee2) + f*(mp**ff1)*(rr**ff2) + x
+            nd = 0.0036*float(mp) + 0.9012 + (0.0248*float(mp) - 0.877) * float(rr)
             return nd
-    
+        
+    def getNd2(self, mp, number_of_damages, sum_of_length):
+            rr = number_of_damages/sum_of_length*1000
+            
+            node_damage_parametrs = self._registry.settings['node_damage_model']
+            #{'a':0.0036, 'aa':1, 'b':0, 'bb':0, 'c':-0.877, 'cc':1, 'd':0, 'dd':0, 'e':0.0248, 'ee1':1, 'ee2':1, 'f':0, 'ff1':0, 'ff2':0, "damage_node_model": "equal_diameter_emitter"}
+            x   = node_damage_parametrs['x'  ]
+            a   = node_damage_parametrs['a'  ]
+            aa  = node_damage_parametrs['aa' ]
+            b   = node_damage_parametrs['b'  ]
+            bb  = node_damage_parametrs['bb' ]
+            c   = node_damage_parametrs['c'  ]
+            cc  = node_damage_parametrs['cc' ]
+            d   = node_damage_parametrs['d'  ]
+            dd  = node_damage_parametrs['dd' ]
+            e   = node_damage_parametrs['e'  ]
+            ee1 = node_damage_parametrs['ee1']
+            ee2 = node_damage_parametrs['ee2']
+            f   = node_damage_parametrs['f'  ]
+            ff1 = node_damage_parametrs['ff1']
+            ff2 = node_damage_parametrs['ff2']
+            
+            nd = a*mp**aa + b*mp**bb + c*rr**cc + d*rr**dd + e*(mp**ee1)*(rr**ee2) + f*(mp**ff1)*(rr**ff2) + x
+            
+            return nd
+        
     def getEmitterCdAndElevation(self, real_node_name, wn, number_of_damages, sum_of_length, mp, q):
         mp = mp*1.4223 # this is because our CURRENT relationship is base on psi
         rr = number_of_damages/sum_of_length*1000
         nd = self.getNd(mp, number_of_damages, sum_of_length)
         #equavalant_pipe_diameter = ( ((nd-1)*q)**2 /(0.125*9.81*3.14**2 * mp/1.4223) )**(1/4) * 1
         
+        if real_node_name == "CC1381":
+            print(nd)
+            nd2 = self.getNd2(mp, number_of_damages, sum_of_length)
+            print(nd2)
+            
+            
         node  = wn.get_node(real_node_name)
         #new_elavation = node.elevation
         
         nd = nd -1
         #nd0 = 0.0036*0 + 0.9012 + (0.0248*0-0.877)*rr
         nd0 = self.getNd(0, number_of_damages, sum_of_length)
+        if real_node_name == "CC1381":
+            print(nd0)
+            nd02 = self.getNd2(0, number_of_damages, sum_of_length)
+            print(nd02)
         nd0 = nd0 -1
         alpha = (nd - nd0)/(mp)
         mp0 = -1 * (nd0) / alpha
@@ -514,25 +570,20 @@ class Damage:
                     #pipe_damage_factor = self.scenario_set['pipe_damage_diameter_factor']
                     diam_m = WaterNetwork.get_link(pipe_id).diameter
                     
-                    if material == 'CI':
-                        dd = -0.0038*diam_m**2 + 0.1096*diam_m + 0.0196
-                        dd = dd * 1.2
-                    elif material == 'STL':
-                        dd = -0.009*diam_m**2 + 0.0808*diam_m + 0.0472
-                        dd = dd * 1.2
-                    elif material == 'CON':
-                        dd= -0.0083*diam_m**2 + 0.0738*diam_m + 0.0431
-                        dd = dd * 1.2
-                    elif material == 'RS':
-                        dd = -0.0088*diam_m**2 + 0.0886*diam_m + 0.0459
-                        dd = dd * 1.2
-                    elif material == 'DI':
-                        dd = -0.0079*diam_m**2 + 0.0805*diam_m + 0.0411
-                        dd = dd * 1.2
+                    #print(material)
+                    if material in self._registry.settings['pipe_damage_model']:
+                        damage_parameters = self._registry.settings['pipe_damage_model'][material]
                     else:
-                        raise ValueError("Uknown material: " + repr(material))
-                    
-                    #area = (0.0074*diam**2+3.2886*diam)/(100000) * pipe_damage_factor
+                        damage_parameters = self._registry.settings['default_pipe_damage_model']
+                    alpha = damage_parameters['alpha']
+                    beta  = damage_parameters['beta' ]
+                    gamma = damage_parameters['gamma']
+                    a     = damage_parameters['a'    ]
+                    b     = damage_parameters['b'    ]
+
+                    dd = alpha*diam_m**a + beta*diam_m**b + gamma
+                    dd = dd * 1.2
+
                     area = 3.14*dd**2/4
                 last_ratio=1
                 if pipe_id in self._pipe_last_ratio:
