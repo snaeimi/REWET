@@ -234,7 +234,7 @@ class Damage_Tab_Designer():
             if_validate_successful = False
         
         try:
-            must_have_pipe_columns = set(["time", "pipe_id", "damage_loc", "type", "damage_time", "Material"])
+            must_have_pipe_columns = set(["time", "pipe_id", "damage_loc", "type", "Material"])
             for index, row in scneario_list.iterrows():
                 damage_pipe_name = row["Pipe Damage"] 
                 if self.pipe_damage_input_method == 'excel':
