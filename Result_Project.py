@@ -114,11 +114,11 @@ class Project_Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
             
     def prepareData(self):
         i=0
-        result_directory = self.project.project_settings.process['result_directory']
+        #result_directory = self.project.project_settings.process['result_directory']
         #self.project.scenario_list = self.project.scenario_list.iloc[0:20]
         for scn_name, row in self.project.scenario_list.iterrows():
             self._RequiredDemandForAllNodesandtime[scn_name] = None
-            settings_file_name = scn_name+'.xlsx'                
+            #settings_file_name = scn_name+'.xlsx'                
             #settings_file_addr = os.path.join(result_directory, settings_file_name) 
             #scenario_set       = pd.read_excel(settings_file_addr)
             #self.scenario_set[scn_name] = scenario_set
@@ -151,13 +151,14 @@ class Project_Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
             reg_file_data = pickle.load(f)
         self.registry[scn_name] = reg_file_data
         
-        scenario_registry_file_name = scn_name+".res"
-        res_addr = os.path.join(result_directory, scenario_registry_file_name)        
-        with open(res_addr, 'rb') as f:
+        #scenario_registry_file_name = scn_name+".res"
+        #res_addr = os.path.join(result_directory, scenario_registry_file_name)        
+        #with open(res_addr, 'rb') as f:
             #print(output_addr)
-            res_file_data = pickle.load(f)
-        res_file_data.node['head']    = None
-        res_file_data.node['quality'] = None
+            #res_file_data = pickle.load(f)
+        #res_file_data.node['head']    = None
+        #res_file_data.node['quality'] = None
+        res_file_data = self.registry[scn_name].result
         self.remove_maximum_trials(res_file_data)
         self.data[scn_name]           = res_file_data
             
@@ -174,26 +175,27 @@ class Project_Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
             with open(registry_file_data_addr, 'rb') as f:
                 if not os.path.exists(registry_file_data_addr):
                     raise ValueError("Registry File Not Found: "+ str(registry_file_data_addr))
-                #current_scenario_registry =  pickle.load(f)
+                self.registry[scn_name] =  pickle.load(f)
             
             #self.pipe_damages[scn_name] = current_scenario_registry.damage.pipe_all_damages
             #self.node_damages[scn_name] = current_scenario_registry.node_damage
             #self.pump_damages[scn_name] = current_scenario_registry.damaged_pumps
             #self.tank_damages[scn_name] = current_scenario_registry.tank_damage 
                         
-            res_addr = os.path.join(result_directory, scn_name+'.res')
+            #res_addr = os.path.join(result_directory, scn_name+'.res')
             
-            with open(res_addr, 'rb') as f:
+            #with open(res_addr, 'rb') as f:
                 #print(output_addr)
-                res_file_data = pickle.load(f)
+                #res_file_data = pickle.load(f)
             
-            settings_file_name = scn_name+'.xlsx'                
-            settings_file_addr = os.path.join(result_directory, settings_file_name) 
+            #settings_file_name = scn_name+'.xlsx'                
+            #settings_file_addr = os.path.join(result_directory, settings_file_name) 
             #scenario_set       = pd.read_excel(settings_file_addr)
             #self.scenario_set[scn_name] = scenario_set
             
-            res_file_data.node['head']    = None
-            res_file_data.node['quality'] = None
+            #res_file_data.node['head']    = None
+            #res_file_data.node['quality'] = None
+            res_file_data = self.registry[scn_name]
             self.remove_maximum_trials(res_file_data)
             self.data[scn_name]           = res_file_data
             #self.time_size[scn_name]      = len(self.data[scn_name].node['demand'].index)

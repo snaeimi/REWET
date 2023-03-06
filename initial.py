@@ -386,8 +386,18 @@ class Starter():
                             print('run_flag for worker: '+ repr(comm.rank)+' --> '+repr(run_flag))
                             comm.isend(run_flag, dest=0)
                         except:
+                            error_dump_file = None
+                            if type(scenario_name) == str:
+                                error_dump_file = "dump_"+scenario_name+".pkl"
+                            else:
+                                error_dump_file = "dump_"+repr(scenario_name)+".pkl"
+                                
+                            with open(error_dump_file, "wb") as f:
+                                pickle.dump(self, f)
+                                
                             comm.isend(3, dest=0)
                         last_time_message_recv=time.time()
+
                     else:
                         worker_exit_flag='Death message recieved!'
                         break

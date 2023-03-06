@@ -136,7 +136,7 @@ class WaterNetworkModel(WaterNetworkModel):
                 logger.error('elevation= '+ repr(cur_node.elevation))
                 logger.error('tank_level= '+ repr(tank_level))
                 raise ValueError('Tank Level for ' + tank_name + ' is less than zero')
-        
+        #i = 0
         for link_name in self.link_name_list:
             link = self.get_link(link_name)
             setting = None
@@ -166,8 +166,10 @@ class WaterNetworkModel(WaterNetworkModel):
             else:
                 logger.error('Element type is: '+repr(type(link)))
                 logger.error('Status is : ' + repr(status))
-                raise ValueError("Unrecognized status")
-    
+                #i +=1
+                #raise ValueError("Unrecognized status" + repr(status))
+        #print(i)
+        #print(len(self.link_name_list))
     def read_inpfile(self, filename):
         """
         Defines water network model components from an EPANET INP file
