@@ -30,7 +30,7 @@ class Process_Settings(base):
         self.settings['minimum_simulation_time'      ] = (10 + 24 * 10) * 3600 #seconds
         self.settings['simulation_time_step'         ] = 3600 #seconds 
         self.settings['number_of_damages'            ] = 'single' #single or multiple. If single, indicate single damage files. If multiple, indicate "pipe_damage_file_list"
-        self.settings['result_directory'             ] = #"Example//Result"
+        self.settings['result_directory'             ] = "Example//Result"
         self.settings['temp_directory'               ] = "Example//RunFiles" 
         self.settings['save_time_step'               ] = True  
         self.settings['last_sequence_termination'    ] = False  #sina needs to be applied in GUI
@@ -44,7 +44,7 @@ class Process_Settings(base):
         """
         Hydraulic settings
         """
-        self.settings['WN_INP'             ] = #"Example/net3.inp"
+        self.settings['WN_INP'             ] = "Example/net3.inp"
         self.settings['demand_ratio'       ] = 1
         self.settings['solver'             ] = 'ModifiedEPANETV2.2' # sina needs to be implemented
         #self.settings['hydraulic_time_step'] = 3600
