@@ -53,7 +53,7 @@ class Process_Settings(base):
         """
         Damage settings
         """
-        self.settings['pipe_damage_file_list'     ] = "Example//list.xlsx"
+        self.settings['pipe_damage_file_list'     ] = "Example//example_list.xlsx"
         self.settings['pipe_damage_file_directory'] = 'Example//Damages' #'Nafiseh Damage Data/out'
         self.settings['pump_damage_relative_time' ] = True #needs to be implemented in the code
         self.settings['tank_damage_relative_time' ] = True #needs to be implemented in teh code
@@ -110,7 +110,7 @@ class Scenario_Settings(base):
         Restoration settings 
         """
         self.settings['Restoraion_policy_type'          ] = 'script' # sina needs to be implemented in the code
-        self.settings['Restortion_config_file'          ] =  'Example//config.txt' #
+        self.settings['Restortion_config_file'          ] =  'Example//exampe_config.txt' #
         self.settings['pipe_damage_discovery_model'     ] = {'method': 'leak_based', 'leak_amount': 0.025, 'leak_time': 3600*12} # sina needs to be implemented
         self.settings['node_damage_discovery_model'     ] = {'method': 'leak_based', 'leak_amount': 0.001, 'leak_time': 3600*12} # sina needs to be implemented
         self.settings['pump_damage_discovery_model'     ] = {'method': 'time_based', 'time_discovery_ratio': pd.Series([1], index = [3600*n for n in [0]])} # sina needs to be implemented

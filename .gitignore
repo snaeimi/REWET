@@ -16,9 +16,14 @@ Demand Polygons/
 *.shx
 *.pptx
 *.pyc
-*.xlsx
 *.xls
+!example_list.xlsx
+!Net3_tank_damage.xlsx
+!Net3-node-damage.xlsx
+!Net3-pipe-damage.xlsx
+!Net3-PumpDamage.xlsx
 *.inp
+!Net3.inp
 *.docx
 *.bin
 *.net
@@ -27,4 +32,7 @@ Demand Polygons/
 *.csv
 *.pkl
 *.txt
-
+!exampe_config.txt
+!Net3DA.txt
+!Net3RA.txt
+*.res
