@@ -43,7 +43,9 @@ class Registry():
         self._pipe_break_history       = pd.DataFrame(columns=['Pipe_A','Pipe_B','Orginal_pipe', 'Node_A','Node_B'])
         self._pipe_leak_history        = pd.DataFrame(columns=['Pipe_A','Pipe_B','Orginal_pipe','Node_name'])
         self._long_task_data           = pd.DataFrame(columns=['Node_name', 'Action', 'Entity', 'Time', 'cur_agent_name'])
-        self.pre_event_demand_met      = pd.DataFrame()
+        self.all_node_table            = pd.DataFrame(columns=["X_COORD", "Y_COORD"], dtype=float)
+        self.pre_event_demand_met      = pd.DataFrame(dtype=float)
+        self.hydraulic_significance    = pd.Series(dtype=float)
         self.if_first_event_occured    = 0
         self.restoration_log_book      = RestorationLog(settings)
         self.explicit_leak_node        = pd.Series()
@@ -62,6 +64,7 @@ class Registry():
         self.result                    = None
         self.result_dump_file_list     = []
         self.Pipe_Damage_restoration_report = []
+        self.undamaged_link_node_list  = {}
 
                 
         for name, pipe in WaterNetwork.pipes():
@@ -74,6 +77,13 @@ class Registry():
                 
         for demand_node_name in self.demand_node_name_list:
             self.demand_node_users.loc[demand_node_name]=1
+        
+        for node_name, node in WaterNetwork.nodes():
+            self.all_node_table.loc[node_name, "X_COORD"] = node.coordinates[0]
+            self.all_node_table.loc[node_name, "Y_COORD"] = node.coordinates[1]
+        
+        for link_name, link in WaterNetwork.links():
+            self.undamaged_link_node_list[link_name] = (link.start_node_name, link.end_node_name)
         
         #self._restoration_table  = pd.DataFrame(columns = ['node_name','function', 'element_name', 'element_type', 'in_function_index'])
         self._restoration_table  = pd.DataFrame(columns = ['node_name','function', 'record_index'])
@@ -1164,9 +1174,11 @@ class Registry():
     def getMostLeakAtCheck(self, real_node_name_list, element_type):
         if element_type == "DISTNODE":
             total_demand = self._node_damage_table.loc[real_node_name_list, 'Demand2']
+            total_demand.loc[total_demand[total_demand.isna()].index ] = 0
             return total_demand
         elif element_type == "PIPE":
-            leak = self.self._pipe_damage_table.loc[real_node_name_list, 'LeakAtCheck']
+            leak = self._pipe_damage_table.loc[real_node_name_list, 'LeakAtCheck']
+            leak.loc[leak[leak.isna()].index ] = 0
             return leak
         else:
             return None

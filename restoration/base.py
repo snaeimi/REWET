@@ -4,8 +4,8 @@ Created on Fri Dec 25 04:00:43 2020
 
 @author: snaeimi
 """
+import networkx as nx
 import pandas as pd
-#import prder
 import numpy as np
 import random
 import logging
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 def get_node_name(node_name, table):
     if "virtual_of" in table.columns:
         real_node_name = table.loc[node_name, "virtual_of"]
-        if real_node_name == None or real_node_name==np.nan:
+        if real_node_name == None or real_node_name==np.nan: #SINA: probably NP.NAN does not work here. Correct it.
             real_node_name = node_name
         return real_node_name
     else:
@@ -351,12 +351,7 @@ class Agents():
         
         _ETA                   = self._agents.loc[agent_name, 'data']._estimateTimeOfArival(coord)
         effect_definition_name = self._jobs.getEffectDefinitionName(agent_type, action, entity)
-        #if effect_definition_name == 'DistrIsolate':
-        #if effect_definition_name=='MJTRreroute':
-            #print('**********  '+repr(node_name)+'  **********')
         method_name            = self._jobs.chooseMethodForCurrentJob(node_name, effect_definition_name, entity)
-        #if effect_definition_name=='MJTRreroute':
-            #print('in assign hob to agent: '+'  '+repr(method_name))
             
         if method_name==None:
             raise ValueError("No method is applicale for " + repr(effect_definition_name))
@@ -412,9 +407,7 @@ class Agents():
             iget="ShortOfTime"
         
         if iget == 'ShortOfTime':
-            #logger.debug((False, 'ShortOfTime', time, time + _ETA, time + _ETA+_ETJ))
             return (False, iget, None, collective)
-        #print(repr(agent_name) + '  '+repr(method_name)+'  '+repr(node_name ) )
         self._agents.loc[agent_name, 'data'].current_location.coord.set_coord(coord[0],coord[1]) 
         self._agents.loc[agent_name, 'data'].setJob(node_name, action, entity, effect_definition_name, method_name, time+_ETA,time+_ETA+_ETJ, iOnGoing)
         self._agents.loc[agent_name, 'ready'] = False
@@ -746,51 +739,31 @@ class Dispatch():
                     leaking_nodes_result = self._rm._registry.result.node['leak'][shared_nodes_name_list]
                     leaking_nodes_result = leaking_nodes_result.sort_index()
                     
-                    #self._rm._registry._nodal_data['']
                     if 'virtual_of' in not_discovered_nodal_damage_table.columns:
                         leaking_number_of_damages = not_discovered_nodal_damage_table.groupby('virtual_of')["Number_of_damages"].sum()
-                        #print(leaking_number_of_damages)
                     else:
                         leaking_number_of_damages = not_discovered_nodal_damage_table.loc[shared_nodes_name_list, "Number_of_damages"]
                     
                     leaking_nodes_result = leaking_nodes_result.loc[(leaking_nodes_result.index > (time - node_leak_time_span) )]
-                    # = leaking_nodes_result[leaking_nodes_result>=0.002]
                     normalized_summed_water_loss = leaking_nodes_result / leaking_number_of_damages
                     discovered_bool = normalized_summed_water_loss >= node_leak_criteria
-                    #print("sssssssss "+repr(leaking_nodes_result) )
                     discovered_bool_temp = discovered_bool.any()
                     discovered_bool_temp = discovered_bool_temp[discovered_bool_temp==True]
                     discovered_list = discovered_bool_temp.index.to_list()
-                    #print(discovered_list)
-                    #discovered_leaks.index()
                     if 'virtual_of' in not_discovered_nodal_damage_table.columns:
                         discovered_list = (nodal_damage_table[nodal_damage_table['virtual_of'].isin(discovered_list)]).index
 
                     nodal_damage_table.loc[discovered_list, 'discovered'] = True
+                #else:
                     
-                    #time1    = leaking_nodes_result.index[1:]
-                    #time2    = leaking_nodes_result.index[0:-1]
-                    #time_dif = (pd.Series(time1) - pd.Series(time2))
-                    #leaking_nodes_result = leaking_nodes_result.drop(leaking_nodes_result.index[-1])
-                    
-                    #leaking_nodes_result.index = time_dif.to_numpy()
-                    #leaking_nodes_result = leaking_nodes_result.apply(lambda x: x.values * x.index)
-                    #normalized_summed_water_loss = leaking_nodes_result.sum() / leaking_number_of_damages
-                    #discovery_list = normalized_summed_water_loss[normalized_summed_water_loss > 2*3600*0.002]
-                    #discovery_list  = set()
-                    #discovery_list = list(discovery_list.index)
-                    #nodal_damage_table.loc[discovery_list, 'discovered'] = True
-
                 
-                time_since_dispatch_activity = time - self._rm.restoration_start_time
-                discovered_ratios            = self._rules.getDiscoveredPrecentage(time_since_dispatch_activity)
-                discovered_damage_numbers    = self._getDamageNumbers(discovered_ratios)
-                self._updateDamagesNumbers(discovered_damage_numbers)
+            time_since_dispatch_activity = time - self._rm.restoration_start_time
+            discovered_ratios            = self._rules.getDiscoveredPrecentage(time_since_dispatch_activity)
+            discovered_damage_numbers    = self._getDamageNumbers(discovered_ratios)
+            self._updateDamagesNumbers(discovered_damage_numbers)
 
-            else:
-                raise ValueError('Unknown method: '+repr(self.method))
-            #print(discovered_damage_numbers)
-            
+            #else:
+                #raise ValueError('Unknown method: '+repr(self.method))
         
         
     def _getDamageNumbers(self, discovered_ratios):
@@ -804,7 +777,7 @@ class Dispatch():
                 else:
                     discovered_ratios[el]=int(1)
             temp = len(self._rm._registry.getDamageData(el))
-            num_damaged_entity[el] = int(np.round(temp *discovered_ratios[el]))
+            num_damaged_entity[el] = int(np.round(temp * discovered_ratios[el]))
         return num_damaged_entity
     
     def _updateDamagesNumbers(self, discovered_numbers):
@@ -834,8 +807,10 @@ class Dispatch():
 #                     else:
 #                         pass
 # =============================================================================
-
-                used_number = random.sample(range(0,len(undiscovered_damage_table)),discovered_numbers[el] - len(discovered_damage_table))
+                if len(undiscovered_damage_table) > 0:
+                    used_number = random.sample(range(0, len(undiscovered_damage_table) ),discovered_numbers[el] - len(discovered_damage_table))
+                else:
+                    used_number = []
                 for i in used_number:
                     temp_index = undiscovered_damage_table.index[i]
                     self._rm._registry.updateElementDamageTable(el, 'discovered', temp_index, True, icheck=True)
@@ -843,7 +818,6 @@ class Dispatch():
                 if el =="PIPE":
                     refined_damaged_table = self._rm._registry.getDamageData(el)
                     discovered_damage_table = refined_damaged_table[refined_damaged_table['discovered'] == True]
-                    #print(repr(len(discovered_damage_table)) + " of "+ repr(discovered_numbers[el]))
                 self._last_discovered_number[el] = discovered_numbers[el]
                 
                 
@@ -851,7 +825,6 @@ class Priority():
     def __init__(self, restoration):
         self._data  = {}
         self._rm    = restoration
-        #self._wn    = WaterNetwork
         
     def addData(self, agent_type,priority, order):
         if agent_type not in self._data:
@@ -873,17 +846,32 @@ class Priority():
         
         return temp.loc[priority]
     
+    def getHydSigDamageGroups(self):
+        damage_group_list = set()
+        for crew_type in self._data:
+            whole_priority_list = self._data[crew_type]
+            primary_priority_list   = whole_priority_list.loc[1]
+            secondary_priority_list = whole_priority_list.loc[2]
+            i = 0
+            for cur_second_priority in secondary_priority_list:
+                if cur_second_priority.upper() == "HYDSIG":
+                    cur_damage_group = primary_priority_list[i][1]
+                    damage_group_list.add(cur_damage_group)
+                i += 1
+        return damage_group_list
+    
     def sortDamageTable(self, wn, entity_data, entity, agent_type, target_priority_index, order_index, target_priority = None):
         all_priority_data    = self._data[agent_type]
         target_priority_list = all_priority_data.loc[target_priority_index]
         
         if len(target_priority_list) == 0:
             return entity_data
-        
+
         name_sugest = 'Priority_'+str(target_priority_index)+'_dist'
+        
         if target_priority == None:
             target_priority = target_priority_list[order_index]
-        
+            
         if target_priority == None:
             return entity_data
 
@@ -903,42 +891,169 @@ class Priority():
                 columns_to_drop.append(name_sug_c)
                 entity_data[name_sug_c] = ( (entity_data['X_COORD']-x)**2 + (entity_data['Y_COORD']-y)**2 ) ** 0.5
                 counter += 1
-            dist_only_entity_table      = entity_data[columns_to_drop]
-            min_dist_entity_table       = dist_only_entity_table.min(axis=1)
-            entity_data[name_sugest]    = min_dist_entity_table
+            dist_only_entity_table          = entity_data[columns_to_drop]
+            min_dist_entity_table           = dist_only_entity_table.min(axis=1)
+            entity_data.loc[:, name_sugest] = min_dist_entity_table
             entity_data.sort_values(by=name_sugest, ascending=True, inplace =True)
             columns_to_drop.append(name_sugest)
             columns_to_drop.append('X_COORD')
             columns_to_drop.append('Y_COORD')
             entity_data.drop(columns=columns_to_drop, inplace= True)
-        elif target_priority in self._rm.proximity_points:
-            #Sina: It does nothing. When there are less damage location within
-            #the priority definition for the crew type, thsi works fine, but 
-            #when there are more damage location within the priority definiton,
-            #it does not gurantee that only teh cloest damage locations to the
-            #crew-type agents are matched to jobs
-            if target_priority.upper() == "CLOSEST":
-                pass
-            #If element type is not leakable, it does nothing. IF nodes are not
-            #Checked (i.e. check is not at the sequnce before the current action)
-            #the leak data is real time leak for the damage location.
-            elif target_priority.upper() == "MOSTLEAKATCHECK":
-                real_node_name_list = []
-                node_name_list = list(entity_data.index)
-                name_sugest = 'Priority_'+str(target_priority_index)+'_leak_sina' #added sina so the possibility of a conflic of name is minimized
-                for node_name in node_name_list:
-                    node_name_vir = get_node_name(node_name, entity_data)
-                    real_node_name_list.append(node_name_vir)
-                element_type = self._rm.entity[entity]
-                leak_data = self._rm._registry.start.registry.getMostLeakAtCheck(real_node_name_list, element_type)
-                if type(leak_data) != type(None):
-                    entity_data[name_sugest] = leak_data
-                    entity_data.sort_values(by=name_sugest, ascending=True, inplace =True)
-                    entity_data.drop(columns=[name_sugest], inplace= True)
+        
+        #Sina: It does nothing. When there are less damage location within
+        #the priority definition for the crew type, thsi works fine, but 
+        #when there are more damage location within the priority definiton,
+        #it does not gurantee that only teh cloest damage locations to the
+        #crew-type agents are matched to jobs
+        elif target_priority.upper() == "CLOSEST":
+            pass
+        elif target_priority.upper() == "HYDSIGLASTFLOW":
+            element_type = self._rm.entity[entity]
+            if element_type != "PIPE":
+                entity_data = self.sortDamageTable(entity_data, entity, agent_type, target_priority_index, order_index, target_priority = "CLOSEST")
+            else:
+                all_time_index  = self._rm._registry.result.link["flowrate"].index[:self._rm.restoration_start_time+1]
+                pipe_name_list  = entity_data.loc[:,"Orginal_element"]
+                last_valid_time = [cur_time for cur_time in all_time_index if cur_time not in self._rm._registry.result.maximum_trial_time]
+                last_valid_time.sort()
+                if len(last_valid_time) == 0:
+                    last_valid_time = self._rm.restoration_start_time
                 else:
+                    last_valid_time = last_valid_time[-1]
+                    
+                name_sugest = 'Priority_'+str(target_priority_index)+'_dist'
+                flow_rate   = self._rm._registry.result.link["flowrate"].loc[last_valid_time, pipe_name_list].abs()
+                entity_data.loc[:, name_sugest] = flow_rate.to_list()
+                entity_data.sort_values(name_sugest, ascending=False, inplace=True)
+                entity_data.drop(columns=name_sugest, inplace=True)
+        
+        elif target_priority in self._rm.proximity_points and target_priority != "WaterSource2":
+
+            all_node_table = self._rm._registry.all_node_table
+            Proximity_list = self._rm.proximity_points[target_priority]
+            node_name_list = list(entity_data.index)
+            for node_name in node_name_list:
+                #Sina: you can enhance the run time speed with having x, y coordinates in the damage table and not producing and droping them each time
+                node_name_vir = get_node_name(node_name, entity_data)
+                coord = wn.get_node(node_name_vir).coordinates
+                entity_data.loc[node_name, 'X_COORD'] = coord[0]
+                entity_data.loc[node_name, 'Y_COORD'] = coord[1]
+            counter = 1
+            columns_to_drop = []
+            
+            g = nx.MultiDiGraph()
+            
+            for name, node in wn.nodes():
+                g.add_node(name)
+                nx.set_node_attributes(g, name='pos', values={name: node.coordinates})
+                nx.set_node_attributes(g, name='type', values={name: node.node_type})
+            
+            for name, link in wn.links():
+                start_node = link.start_node_name
+                end_node = link.end_node_name
+                g.add_edge(start_node, end_node, key=name)
+                nx.set_edge_attributes(g, name='type', 
+                            values={(start_node, end_node, name): link.link_type})
+                
+                try:
+                    length    = link.length
+                    d         = link.diameter
+                    roughness = link.roughness
+                    cost      = length / np.power(d, 4.8655) / np.power(roughness, 1.852) + 1 / d
+                except:
+                    cost = 0.00001
+                
+                weight  = cost
+                
+                nx.set_edge_attributes(g, name='weight', 
+                    values={(start_node, end_node, name): weight})
+            
+            g = g.to_undirected()
+            
+            for x, y in Proximity_list:
+                point_length_vector = np.square(all_node_table['X_COORD'] - x) + np.square(all_node_table['Y_COORD'] - y)
+                point_length_vector = np.sqrt(point_length_vector )
+                closest_node_name = point_length_vector.idxmin()
+                
+                #print("closest_node_name= "+str(closest_node_name))
+                
+                orginal_pipe_name_list = entity_data["Orginal_element"]
+                damaged_pipe_node_list = [self._rm._registry.undamaged_link_node_list[link_node_names] for link_node_names in orginal_pipe_name_list]
+                try:
+                    shortest_path_length   = [min(nx.shortest_path_length(g, closest_node_name, pipe_nodes_name[0], "weight"), nx.shortest_path_length(g, closest_node_name, pipe_nodes_name[1], "weight")) for pipe_nodes_name in damaged_pipe_node_list]
+                except nx.NetworkXNoPath:
+                    shortest_path_length = []
+                    for pipe_nodes_name in damaged_pipe_node_list:
+                        start_node_name = pipe_nodes_name[0]
+                        end_node_name   = pipe_nodes_name[1]
+                        
+                        try:
+                            closest_path_from_start = nx.shortest_path_length(g, closest_node_name, start_node_name, "weight")
+                        except nx.NetworkXNoPath:
+                            closest_path_from_start = 10000000000000.0
+                        
+                        try:
+                            closest_path_from_end = nx.shortest_path_length(g, closest_node_name, end_node_name, "weight")
+                        except nx.NetworkXNoPath:
+                            closest_path_from_end = 10000000000000.0
+                        
+                        cur_shortest_path_length = min(closest_path_from_start, closest_path_from_end)
+                        shortest_path_length.append(cur_shortest_path_length)
+                #print(shortest_path_length)
+                
+                name_sug_c = name_sugest+'_'+str(counter)
+                columns_to_drop.append(name_sug_c)
+                entity_data[name_sug_c] = shortest_path_length
+                counter += 1
+            dist_only_entity_table          = entity_data[columns_to_drop]
+            min_dist_entity_table           = dist_only_entity_table.min(axis=1)
+            entity_data.loc[:, name_sugest] = min_dist_entity_table
+            entity_data.sort_values(by=name_sugest, ascending=True, inplace =True)
+            columns_to_drop.append(name_sugest)
+            columns_to_drop.append('X_COORD')
+            columns_to_drop.append('Y_COORD')
+            entity_data.drop(columns=columns_to_drop, inplace= True)
+            #print(entity_data)
+            #print("+++++++++++++++++++++++++++++++++++++++")
+        
+        #Sina: It does nothing. When there are less damage location within
+        #the priority definition for the crew type, thsi works fine, but 
+        #when there are more damage location within the priority definiton,
+        #it does not gurantee that only teh cloest damage locations to the
+        #crew-type agents are matched to jobs
+        
+        elif target_priority.upper() == "HYDSIG":
+            element_type = self._rm.entity[entity]
+            if element_type != "PIPE":
+                entity_data = self.sortDamageTable(entity_data, entity, agent_type, target_priority_index, order_index, target_priority = "CLOSEST")
+            else:
+                name_sugest = 'Priority_'+str(target_priority_index)+'_dist'
+                hyd_sig = self._rm._registry.hydraulic_significance[entity_data["Orginal_element"] ]
+                
+                entity_data.loc[:, name_sugest] = hyd_sig.to_list()
+                entity_data.sort_values(name_sugest, ascending=False, inplace=True)
+                entity_data.drop(columns=name_sugest, inplace=True)
+            
+        #If element type is not leakable, it does nothing. IF nodes are not
+        #Checked (i.e. check is not at the sequnce before the current action)
+        #the leak data is real time leak for the damage location.
+        elif target_priority.upper() == "MOSTLEAKATCHECK":
+            #real_node_name_list = []
+            node_name_list = list(entity_data.index)
+            name_sugest = 'Priority_'+str(target_priority_index)+'_leak_sina' #added sina so the possibility of a conflic of name is minimized
+            #for node_name in node_name_list:
+                #node_name_vir = get_node_name(node_name, entity_data)
+                #real_node_name_list.append(node_name_vir)
+            element_type = self._rm.entity[entity]
+            leak_data = self._rm._registry.getMostLeakAtCheck(node_name_list, element_type)
+            if type(leak_data) != type(None):
+                entity_data.loc[node_name_list, name_sugest] = leak_data
+                entity_data.sort_values(by=name_sugest, ascending=True, inplace =True)
+                entity_data.drop(columns=[name_sugest], inplace= True)
+            else:
                     entity_data = self.sortDamageTable(entity_data, entity, agent_type, target_priority_index, order_index, target_priority = "CLOSEST")
         else:
-            raise ValueError('Unrcognized Secondary Primary')
+            raise ValueError('Unrcognized Secondary Primary: ' + repr(target_priority) )
         
         return entity_data
     
@@ -975,14 +1090,8 @@ class Jobs():
         self._job_list = self._job_list.append(series_temp, ignore_index=True)
     
     def _filter(self, agent_type, entity, action):
-        #logger.debug(agent_type+ ' '+entity+' '+action)
         temp = self._job_list
-        #logger.debug(temp)
-        #logger.debug(temp[['agent_type','entity', 'action']]==[agent_type, entity, action])
         temp = temp[(temp[['agent_type', 'entity', 'action']]==[agent_type, entity, action]).all(1)]
-        #temp = temp[temp['agent_type']==agent_type]
-        #temp = temp[temp['entity']==entity]
-        #temp = temp[temp['action']==action]
         temp_length = len(temp)
         if temp_length >1:
             raise ValueError('We have more than one job description')
@@ -991,8 +1100,6 @@ class Jobs():
         return temp
     
     def getAJobEstimate(self, orginal_element, agent_type, entity, action, method_name, number):
-        #temp = self._job_list
-        #temp = temp[(temp[['agent_type', 'entity', 'action']]==[agent_type, entity, action]).all(1)]
         temp = self._filter(agent_type, entity, action)
         time_arg = temp['time_argument'].iloc[0]
         operation_name = temp['effect'].iloc[0]
@@ -1020,9 +1127,7 @@ class Jobs():
         #IMPORTANT/sina
         if (method_name==2 or method_name==1) and action == 'reroute':
             pass
-            #damage_original_pipe_number = sum(self._rm._registry._pipe_damage_table['Orginal_element']==orginal_element)
-            #time = int(time*damage_original_pipe_number)
-
+            
         return time
     
     
@@ -1042,19 +1147,7 @@ class Jobs():
         
         if iOnlyData==True:
             return 
-        
-        
-# =============================================================================
-#         return getEffectList(all_effect_name,iWithout_data=True)
-#         all_effect = self._effect_data[all_effect_name]
-#         all_effect=copy.deepcopy(all_effect)
-#         
-#         if iWithout_data==True and 'DATA' in all_effect:
-#             effect_all_data.pop('DATA')
-#         
-#         return effect_all_data
-# =============================================================================
-     
+             
     def addEffectDefaultValue(self,input_dict):
         
         temp = self._effect_defualts[['effect_definition_name','method_name','argument']]==[input_dict['effect_definition_name'],input_dict['method_name'],input_dict['argument']]
@@ -1069,8 +1162,6 @@ class Jobs():
         if effect_definition_name==None:
             return []
 
-        #print(effect_definition_name)
-        #print(method_name)
         if effect_definition_name=='CHECK':
             return [{'EFFECT': 'CHECK'}]
         all_methods  = self._effect_data[effect_definition_name]
@@ -1126,7 +1217,6 @@ class Jobs():
             #if 'METHOD_PROBABILITY' in method:
     
     def _iConditionHolds(self, val1, con, val2):
-        #print(repr(val1)+'  '+repr(con)+'  '+repr(val2))
         if con=='BG':
             if val1 > val2:
                 return True

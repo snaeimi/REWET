@@ -329,7 +329,7 @@ class Repair():
         demand_after_removal_factor = (1-factor)
         node = wn.get_node(node_name)
         cur_demand = node.demand_timeseries_list[0].base_value
-        self._registry.getDamageData('DISTNODE', iCopy=False).loc[node_name,'Demand1'] = cur_demand
+        #self._registry.getDamageData('DISTNODE', iCopy=False).loc[node_name,'Demand1'] = cur_demand
         history['NODE_DEMAND_BEFORE'] = cur_demand
         if abs(cur_demand)<0:
             return ValueError('Node '+repr(node_name)+' is has zerovalue: '+repr(cur_demand))

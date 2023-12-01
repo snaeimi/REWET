@@ -25,57 +25,8 @@ logging.basicConfig(level=50)
 
 log=[]
 
-class Project():
-    def __init__(self, project_settings, scenario_list):
-        self.scenario_list    = scenario_list
-        self.project_settings = project_settings
 
 class Starter():
-
-    def read_damage_list(self, list_file_addr, file_directory, iCheck=False):
-        """
-        Reads damage sceanrio list.
-
-        Parameters
-        ----------
-        list_file_addr : Address to the target list file
-            DESCRIPTION.
-        file_directory : TYPE
-            DESCRIPTION.
-        iCheck : TYPE, optional
-            DESCRIPTION. The default is False. Checks if all damage files are found.
-
-        Raises
-        ------
-        RuntimeError
-            if file not found.
-
-        Returns
-        -------
-        damage_list : Pandas Dataframe
-            DESCRIPTION.
-
-        """
-        damage_list=None
-        error_file_name=[]
-
-        with open(list_file_addr, 'rb') as f:
-            damage_list = pd.read_excel(f)
-
-        iError=False
-        temp = damage_list['Pipe Damage'].tolist()
-        
-        if iCheck==False:
-            return damage_list
-        
-        for file_name in temp:
-            if not os.path.exists(file_name):
-                iError=True
-                error_file_name.append(file_name)
-        
-        if iError:
-            raise RuntimeError('The Follwoing files could not be found: '+repr(error_file_name))
-        return damage_list
     
     def createProjectFile(self, project_settings, damage_list, project_file_name):
         project = Project(project_settings, damage_list)
@@ -107,7 +58,7 @@ class Starter():
                 raise ValueError("project type unrecognized")
             
             
-        damage_list = self.read_damage_list(settings.process['pipe_damage_file_list'], settings.process['pipe_damage_file_directory'])
+        damage_list = io.read_damage_list(settings.process['pipe_damage_file_list'], settings.process['pipe_damage_file_directory'])
         settings.process.settings['list'] = damage_list
         if type(project_file) == type(None):
             self.createProjectFile(settings, damage_list, "project.prj")
@@ -213,7 +164,7 @@ class Starter():
         
         delta_t_h = settings['hydraulic_time_step']
         wn.options.time.hydraulic_timestep = int(delta_t_h)
-        wn.options.time.pattern_timestep   = int(delta_t_h)
+        #wn.options.time.pattern_timestep   = int(delta_t_h)
         #wn.options.time.pattern_timestep   = int(delta_t_h)
         #Sina What about rule time step. Also one may want to change pattern time step
         
@@ -253,7 +204,7 @@ class Starter():
         comm = MPI.COMM_WORLD
         mpi4py.rc.recv_mprobe = False
         
-        pipe_damage_list=self.read_damage_list(settings.process['pipe_damage_file_list'   ], settings.process['pipe_damage_file_directory'])
+        pipe_damage_list= io.read_damage_list(settings.process['pipe_damage_file_list'   ], settings.process['pipe_damage_file_directory'])
 
         if settings.process['mpi_resume'] == True:
             pipe_damage_list = pipe_damage_list.set_index('Scenario Name')
@@ -262,11 +213,16 @@ class Starter():
             file_lists = os.listdir(settings.process['result_directory'])
             done_scenario_list=[]
             for name in file_lists:
-                kk=name.split('.')[:-1]
+                
                 if name.split('.')[-1] != 'res':
                     continue
-                if kk not in done_scenario_list: 
-                    done_scenario_list.append(kk[0])
+                split_k = name.split('.res')[:-1]
+                #print(split_k)
+                kk = ""
+                for portiong in split_k:
+                    kk += portiong
+                if kk not in done_scenario_list and kk in pipe_damage_list.index: 
+                    done_scenario_list.append(kk)
             
             pipe_damage_list = pipe_damage_list.drop(done_scenario_list)
             pipe_damage_list = pipe_damage_list.reset_index()
@@ -385,7 +341,8 @@ class Starter():
                             run_flag   = self.run_local_single(file_name, scenario_name, settings,  worker_rank=repr(scenario_name)+'_'+repr(comm.rank), nodal_damage_file_name=nodal_name, pump_damage_file_name = pump_damage, tank_damage_file_name = tank_damage_name)
                             print('run_flag for worker: '+ repr(comm.rank)+' --> '+repr(run_flag))
                             comm.isend(run_flag, dest=0)
-                        except:
+                        except Exception as e:
+                            
                             error_dump_file = None
                             if type(scenario_name) == str:
                                 error_dump_file = "dump_"+scenario_name+".pkl"

@@ -93,8 +93,10 @@ class WaterNetworkModel(WaterNetworkModel):
             if latest_simulation_time != max_time:
                 raise ValueError('Provided LATEST SIMULATION TIME id not consistnt with teh latest time in RESULT')
             
-        
-        for tank_name in self.tank_name_list:
+        avilable_tank_name_list = set(self.tank_name_list).intersection(result.node['head'].columns)
+        for tank_name in avilable_tank_name_list:
+            #if tank_name not in result.node['head'].columns:
+                #continue
             tank_level = None
             head       = None
             

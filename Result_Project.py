@@ -19,25 +19,24 @@ from Output.Raw_Data import Raw_Data
 from Output.Curve import Curve
 from Output.Crew_Report import Crew_Report
 from Output.Result_Time import Result_Time
-
-
-class Project():
-    def __init__(self, project_settings, scenario_list):
-        self.scenario_list    = scenario_list
-        self.project_settings = project_settings
-    
+import Input.Input_IO as io
+from Project import Project as MainProject
 
 class Project_Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
-    def __init__(self, project_file_addr, ignore_not_found=False, to_neglect_file=None,node_col='', result_file_dir = None, iObject=False):
+    def __init__(self, project_file_addr, result_directory=None, ignore_not_found=False, to_neglect_file=None, node_col='', result_file_dir = None, iObject=False):
         
         if iObject==False:
             self.readPorjectFile(project_file_addr)
         else:
             self.project = copy.deepcopy(project_file_addr)
         
-        self.project.scenario_list = self.project.scenario_list.set_index('Scenario Name')
+        
         if result_file_dir != None:
             self.project.project_settings.process.settings['result_directory'] = result_file_dir
+            #self.project.scenario_list = io.read_damage_list(self.project.project_settings.process['pipe_damage_file_list'   ], self.project.project_settings.process['pipe_damage_file_directory'])
+        #print(self.project.scenario_list)
+        self.project.scenario_list = self.project.scenario_list.set_index('Scenario Name')
+        
         self.demand_node_name_list    = []
         self._list                    = []
         self.pipe_damages             = {}
@@ -61,8 +60,13 @@ class Project_Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
         self._RequiredDemandForAllNodesandtime = {}
         self.demand_ratio             = self.project.project_settings.process['demand_ratio']
         self.scn_name_list_that_result_file_not_found = []
-        
         self.wn = wntr.network.WaterNetworkModel(self.project.project_settings.process['WN_INP']    )    
+        
+        self.result_directory            = self.project.project_settings.process['result_directory']
+        
+        if not isinstance(result_directory, type(None) ):
+            self.result_directory = result_directory
+        
         to_neglect=[];
         if to_neglect_file != None and False: #sina hereeeee bug dadi amedane
             raise
@@ -93,21 +97,22 @@ class Project_Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
     def checkForNotExistingFile(self, ignore_not_found):
         self.scn_name_list_that_result_file_not_found = []
         
-        result_directory = self.project.project_settings.process['result_directory']
-        print(self.project.scenario_list)
+        result_directory = self.result_directory
+        #print(self.project.scenario_list)
         for scn_name, row in self.project.scenario_list.iterrows():
             scenario_registry_file_name = scn_name+"_registry.pkl"
-            print(result_directory)
-            print(scenario_registry_file_name)
+            #print(result_directory)
+            #print(scenario_registry_file_name)
             registry_file_data_addr = os.path.join(result_directory, scenario_registry_file_name)
             if not os.path.exists(registry_file_data_addr):
                 self.scn_name_list_that_result_file_not_found.append(scn_name)
         
         if len( self.scn_name_list_that_result_file_not_found)> 0:
             if ignore_not_found:
-                print(str(len(self.scn_name_list_that_result_file_not_found)) +" out of "+ repr(len(self.project.scenario_list)) +" Result Files are not found and ignored" )
-                print(self.scn_name_list_that_result_file_not_found)
-                self.project.scenario_list.drop(self.scn_name_list_that_result_file_not_found, inplace=True)
+                #print(str(len(self.scn_name_list_that_result_file_not_found)) +" out of "+ repr(len(self.project.scenario_list)) +" Result Files are not found and ignored" )
+                #print(self.scn_name_list_that_result_file_not_found)
+                pass
+                #self.project.scenario_list.drop(self.scn_name_list_that_result_file_not_found, inplace=True)
             else:
                 raise ValueError("Res File Not Found: "+ repr(self.scn_name_list_that_result_file_not_found) +" in "+repr(result_directory))
             
@@ -141,16 +146,22 @@ class Project_Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
         if self.data[scn_name] != None:
             return
         print("loading scenario "+str(scn_name))
-        result_directory = self.project.project_settings.process['result_directory']
+        result_directory = self.result_directory
         #scenario_registry_file_name = scn_name+"_registry.pkl"
         #registry_file_data_addr = os.path.join(result_directory, scenario_registry_file_name)
         scenario_registry_file_name = scn_name+"_registry.pkl"
         reg_addr = os.path.join(result_directory, scenario_registry_file_name)
-        with open(reg_addr, 'rb') as f:
+        try:
+            with open(reg_addr, 'rb') as f:
             #print(output_addr)
-            reg_file_data = pickle.load(f)
-        self.registry[scn_name] = reg_file_data
-        
+                reg_file_data = pickle.load(f)
+            self.registry[scn_name] = reg_file_data
+            res_file_data = self.registry[scn_name].result
+        except:
+            scenario_registry_file_name = scn_name+".res"
+            res_addr = os.path.join(result_directory, scenario_registry_file_name)
+            with open(res_addr, 'rb') as f:
+                res_file_data = pickle.load(f)
         #scenario_registry_file_name = scn_name+".res"
         #res_addr = os.path.join(result_directory, scenario_registry_file_name)        
         #with open(res_addr, 'rb') as f:
@@ -158,14 +169,14 @@ class Project_Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
             #res_file_data = pickle.load(f)
         #res_file_data.node['head']    = None
         #res_file_data.node['quality'] = None
-        res_file_data = self.registry[scn_name].result
+        #res_file_data = self.registry[scn_name].result
         self.remove_maximum_trials(res_file_data)
         self.data[scn_name]           = res_file_data
             
     def readData(self):
         #i=0
         self.project.scenario_list = self.project.scenario_list.iloc[0:2]
-        result_directory = self.project.project_settings.process['result_directory']
+        result_directory = self.result_directory
         
         for scn_name, row in self.project.scenario_list.iterrows():
             self._RequiredDemandForAllNodesandtime[scn_name] = None
@@ -215,30 +226,78 @@ class Project_Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
         all_time_list = data.maximum_trial_time
         result_time_list = data.node['demand'].index.to_list()
         result_time_max_trailed_list = [ time for time in result_time_list if time in all_time_list]
-        print(result_time_max_trailed_list)
-        demand_data = data.node['demand']
-        demand_data.drop(result_time_max_trailed_list, inplace=True)
         
-
+        for att in data.node:
+            all_time_list = data.maximum_trial_time
+            result_time_list = data.node[att].index.to_list()
+            result_time_max_trailed_list = list( set(result_time_list).intersection(set(all_time_list) ) )
+            result_time_max_trailed_list.sort()
+            if len(result_time_max_trailed_list) > 0:
+                #print(result_time_max_trailed_list)
+                att_data = data.node[att]
+                att_data.drop(result_time_max_trailed_list, inplace=True)
+                data.node[att] = att_data
         
-        pressure_data = data.node['pressure']
-        pressure_data.drop(result_time_max_trailed_list, inplace=True)
+        for att in data.link:
+            all_time_list = data.maximum_trial_time
+            result_time_list = data.link[att].index.to_list()
+            result_time_max_trailed_list = [ time for time in result_time_list if time in all_time_list]
+            att_data = data.link[att]
+            att_data.drop(result_time_max_trailed_list, inplace=True)
+            data.link[att] = att_data
         
-        setting_data = data.link['setting']
-        setting_data.drop(result_time_max_trailed_list, inplace=True)
+        flow_balance = data.node['demand'].sum(axis=1)
         
-        status_data = data.link['status']
-        status_data.drop(result_time_max_trailed_list, inplace=True)
+        time_to_drop = flow_balance[abs(flow_balance) >= 0.01 ].index
         
-        result_time_list = data.node['leak'].index.to_list()
-        result_time_max_trailed_list = [ time for time in result_time_list if time in all_time_list]
-        leak_data = data.node['leak']
-        leak_data.drop(result_time_max_trailed_list, inplace=True)
+        #result_time_list = data.node['demand'].index.to_list()
+        # = [ time for time in result_time_list if time in all_time_list]
         
-        result_time_list = data.link['flowrate'].index.to_list()
-        result_time_max_trailed_list = [ time for time in result_time_list if time in all_time_list]
-        flow_data = data.link['flowrate']
-        flow_data.drop(result_time_max_trailed_list, inplace=True)
+        for att in data.node:
+            #all_time_list = data.maximum_trial_time
+            result_time_list = data.node[att].index.to_list()
+            result_time_max_trailed_list = list( set(result_time_list).intersection(set(time_to_drop) ) )
+            result_time_max_trailed_list.sort()
+            if len(result_time_max_trailed_list) > 0:
+               #print(result_time_max_trailed_list)
+               att_data = data.node[att]
+               att_data.drop(result_time_max_trailed_list, inplace=True)
+               data.node[att] = att_data
+        
+        for att in data.link:
+            #all_time_list = data.maximum_trial_time
+            result_time_list = data.link[att].index.to_list()
+            result_time_max_trailed_list = list( set(result_time_list).intersection(set(time_to_drop) ) )
+            result_time_max_trailed_list.sort()
+            if len(result_time_max_trailed_list) > 0:
+                att_data = data.link[att]
+                att_data.drop(result_time_max_trailed_list, inplace=True)
+                data.link[att] = att_data
+    
+    def remove_maximum_trials_demand_flow(self, data):
+        flow_balance = data.node['demand'].sum(axis=1)
+        
+        time_to_drop = flow_balance[abs(flow_balance) >= 0.01 ].index
+        
+        #result_time_list = data.node['demand'].index.to_list()
+        # = [ time for time in result_time_list if time in all_time_list]
+        
+        for att in data.node:
+            #all_time_list = data.maximum_trial_time
+            result_time_list = data.node[att].index.to_list()
+            result_time_max_trailed_list = [ time for time in result_time_list if time in time_to_drop]
+            print(result_time_max_trailed_list)
+            att_data = data.node[att]
+            att_data.drop(result_time_max_trailed_list, inplace=True)
+            data.node[att] = att_data
+        
+        for att in data.link:
+            #all_time_list = data.maximum_trial_time
+            result_time_list = data.link[att].index.to_list()
+            result_time_max_trailed_list = [ time for time in result_time_list if time in time_to_drop]
+            att_data = data.link[att]
+            att_data.drop(result_time_max_trailed_list, inplace=True)
+            data.link[att] = att_data
         
     def readPopulation(self, population_xlsx_addr = 'demandNode-Northridge.xlsx', demand_node_header='NodeID', population_header='#Customer'):
         pop = pd.read_excel(population_xlsx_addr)

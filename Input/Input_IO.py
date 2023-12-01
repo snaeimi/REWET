@@ -73,6 +73,51 @@ def read_pump_damage_seperate_EXCEL_file(directory, pump_damages_file_name):
     ss.Pump_ID = ss.Pump_ID.astype(str)
     return ss
 
+def read_damage_list(list_file_addr, file_directory, iCheck=False):
+    """
+    Reads damage sceanrio list.
+
+    Parameters
+    ----------
+    list_file_addr : Address to the target list file
+        DESCRIPTION.
+    file_directory : TYPE
+        DESCRIPTION.
+    iCheck : TYPE, optional
+        DESCRIPTION. The default is False. Checks if all damage files are found.
+
+    Raises
+    ------
+    RuntimeError
+        if file not found.
+
+    Returns
+    -------
+    damage_list : Pandas Dataframe
+        DESCRIPTION.
+
+    """
+    damage_list=None
+    error_file_name=[]
+
+    with open(list_file_addr, 'rb') as f:
+        damage_list = pd.read_excel(f)
+
+    iError=False
+    temp = damage_list['Pipe Damage'].tolist()
+    
+    if iCheck==False:
+        return damage_list
+    
+    for file_name in temp:
+        if not os.path.exists(file_name):
+            iError=True
+            error_file_name.append(file_name)
+    
+    if iError:
+        raise RuntimeError('The Follwoing files could not be found: '+repr(error_file_name))
+    return damage_list
+
 ##################### Save Results #####################
 
 def save_single(settings, result, name, restoration_data):

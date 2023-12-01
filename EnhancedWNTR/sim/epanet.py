@@ -172,8 +172,9 @@ class EpanetSimulator(WaterNetworkSimulator):
         hydfile : str
             Optionally specify a filename for the hydraulics file other than the `file_prefix`
 
-        """    
-        solver_parameters_list = [(10,100, 0.01), (10, 100, 0), (1,10, 0)]
+        """
+        solver_parameters_list = [(1,10, 0), (10, 100, 0), (10,100, 0.01)]
+        #solver_parameters_list = [(10,100, 0.01), (10, 100, 0), (1,10, 0)]
         balanced_system = False
         run_successful= False
         i = 0
@@ -276,7 +277,7 @@ class EpanetSimulator(WaterNetworkSimulator):
             
             inpfile = file_prefix + '.inp'
             self._wn.write_inpfile(inpfile, units=self._wn.options.hydraulic.en2_units)
-            enData = toolkit.ENepanet(changed_epanet=True)
+            enData  = toolkit.ENepanet(changed_epanet=True)
             rptfile = file_prefix + '.rpt'
             outfile = file_prefix + '.bin'
             if hydfile is None:
@@ -514,8 +515,8 @@ class EpanetSimulator(WaterNetworkSimulator):
     def now_temp(self, rr, isolated_link_list, alread_closed_pipes, _prev_isolated_junctions, already_done_nodes):
         check_nodes = [node_name for node_name in self._wn.junction_name_list if node_name not in _prev_isolated_junctions and node_name not in already_done_nodes]
         junctions_pressure = (rr.node['pressure'][check_nodes]).iloc[-1]
-        negative_junctions_pressure = (junctions_pressure[(junctions_pressure < -10)])
-        negative_junctions_pressure = negative_junctions_pressure.sort_values(ascending = False)
+        negative_junctions_pressure  = (junctions_pressure[(junctions_pressure < -10)])
+        negative_junctions_pressure  = negative_junctions_pressure.sort_values(ascending = False)
         negative_junctions_name_list = negative_junctions_pressure.index.to_list()
         print('size= ' + repr(len(negative_junctions_name_list)) )
         
@@ -544,7 +545,7 @@ class EpanetSimulator(WaterNetworkSimulator):
                     #pipe = self.wn.get_link(pipe_name)
                     flow = rr.link['flowrate'][pipe_name].iloc[-1]
                     
-                    if abs(flow) > 0.25:
+                    if abs(flow) > 0.01:
                         flag = True
                         #pipe.initial_status = LinkStatus(0)
                         closed_pipes.append(pipe_name)

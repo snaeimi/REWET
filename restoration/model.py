@@ -23,7 +23,7 @@ class Restoration():
     def __init__(self, conifg_file_name, registry, damage):
         self.ELEMENTS                  = ['PIPE', 'DISTNODE', 'GNODE', 'TANK','PUMP', 'RESERVOIR']
         self._CONDITIONS               = ['EQ','BG','LT','BG-EQ','LT-EQ','NOTEQ']
-        self.reserved_priority_names   = ["CLOSEST", "MOSTLEAKATCHECK"]
+        self.reserved_priority_names   = ["CLOSEST", "MOSTLEAKATCHECK", "HYDSIG", "HYDSIGLASTFLOW"]
         self._hard_event_table         = pd.DataFrame(columns=['Requester', 'New', 'Detail'])
         self._reminder_time_hard_event = {}
         self.shifting                  = base.Shifting()
@@ -210,15 +210,10 @@ class Restoration():
                         continue
 
 
-        #logger.debug('completed')
         new_events = self.getNewEventsTime(reset=True)
-        #self._unmarkNewEvents()
-        #print(new_events)
         self._registry.restoration_log_book.updateAgentLogBook(self.agents._agents, stop_time)
         self._registry.restoration_log_book.updateAgentHistory(self.agents._agents, stop_time)
         
-        #self._registry.updatePipeDamageTableTimeSeries(stop_time)
-       #self.temp.append((stop_time, copy.deepcopy(self._registry._pipe_damage_table)))
         return new_events
     
     
@@ -228,7 +223,6 @@ class Restoration():
             if flag==True:
                 raise RuntimeError('Ongoing and zero-length emtity data does must never appen together.')
             return 'continue'
-        #print(entity_data)
         entity_data = self.priority.sortDamageTable(wn, entity_data, entity, agent_type, 2, order_counter) # sort according to the possible secondary priority
         
         for node_name, damage_data in entity_data.iterrows():
@@ -274,9 +268,6 @@ class Restoration():
                     reminded_time = self._registry.getLongJobRemindedTime(node_name, action, entity)
                     i_assigned, description, job_gross_time, collective = self.agents.assignsJobToAgent(choosed_agent_name, node_name, entity, action, stop_time, wn, reminded_time, None, None)
                     collective=None #Collective already assigned/Sina
-                #print(repr(i_assigned)+'  '+repr(description)+'  '+repr(job_gross_time)+'  '+repr(collective) )
-                #if description!='ShortOfTime' or flag==True:
-                #logger.warning(description)
                 if i_assigned == False and description == 'ShortOfTime':
                     distnace_agent_entity.pop(distnace_agent_entity.index[0])
                     break
@@ -304,9 +295,6 @@ class Restoration():
                         same_element_damage_index = same_element_damage_data.index.to_list()
                         
                         
-                        #print(same_element_damage_index)
-                        
-                        
                         same_element_damage_index.remove(node_name)
                         entity_same_element_damage_index.remove(node_name)
                         
@@ -316,8 +304,6 @@ class Restoration():
                         
                         if (_damage_data.loc[same_element_damage_index, action]=='Collective').any():
                             same_element_damage_index.append(node_name)
-                            #print((_damage_data.loc[same_element_damage_index])[action])
-                            #print(orginal_element)
                             raise ValueError('Hell to the naw'+repr(node_name))
                         
                         _damage_data.loc[same_element_damage_index, action]=collective #For times later
@@ -334,9 +320,6 @@ class Restoration():
                     
                     if job_end_time != None and description=='INSIDE_SHIFT':
                         modfied_end_time = self._addHardEvent(job_end_time, 'agent', choosed_agent_name, stop_time)
-                        #sina = self._hard_event_table
-                        #sina = sina[sina['New']==True]
-                        #print(sina)
                         self._registry.restoration_log_book.addEndTimegentActionToLogBook(choosed_agent_name, stop_time, modfied_end_time)
                         
                         if self._registry.isThereSuchOngoingLongJob(node_name, action, entity)==True:
@@ -381,17 +364,10 @@ class Restoration():
             raise RuntimeError('This should not happen. We have a condition before in performe action')
         if not len(vacant_job_list)>0:
             return
-        #print('Vacant job for ')
-        #print(typed_ready_agent)
-        #print(vacant_job_list)
         damage_data = self._registry.getDamageData(self.entity[entity])
         entity_data = pd.DataFrame(columns=damage_data.columns, index=vacant_job_list)
-        #print('++++++++++++')
-        #print(repr(damage_data))
         
         entity_data=entity_data.apply(lambda x: damage_data.loc[x.name], axis=1)
-        #print(s)
-        #raise
         self.perform_action_helper(typed_ready_agent, entity_data, agent_type, action, entity, stop_time, order_counter, wn, flag=True)
             
     
@@ -409,9 +385,13 @@ class Restoration():
                 result = self._registry.result.node
                 #damage_table = self._registry.getDamageData('DISTNODE', iCopy=False)
                 real_node_name = get_node_name(damage_node_name, damage_data)
-                leak_demand  = result['leak'].loc[stop_time, real_node_name]
+                if real_node_name in result['leak'].columns:
+                    leak_demand  = result['leak'].loc[stop_time, real_node_name]
+                else:
+                    leak_demand  = 0
                 real_demand  = result['demand'].loc[stop_time, real_node_name]
                 total_demand = leak_demand + real_demand
+                    
                 
                 node = wn.get_node(real_node_name)
                 pattern_list      = node.demand_timeseries_list.pattern_list()
@@ -434,16 +414,17 @@ class Restoration():
                     vir_nodal_damage_list = damage_data[damage_data['virtual_of']==real_node_name]
                     vir_nodal_damage_list = vir_nodal_damage_list.index
                     if damage_data.loc[vir_nodal_damage_list, 'Demand1'].isna().any():
-                        self._registry.addNodalDemandChange(vir_nodal_damage_list, required_demand, total_demand)
+                        self._registry.addNodalDemandChange(vir_nodal_damage_list, required_demand, total_demand) #Sina: maybe make it optional
                 else:        
                     self._registry.addNodalDemandChange(damage_node_name, required_demand, total_demand)
             
             elif element_type == "PIPE":
-                 
-                pipe_damage_table  = self._registry._pipe_damage_table
-                pipe_break_history = self._registry._pipe_break_history
-                damage_type = pipe_damage_table.loc[damage_node_name, 'damage_type']
+                
                 leak_sum = 0
+                
+                pipe_damage_table      = self._registry._pipe_damage_table
+                pipe_break_history     = self._registry._pipe_break_history
+                damage_type            = pipe_damage_table.loc[damage_node_name, 'damage_type']
                 available_node_results = self._registry.result.node['demand'].loc[stop_time].dropna()
                 available_node_results = available_node_results.index
                 if damage_type == "break":
@@ -451,12 +432,16 @@ class Restoration():
                         break_node_B      = pipe_break_history.loc[damage_node_name, 'Node_B']
                         if break_node_B in available_node_results:
                             leak_beark_node_B = self._registry.result.node['demand'].loc[stop_time, break_node_B]
-                            leak_sum         += leak_beark_node_B
+                        else:
+                            leak_beark_node_B = 0
+                        leak_sum += leak_beark_node_B
                     else:
                         break_node_A      = (pipe_break_history[pipe_break_history['Node_B'] == damage_node_name]).iloc[0]["Node_A"]
                         if break_node_A in available_node_results:
                             leak_beark_node_A = self._registry.result.node['demand'].loc[stop_time, break_node_A]
-                            leak_sum         += leak_beark_node_A
+                        else:
+                            leak_beark_node_A = 0
+                        leak_sum         += leak_beark_node_A
                 
                 if damage_node_name in available_node_results:
                     leak_damaged_node = self._registry.result.node['demand'].loc[stop_time, damage_node_name]
@@ -508,7 +493,6 @@ class Restoration():
                 
                 self.repair.addReservoir(damage_node_name, damage_type, 'ADDEDELEVATION', reservoir,  wn)
             else:
-                print(single_effect_data)
                 raise ValueError('Unknown parameter. Damaged Node: '+repr(damage_node_name))
         
         elif effect_type == 'REMOVE_LEAK':
@@ -532,8 +516,6 @@ class Restoration():
             if self._registry.settings['damage_node_model'] == 'Predefined_demand':
                 self.repair.removeDemand(real_node_name, factor, wn)
             elif self._registry.settings['damage_node_model'] == 'equal_diameter_emitter' or self._registry.settings['damage_node_model'] == 'equal_diameter_reservoir':
-                #print("*********************************")
-                #print("Isolating "+str(damage_node_name))
                 self.repair.removeDemand(real_node_name, factor, wn)
                 self.repair.removeExplicitNodalLeak(real_node_name, factor, wn)
             else:
@@ -549,15 +531,12 @@ class Restoration():
                     real_node_name = get_node_name(damage_node_name, self._registry._node_damage_table)
                     virtual_node_table = self._registry._node_damage_table[self._registry._node_damage_table['Orginal_element']==real_node_name]
                     temp = (virtual_node_table[action]==True)
-                    #print('vay '+repr(damage_node_name))
                     if temp.all():
-                        #print('com '+repr(real_node_name))
                         self.repairDistNode(real_node_name, wn)
                         
                     else:
                         repaired_number = temp.sum()
                         total_number    = virtual_node_table['Number_of_damages'].sum()
-                        #if repaired_number < total_number:
                         if self._registry.isVirtualNodeDamaged(damage_node_name):
                             self._registry.setVirtualNodeRepaired(damage_node_name)
                             if self._registry.settings['damage_node_model'] == 'Predefined_demand':
@@ -603,7 +582,30 @@ class Restoration():
             self.agents.setChangeShift(time, working_check=True)
     
     def updateAvailability(self, time):
-        
+        #SINA DELETET IT [URGENT]
+# =============================================================================
+#        import pickle
+#
+#         with open("av_data.pkl","rb") as f:
+#             av_data = pickle.load(f)
+#         try:
+#             av_data_time = av_data[time]
+#         except:
+#             av_last_time = 0
+#             time_list = list(av_data.keys())
+#             time_list.append(time)
+#             time_list.sort()
+#             
+#             time_list    = pd.Series(data = time_list)
+#             time_index   = time_list.searchsorted(time)
+#             av_last_time = time_list.iloc[time_index-1]
+#                 
+#             av_data_time = av_data[av_last_time]
+#         
+#         self.agents._agents.loc[av_data_time.index, 'available'] = av_data_time.to_list()
+#         #for agent_type in agent_type_list:
+#         return
+# =============================================================================
         agent_type_list = self.agents._agents['type'].unique()
         availible_agent_table =  self.agents._agents[self.agents._agents['available'].eq(True)]
         for agent_type in agent_type_list:
@@ -622,9 +624,7 @@ class Restoration():
             if new_availible_number < 0:
                 new_index_list = random.sample(available_typed_table.index.to_list(), int(abs(new_availible_number)) )
                 self.agents._agents.loc[new_index_list, 'available'] = False
-                #print('Minus: '+repr(new_availible_number))
             elif new_availible_number > 0:
-                #print('Plus: '+repr(new_availible_number))
                 not_available_typed_table = self.agents._agents[(self.agents._agents['type'] == agent_type) & (self.agents._agents['available'] == False)]
                 new_index_list = random.sample(not_available_typed_table.index.to_list(), int(new_availible_number))
                 self.agents._agents.loc[new_index_list, 'available'] = True
@@ -686,10 +686,13 @@ class Restoration():
                 entity_list.append(entity)
         
         damage_table = self._registry.getDamageData(element_type, iCopy=False)
-        entities_damaged_table = damage_table[entity_list]
-        
-        not_asigned_damaged_table = entities_damaged_table[entities_damaged_table.isna().any(1)].index.tolist()
-        
+        if len(entity_list) > 0:
+                
+            entities_damaged_table = damage_table[entity_list]
+            
+            not_asigned_damaged_table = entities_damaged_table[entities_damaged_table.isna().any(1)].index.tolist()
+        else:
+            not_asigned_damaged_table = damage_table.index.to_list()
         damage_table.drop(not_asigned_damaged_table, inplace=True)
 
     def initializeGroups(self):
@@ -697,13 +700,10 @@ class Restoration():
             group_name_list=[]
             
             if el in self.group:
-                #print('+++++++++++++')
-                #print(el)
-                #print('+++++++++++++')
+
                 element_groups_data = self.group[el]
                 if len(element_groups_data)<1:
                     temp = self._registry.getListAllElementOrginalName(el).unique()
-                    #print(pd.Series(index=temp, data='Default'))
                     element_groups_data['default']=pd.Series(index=temp, data='Default')
                     
                 for group_name in element_groups_data:
@@ -712,17 +712,8 @@ class Restoration():
                     group_data               = element_groups_data[group_name]
 
                     group_location_name_list = self._registry.getDamagedLocationListByOriginalElementList_2(el, group_data)
-                    #print(group_data)
-                    #print('***********')
-                    #print(group_location_name_list)
-                    #print(type(group_location_name_list))
-                    #group_element_name_list = group_data.loc[group_location_name_list]
                     group_cat_list = group_data.reindex(group_location_name_list)
-                    #for damage_location, element_name in group_location_name_list.iteritems():
-                        #group_cat = group_data.loc[element_name]
-                        #print('----')
-                        #print(group_cat)
-                        #print('----')
+
                     self._registry.setDamageDataByRowAndColumn(el, group_location_name_list.index.tolist(), group_name, group_cat_list.tolist())
                     
             temp = self._registry.getDamageData(el)
@@ -748,13 +739,10 @@ class Restoration():
             group_name_list=[]
             
             if el in self.group:
-                #print('+++++++++++++')
-                #print(el)
-                #print('+++++++++++++')
+
                 element_groups_data = self.group[el]
                 if len(element_groups_data)<1:
                     temp = self._registry.getListAllElementOrginalName(el).unique()
-                    #print(pd.Series(index=temp, data='Default'))
                     element_groups_data['default']=pd.Series(index=temp, data='Default')
                     
                 for group_name in element_groups_data:
@@ -763,15 +751,8 @@ class Restoration():
                     group_data               = element_groups_data[group_name]
 
                     group_location_name_list = self._registry.getDamagedLocationListByOriginalElementList(el, group_data)
-                    #print(group_data)
-                    #print('***********')
-                    #print(group_location_name_list)
-                    #print(type(group_location_name_list))
                     for damage_location, element_name in group_location_name_list.iteritems():
                         group_cat = group_data.loc[element_name]
-                        #print('----')
-                        #print(group_cat)
-                        #print('----')
                         self._registry.setDamageDataByRowAndColumn(el, damage_location, group_name, group_cat)
                     
             temp = self._registry.getDamageData(el)
@@ -859,8 +840,6 @@ class Restoration():
             if len(ret)==0:
                 logger.warning('Empty damage table in element type='+repr(element_type)+'group name='+repr(group_name)+', group_tag='+repr(agent_group_tag))
         else:
-            #print("VVVVVVVVVVVVVVVVVVVVVVVVVAAAAAAAAAAAAAAAAAAAAAYYYYYYYYYYYYYYYY")
-            #logger.warning('3')
             ret = pd.DataFrame(columns=damaged_table.columns)
         
         return ret
@@ -900,7 +879,6 @@ class Restoration():
         res      = []
         node_res = []
         
-        #print(element_type)
         if attribute =='FILE' or attribute =='NOT_IN_FILE':
 
             node_damage_list=self._registry.getDamageData(element_type)
@@ -909,7 +887,6 @@ class Restoration():
                 #not_included = set(org_file_name) - set(wn.node_name_list)
                 if org_file_name not in node_damage_list.index:
                     #Sina out it back. Suppressed for runing in cluster
-                    #print("in element type= "+ str(element_type)+" does not have the flowing name, so they are omitted:\n" + org_file_name)
                     continue
                 
                 
@@ -931,9 +908,6 @@ class Restoration():
                 if len(temp)>=1:
                     res.extend(temp.index.tolist())
                     ichosen = True
-                #elif len(temp)>1:
-                    #print(temp)
-                    #raise ValueError('Something wrong here')
                 
                 if ichosen==False:
                     if org_file_name in wn.node_name_list:
@@ -1010,10 +984,10 @@ class Restoration():
         res = []
 
         #if condition in self._CONDITIONS:
-        if attribute in ['DIAMETER']:
+        if attribute.upper() in ['DIAMETER']:
             #for pipe_name in WaterNetwork.pipe_name_list:
             for damage_name, line in self._registry.getDamageData('PIPE').iterrows():
-                if attribute == 'DIAMETER':
+                if attribute.upper() == 'DIAMETER':
                     #orginal_element   = line['Orginal_element']
                     attached_elements = line['attached_element']
                     
@@ -1129,14 +1103,6 @@ class Restoration():
             new_time = _b * minimum_time_devision
             reminder = time - new_time
             self._saveReminderTime(reminder, name)
-            #
-            #if _b >= 2 and self._getReminderTime(name) <= -1*minimum_time_devision: #if it is less than 2, the agent will have a hardevent at the current time and won't be released
-            #    self._saveReminderTime(minimum_time_devision, name)
-            #    _b = _b - 1
-            #    new_time = _b * minimum_time_devision
-            
-            #print('suggested time = '+str(time/3600))
-            #print('GIVEN time = '+str(new_time/3600))
             next_time = current_time+new_time
         
         
@@ -1224,10 +1190,10 @@ class Restoration():
         
         #refined_pump = self.pump_restoration[self.pump_restoration['Restore_time']>=stop_time]
         if not self.pump_restoration.empty:
-            self.pump_restoration['Restore_time']=self.pump_restoration['Restore_time']+stop_time
+            self.pump_restoration['Restore_time'] = self.pump_restoration['Restore_time'] + stop_time
             
         if not self.tank_restoration.empty:
-            self.tank_restoration['Restore_time']=self.tank_restoration['Restore_time']+stop_time
+            self.tank_restoration['Restore_time'] = self.tank_restoration['Restore_time'] + stop_time
         
         for ind, row, in self.pump_restoration.iterrows():
             self._addHardEvent(row['Restore_time'], 'pump')
@@ -1290,12 +1256,6 @@ class Restoration():
         GNODE_damage_end     = self.iAllGNodeLastActionDone()
         tank_damage_end      = self.iAllTankLastActionDone()
         reservoir_damage_end = self.iAllReservoirLastActionDone()
-        #print("pipe: "      + repr(pipe_damage_end)      )
-        #print("node: "      + repr(node_damage_end)      )
-        #print("pump: "      + repr(pump_damage_end)      )
-        #print("GNODE: "     + repr(GNODE_damage_end)     )
-        #print("tank: "      + repr(tank_damage_end)      )
-        #print("reservoir: " + repr(reservoir_damage_end) )
         
         logger.debug("pipe: "      + repr(pipe_damage_end)      )
         logger.debug("node: "      + repr(node_damage_end)      )
@@ -1310,14 +1270,14 @@ class Restoration():
             return False
         
     def iAllPipeLastActionDone(self):
-        if "PIPE" in self.sequence["PIPE"]:
+        print()
+        if "PIPE" in self.sequence:
             if len(self._registry._pipe_damage_table) == 0:
                 return True
             
             pipe_action = self.sequence["PIPE"][-1]
             pipe_last_action_values  = self._registry._pipe_damage_table[pipe_action]
             if_pipe_last_action_true = (pipe_last_action_values==True | (pipe_last_action_values=="Collective")).all()
-            
             if if_pipe_last_action_true:
                 return True
             else:
@@ -1409,3 +1369,7 @@ class Restoration():
         else:
             return True
         
+    def getHydSigPipeList(self):
+        damage_group_list      = self.priority.getHydSigDamageGroups()
+        pipe_damage_group_list = [cur_damage_group for cur_damage_group in damage_group_list if self.entity[cur_damage_group]=="PIPE"]
+        return pipe_damage_group_list

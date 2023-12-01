@@ -26,14 +26,14 @@ class Process_Settings(base):
         """
         simulation settings
         """
-        self.settings['RUN_TIME'                     ] = (5 + 24 * 10) * 3600 #seconds
-        self.settings['minimum_simulation_time'      ] = (10 + 24 * 10) * 3600 #seconds
+        self.settings['RUN_TIME'                     ] = (5 + 24 * 1) * 3600 #seconds
+        self.settings['minimum_simulation_time'      ] = (10 + 24 * 2) * 3600 #seconds
         self.settings['simulation_time_step'         ] = 3600 #seconds 
         self.settings['number_of_damages'            ] = 'single' #single or multiple. If single, indicate single damage files. If multiple, indicate "pipe_damage_file_list"
-        self.settings['result_directory'             ] = "Example//Result"
-        self.settings['temp_directory'               ] = "Example//RunFiles" 
+        self.settings['result_directory'             ] = "X:/Sina Naeimi/res/temptemp" #"Net3//Result"
+        self.settings['temp_directory'               ] = "RunFiles" 
         self.settings['save_time_step'               ] = True  
-        self.settings['last_sequence_termination'    ] = False  #sina needs to be applied in GUI
+        self.settings['last_sequence_termination'    ] = True  #sina needs to be applied in GUI
         self.settings['node_demand_temination'       ] = False #sina needs to be applied in GUI
         self.settings['node_demand_termination_time' ] = 3 * 3600 #sina needs to be applied in GUI
         self.settings['node_demand_termination_ratio'] = 0.95 #sina needs to be applied in GUI
@@ -44,7 +44,7 @@ class Process_Settings(base):
         """
         Hydraulic settings
         """
-        self.settings['WN_INP'             ] = "Example/net3.inp"
+        self.settings['WN_INP'             ] = 'giraffe386-4-1.inp' #"Anytown.inp"#'giraffe386-4-1.inp' #"Net3/net3.inp"
         self.settings['demand_ratio'       ] = 1
         self.settings['solver'             ] = 'ModifiedEPANETV2.2' # sina needs to be implemented
         #self.settings['hydraulic_time_step'] = 3600
@@ -53,8 +53,8 @@ class Process_Settings(base):
         """
         Damage settings
         """
-        self.settings['pipe_damage_file_list'     ] = "Example//example_list.xlsx"
-        self.settings['pipe_damage_file_directory'] = 'Example//Damages' #'Nafiseh Damage Data/out'
+        self.settings['pipe_damage_file_list'     ] = "Nafiseh Damage Data/9_final_akhar/list_1_final.xlsx" #"preprocess/list2-3.xlsx"#"preprocess/list2-3.xlsx" #"list_akhar_with_prob_pgv_epicenter_1.xlsx"#"preprocess/list2-3.xlsx" #"Net3/list.xlsx" #"preprocess/list2-3.xlsx" #"list_W147_6.xlsx" #'Nafiseh Damage Data/list.xlsx'
+        self.settings['pipe_damage_file_directory'] =  'Nafiseh Damage Data/9_final_akhar'#"" #'Net3' #'Nafiseh Damage Data/out'"X:\\Sina Naeimi\\anytown_damage\\"
         self.settings['pump_damage_relative_time' ] = True #needs to be implemented in the code
         self.settings['tank_damage_relative_time' ] = True #needs to be implemented in teh code
         
@@ -73,8 +73,8 @@ class Process_Settings(base):
         self.settings['number_of_proccessor'      ] = 1
         
         self.settings['dmg_rst_data_save'         ] = True
-        self.settings['Parameter_override'        ] = False 
-        self.settings['mpi_resume'                ] = False #ignores the scenarios that are done
+        self.settings['Parameter_override'        ] = True #'starter/settings.xlsx' #this is for settings sensitivity analysis
+        self.settings['mpi_resume'                ] = True #ignores the scenarios that are done
         self.settings['ignore_empty_damage'       ] = False
         self.settings['result_details'            ] = 'extended'
         self.settings['negative_node_elmination'  ] = True
@@ -83,7 +83,7 @@ class Process_Settings(base):
         self.settings['Virtual_node'              ] = True
         self.settings['damage_node_model'         ] = 'equal_diameter_emitter' #"equal_diameter_reservoir" 
 
-        self.settings['limit_result_file_size'    ] = -1 #in Mb. 0 or less means no limit 
+        self.settings['limit_result_file_size'    ] = -1 #in Mb. 0 means no limit 
         
         
 class Scenario_Settings(base):
@@ -101,7 +101,7 @@ class Scenario_Settings(base):
         """
         Damage settings
         """
-        self.settings['Pipe_damage_input_method'   ] = 'excel' #excel or pickle
+        self.settings['Pipe_damage_input_method'   ] = 'pickle' #excel or pickle
         self.settings['pipe_damage_model'          ] = {"CI":{"alpha":-0.0038, "beta":0.1096, "gamma":0.0196, "a":2, "b":1 }, "DI":{"alpha":-0.0079, "beta":0.0805, "gamma":0.0411, "a":2, "b":1 }, "STL":{"alpha":-0.009, "beta":0.0808, "gamma":0.0472, "a":2, "b":1 }, "CON":{"alpha":-0.0083, "beta":0.0738, "gamma":0.0431, "a":2, "b":1 }, "RS":{"alpha":-0.0088, "beta":0.0886, "gamma":0.0459, "a":2, "b":1 } } # sina needs to be implemented
         self.settings['default_pipe_damage_model'  ] = {"alpha":-0.0038, "beta":0.1096, "gamma":0.0196, "a":2, "b":1 }
         self.settings['node_damage_model'          ] = {'x':0.9012,'a':0.0036, 'aa':1, 'b':0, 'bb':0, 'c':-0.877, 'cc':1, 'd':0, 'dd':0, 'e':0.0248, 'ee1':1, 'ee2':1, 'f':0, 'ff1':0, 'ff2':0, "damage_node_model": "equal_diameter_emitter"} # sina needs to be implemented
@@ -110,7 +110,7 @@ class Scenario_Settings(base):
         Restoration settings 
         """
         self.settings['Restoraion_policy_type'          ] = 'script' # sina needs to be implemented in the code
-        self.settings['Restortion_config_file'          ] =  'Example//exampe_config.txt' #
+        self.settings['Restortion_config_file'          ] = "config-ghab-az-tayid.txt" #'X:\\Sina Naeimi\\anytown_damage\\config-base_base.txt'#'config-base_hydsig.txt' #'Net3/config.txt' #
         self.settings['pipe_damage_discovery_model'     ] = {'method': 'leak_based', 'leak_amount': 0.025, 'leak_time': 3600*12} # sina needs to be implemented
         self.settings['node_damage_discovery_model'     ] = {'method': 'leak_based', 'leak_amount': 0.001, 'leak_time': 3600*12} # sina needs to be implemented
         self.settings['pump_damage_discovery_model'     ] = {'method': 'time_based', 'time_discovery_ratio': pd.Series([1], index = [3600*n for n in [0]])} # sina needs to be implemented
@@ -118,7 +118,7 @@ class Scenario_Settings(base):
         self.settings['Gnode_damage_discovery_model'    ] = {'method': 'time_based', 'time_discovery_ratio': pd.Series([1], index = [3600*n for n in [0]])}# Sina GNode Discovery is not here! Must be appleid in teh GUI
         self.settings['reservoir_damage_discovery_model'] = {'method': 'time_based', 'time_discovery_ratio': pd.Series([1], index = [3600*n for n in [0]])}# Sina GNode Discovery is not here! Must be appleid in teh GUI
         self.settings['crew_out_of_zone_travel'         ] = False # sina needs to be implemented in the code
-        self.settings['crew_travel_speed'               ] = 0.005  # unit: The unit is [coordinate unit] per seconds. For instance if coordinates are in ft, 16.666 ft/s is approximately 18 km/h. 
+        self.settings['crew_travel_speed'               ] = 16.66666  # unit: ft/s approximately 18 km/h. The unit is [coordinate unit] per seconds. # sina needs to be implemented in the code
         
         self.settings['equavalant_damage_diameter'  ] = 1
         self.settings['pipe_damage_diameter_factor' ] = 1

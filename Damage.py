@@ -512,6 +512,22 @@ class Damage:
         res = pd.Series(data=temp2, index=temp1)
         return res
     
+    def getPipeDamageListAt(self, time):
+        damaged_pipe_name_list = []
+        
+        if self.pipe_all_damages.empty:
+            return damaged_pipe_name_list
+        
+        current_time_pipe_damages = self.pipe_all_damages[time]
+        if type(current_time_pipe_damages) == pd.core.series.Series:
+            current_time_pipe_damages = current_time_pipe_damages.to_list()
+        else:
+            current_time_pipe_damages = [current_time_pipe_damages]
+            
+        damaged_pipe_name_list    = [cur_damage["pipe_id"] for cur_damage in current_time_pipe_damages]
+        damaged_pipe_name_list    = list(set(damaged_pipe_name_list) )
+        return damaged_pipe_name_list
+    
     def applyPipeDamages(self, WaterNetwork, current_time):
         """Apply the damage that we have in damage object. the damage is either
             predicted or read from somewhere.

@@ -233,7 +233,7 @@ class Curve():
         
         leak_from_pipe      = res.node['demand'][available_nodes]
         
-        leak = leak_from_pipe < 0.1
+        leak = leak_from_pipe < -0.1
         if leak.any().any():
             raise ValueError("There is negative leak")
         

@@ -2793,12 +2793,15 @@ class BinFile(object):
             self.peak_energy = peakenergy
 
             logger.debug('... read EP simulation data ...')
-            print(reportstart)
-            print(duration)
-            print(reportstep)
-            print(start_time)
-            print("----")
-            reporttimes = np.arange(reportstart, duration+reportstep, reportstep) + start_time
+            #print(reportstart)
+            #print(duration)
+            #print(reportstep)
+            #print(start_time)
+            #print("----")
+            reporttimes = np.arange(reportstart, duration, reportstep) + start_time
+            if duration % reportstep == 0:
+                reporttimes = np.append(reporttimes, np.array([duration + start_time]))
+               
             nrptsteps = len(reporttimes)
             statsN = nrptsteps
             if statsflag in [StatisticsType.Maximum, StatisticsType.Minimum, StatisticsType.Range]:
@@ -2895,7 +2898,6 @@ class BinFile(object):
                     data = np.reshape(data, (nrptsteps, (4*nnodes+8*nlinks)))
                 except Exception as e:
                     logger.exception('Failed to process file: %s', e)
-                    
                 df = pd.DataFrame(data.transpose(), index =index, columns = reporttimes)
                 df = df.transpose()
                 
