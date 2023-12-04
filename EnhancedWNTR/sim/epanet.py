@@ -11,25 +11,18 @@ import scipy.sparse.csr
 from collections import OrderedDict
 from wntr.sim.core import WaterNetworkSimulator
 import wntr.epanet.io
-import EnhancedWNTR.epanet.io
+from ..epanet import toolkit
+from wntr.network.io import write_inpfile
+from wntr.sim.epanet import EpanetSimulator
 from wntr.sim.network_isolation import check_for_isolated_junctions, get_long_size
 from wntr.sim.core import _get_csr_data_index
 from wntr.utils.ordered_set import OrderedSet
 from wntr.network.model import LinkStatus
 from Report_Reading import Report_Reading
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)    
 
-try:
-    from ..epanet import toolkit
-except ImportError as e:
-    print('{}'.format(e))
-    logger.critical('%s',e)
-    raise ImportError('Error importing epanet toolkit while running epanet simulator. '
-                      'Make sure libepanet is installed and added to path.')
-                
-
-class EpanetSimulator(WaterNetworkSimulator):
+class EpanetSimulator(EpanetSimulator):
     """
     Fast EPANET simulator class.
 
@@ -63,48 +56,17 @@ class EpanetSimulator(WaterNetworkSimulator):
         wntr.epanet.io.BinFile
 
     """
-    def __init__(self, wn, mode=None, min_pressure=None, nominal_pressure=None, reader=None, result_types=None):
-        if mode==None:
-            if wn.options.hydraulic.demand_model =='PDA':
-                mode = 'PDD'
-            else:
-                mode = 'DD'
-        elif mode != 'DD' and mode != 'PDD':
-            raise ValueError('the value for mode must be either PDD or DD')
-        else:
-            if mode=='PDD':
-                wn.options.hydraulic.demand_model = 'PDA'
-            elif mode=='DD':
-                wn.options.hydraulic.demand_model = 'DDA'
-                
-        if min_pressure != None:
-            if min_pressure<0:
-                raise ValueError('min_pressure must be a non-negative value')
-            wn.options.hydraulic.minimum_pressure = min_pressure
-        else:
-            min_pressure = wn.options.hydraulic.minimum_pressure
-                
-        if nominal_pressure != None:
-            if nominal_pressure<0:
-                raise ValueError('nominal_pressure must be a non-negative value')
-            wn.options.hydraulic.required_pressure = nominal_pressure
-        else:
-            nominal_pressure = wn.options.hydraulic.required_pressure
-            
-        if min_pressure>nominal_pressure:
-            raise ValueError('minimum pressure must be less than nominal pressure')
+    def __init__(self, wn):
+
+        super(EpanetSimulator, self).__init__(wn)
+        
+        #Sina added this for time manipulate function
         
         self._initial_hydraulic_timestep = wn.options.time.hydraulic_timestep
         self._initial_report_timestep = wn.options.time.hydraulic_timestep
         
-
-        super(EpanetSimulator, self).__init__(wn, mode)
-        self.reader = reader
-        self.prep_time_before_main_loop = 0.0
-        if self.reader is None:
-            self.reader = EnhancedWNTR.epanet.io.BinFile(result_types=result_types)
         
-        #sina added this for isolation init
+        #Sina added this for isolation init
         long_size = get_long_size()
         if long_size == 4:
             self._int_dtype = np.int32
@@ -154,7 +116,8 @@ class EpanetSimulator(WaterNetworkSimulator):
                 raise RuntimeError("no timestep is found")
             self._wn.options.time.report_timestep = new_time_step
    
-    def run_sim(self, file_prefix='temp', save_hyd=False, use_hyd=False, hydfile=None, start_time=None, iModified=True):
+    def run_sim(self, file_prefix='temp', save_hyd=False, use_hyd=False, hydfile=None, 
+                version=2.2, convergence_error=False, start_time=None, iModified=True):
         """
         Run the EPANET simulator.
 
@@ -175,21 +138,21 @@ class EpanetSimulator(WaterNetworkSimulator):
         """
         solver_parameters_list = [(1,10, 0), (10, 100, 0), (10,100, 0.01)]
         #solver_parameters_list = [(10,100, 0.01), (10, 100, 0), (1,10, 0)]
-        balanced_system = False
+        #balanced_system = False
         run_successful= False
         i = 0
         for solver_parameter in solver_parameters_list:
             i += 1
             print(solver_parameter)
-            self._wn.options.solver.checkfreq = solver_parameter[0]
-            self._wn.options.solver.maxcheck  = solver_parameter[1]
-            self._wn.options.solver.damplimit = solver_parameter[2]
-            self._wn.options.solver.unbalanced_value = 100
-        
+            self._wn.options.hydraulic.checkfreq = solver_parameter[0]
+            self._wn.options.hydraulic.maxcheck  = solver_parameter[1]
+            self._wn.options.hydraulic.damplimit = solver_parameter[2]
+            self._wn.options.hydraulic.unbalanced_value = 100
 
             inpfile = file_prefix + '.inp'
-            self._wn.write_inpfile(inpfile, units=self._wn.options.hydraulic.en2_units)
-            enData = toolkit.ENepanet(changed_epanet=iModified)
+            write_inpfile(self._wn, inpfile, units=self._wn.options.hydraulic.inpfile_units, version=version)
+
+            enData = toolkit.ENepanet(changed_epanet=iModified, version=version)
             rptfile = file_prefix + '.rpt'
             outfile = file_prefix + '.bin'
             if hydfile is None:
@@ -199,10 +162,7 @@ class EpanetSimulator(WaterNetworkSimulator):
                 enData.ENusehydfile(hydfile)
                 logger.debug('Loaded hydraulics')
             else:
-                if self._wn.options.time.start_clocktime>=4*3600:
-                    enData.ENSetIgnoreFlag(0)
-                else:
-                    enData.ENSetIgnoreFlag(0)
+                
                 try:
                     enData.ENsolveH()
                 except Exception as err:
@@ -233,7 +193,10 @@ class EpanetSimulator(WaterNetworkSimulator):
                 raise err
             enData.ENclose()
             logger.debug('Completed run')
-            result_data = self.reader.read(outfile, start_time=start_time)
+            result_data = self.reader.read(outfile)
+            
+            self._updateResultStartTime(result_data, start_time)
+            
             report_data = Report_Reading(rptfile)
             
             result_data.maximum_trial_time = []
@@ -245,85 +208,14 @@ class EpanetSimulator(WaterNetworkSimulator):
 
         return result_data, run_successful
     
-    def run_sim_2(self, file_prefix='temp', save_hyd=False, use_hyd=False, hydfile=None, start_time=None):
-        """
-        Run the EPANET simulator.
-
-        Runs the EPANET simulator through the compiled toolkit DLL. Can use/save hydraulics
-        to allow for separate WQ runs.
-
-        Parameters
-        ----------
-        file_prefix : str
-            Default prefix is "temp". All files (.inp, .bin/.out, .hyd, .rpt) use this prefix
-        use_hyd : bool
-            Will load hydraulics from ``file_prefix + '.hyd'`` or from file specified in `hydfile_name`
-        save_hyd : bool
-            Will save hydraulics to ``file_prefix + '.hyd'`` or to file specified in `hydfile_name`
-        hydfile : str
-            Optionally specify a filename for the hydraulics file other than the `file_prefix`
-
-        """
-        import mmap
-        run_successful= False
-        solver_parameters_list = [(10, 100, 0), (10,100, 0.01), (1,10, 0)]
-        stable_system = False
-        for solver_parameter in solver_parameters_list:
-            print(solver_parameter)
-            self._wn.options.solver.checkfreq = solver_parameter[0]
-            self._wn.options.solver.maxcheck  = solver_parameter[1]
-            self._wn.options.solver.damplimit = solver_parameter[2]
-            self._wn.options.solver.unbalanced_value = 100
-            
-            inpfile = file_prefix + '.inp'
-            self._wn.write_inpfile(inpfile, units=self._wn.options.hydraulic.en2_units)
-            enData  = toolkit.ENepanet(changed_epanet=True)
-            rptfile = file_prefix + '.rpt'
-            outfile = file_prefix + '.bin'
-            if hydfile is None:
-                hydfile = file_prefix + '.hyd'
-            enData.ENopen(inpfile, rptfile, outfile)
-            if use_hyd:
-                enData.ENusehydfile(hydfile)
-                logger.debug('Loaded hydraulics')
-            else:
-                if self._wn.options.time.start_clocktime>=4*3600:
-                    enData.ENSetIgnoreFlag(0)
-                else:
-                    enData.ENSetIgnoreFlag(0)
-                try:
-                    enData.ENsolveH()
-                except toolkit.EpanetException as err:
-                    if enData.errcode==110:
-                        run_successful= False
-                    else:
-                        raise err
-                else:
-                    run_successful= True
-                logger.debug('Solved hydraulics')
-            if save_hyd:
-                enData.ENsavehydfile(hydfile)
-                logger.debug('Saved hydraulics')
-            enData.ENsolveQ()
-            logger.debug('Solved quality')
-            enData.ENreport()
-            logger.debug('Ran quality')
-            enData.ENclose()
-            logger.debug('Completed run')
-            with open(rptfile, 'rb', 0) as file, \
-                mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ) as s:
-                if s.find(b'Maximum trials exceeded at') != -1:
-                    stable_system = False
-                else:
-                    return self.reader.read(outfile, start_time=start_time), run_successful
-                    break
-                
-            #os.sys.stderr.write('Finished Closing\n')
-        if stable_system == False:
-            print('SYSTEM UNSTABLE')
-            return self.reader.read(outfile, start_time=start_time), run_successful
-        else:
-            raise
+    def _updateResultStartTime(self, result_data, start_time):
+        for res_type, res in result_data.link.items():
+            #result_data.link[res_type].index = res
+            res.index = res.index + start_time
+        
+        for res_type, res in result_data.node.items():
+            #result_data.link[res_type].index = res
+            res.index = res.index + start_time
     
     def _get_isolated_junctions_and_links(self, prev_isolated_junctions, prev_isolated_links):
         self._prev_isolated_junctions=prev_isolated_junctions

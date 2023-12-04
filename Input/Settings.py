@@ -53,8 +53,8 @@ class Process_Settings(base):
         """
         Damage settings
         """
-        self.settings['pipe_damage_file_list'     ] = "Nafiseh Damage Data/9_final_akhar/list_1_final.xlsx" #"preprocess/list2-3.xlsx"#"preprocess/list2-3.xlsx" #"list_akhar_with_prob_pgv_epicenter_1.xlsx"#"preprocess/list2-3.xlsx" #"Net3/list.xlsx" #"preprocess/list2-3.xlsx" #"list_W147_6.xlsx" #'Nafiseh Damage Data/list.xlsx'
-        self.settings['pipe_damage_file_directory'] =  'Nafiseh Damage Data/9_final_akhar'#"" #'Net3' #'Nafiseh Damage Data/out'"X:\\Sina Naeimi\\anytown_damage\\"
+        self.settings['pipe_damage_file_list'     ] = "../LADWPNET/preprocess/list2-3.xlsx" #"preprocess/list2-3.xlsx"#"preprocess/list2-3.xlsx" #"list_akhar_with_prob_pgv_epicenter_1.xlsx"#"preprocess/list2-3.xlsx" #"Net3/list.xlsx" #"preprocess/list2-3.xlsx" #"list_W147_6.xlsx" #'Nafiseh Damage Data/list.xlsx'
+        self.settings['pipe_damage_file_directory'] =  '../LADWPNET'#"" #'Net3' #'Nafiseh Damage Data/out'"X:\\Sina Naeimi\\anytown_damage\\"
         self.settings['pump_damage_relative_time' ] = True #needs to be implemented in the code
         self.settings['tank_damage_relative_time' ] = True #needs to be implemented in teh code
         
@@ -101,7 +101,7 @@ class Scenario_Settings(base):
         """
         Damage settings
         """
-        self.settings['Pipe_damage_input_method'   ] = 'pickle' #excel or pickle
+        self.settings['Pipe_damage_input_method'   ] = 'excel' #excel or pickle
         self.settings['pipe_damage_model'          ] = {"CI":{"alpha":-0.0038, "beta":0.1096, "gamma":0.0196, "a":2, "b":1 }, "DI":{"alpha":-0.0079, "beta":0.0805, "gamma":0.0411, "a":2, "b":1 }, "STL":{"alpha":-0.009, "beta":0.0808, "gamma":0.0472, "a":2, "b":1 }, "CON":{"alpha":-0.0083, "beta":0.0738, "gamma":0.0431, "a":2, "b":1 }, "RS":{"alpha":-0.0088, "beta":0.0886, "gamma":0.0459, "a":2, "b":1 } } # sina needs to be implemented
         self.settings['default_pipe_damage_model'  ] = {"alpha":-0.0038, "beta":0.1096, "gamma":0.0196, "a":2, "b":1 }
         self.settings['node_damage_model'          ] = {'x':0.9012,'a':0.0036, 'aa':1, 'b':0, 'bb':0, 'c':-0.877, 'cc':1, 'd':0, 'dd':0, 'e':0.0248, 'ee1':1, 'ee2':1, 'f':0, 'ff1':0, 'ff2':0, "damage_node_model": "equal_diameter_emitter"} # sina needs to be implemented

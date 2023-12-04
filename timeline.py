@@ -24,8 +24,9 @@ class Timeline():
             raise ValueError('simulation end time must be zero or bigger than zero')
         self._current_time = 0
         self._event_time_register = pd.DataFrame(dtype = 'bool') #craete event at time 0 with No event marked as True
-        self._event_time_register = self._event_time_register.append(pd.DataFrame(data = False , index = [0], columns = EVENT_TYPE)) #create event at time 0 with No event marked as True
-        self._event_time_register = self._event_time_register.append(pd.DataFrame(data = False , index = [simulation_end_time], columns = EVENT_TYPE)) #create event at time simulation end time with No event marked as True
+        #print(type(self._event_time_register))
+        self._event_time_register.loc[0, EVENT_TYPE] = [False for i in range(len(EVENT_TYPE))] #create event at time 0 with No event marked as True
+        self._event_time_register.loc[simulation_end_time, EVENT_TYPE] = [False for i in range(len(EVENT_TYPE))] #create event at time simulation end time with No event marked as True
         self.restoration          = restoration
         self._simulation_end_time = simulation_end_time
         self._ending_Event_ignore_time = 0 # in seconds - events in less than this value is ignored
@@ -131,7 +132,7 @@ class Timeline():
         
         for i, i_time in event_distinct_time.items():
             if i_time in self._event_time_register.index:
-                self._event_time_register[event_type].loc[i_time]=True #attention here
+                self._event_time_register.loc[i_time, event_type]=True
                 self.checkAndAmendTime()
                 temp_to_pop.append(i_time)
         logger.debug('temp_to_pop'+repr(temp_to_pop))
@@ -141,13 +142,12 @@ class Timeline():
             event_distinct_time.pop(ind)
         
         if len(event_distinct_time) != 0:
-            dataframe_temp = pd.DataFrame(data = False, index = event_distinct_time, columns = EVENT_TYPE)
-            self._event_time_register = self._event_time_register.append(dataframe_temp)
             for i, i_time in event_distinct_time.items():
-                self._event_time_register[event_type].loc[i_time]=True
+                self._event_time_register.loc[i_time, EVENT_TYPE] = [False for i in range(len(EVENT_TYPE))]
+                self._event_time_register.loc[i_time, event_type] = True
             self._event_time_register = self._event_time_register.sort_index()
             self.checkAndAmendTime()
-            
+        
     def iEventTypeAt(self, begin_time, event_type):
         """
         Checks if an event type is in event registry at the time of begin_time
@@ -186,29 +186,18 @@ class Timeline():
 
         """
         
-        first_length=len(self._event_time_register.index)
+        first_length = len(self._event_time_register.index)
         self._event_time_register = self._event_time_register[self._event_time_register.index <= self._simulation_end_time]
-        if first_length>len(self._event_time_register):
+        if first_length > len(self._event_time_register):
             print("here was " + repr(first_length - len(self._event_time_register)) + "amended")
-        if self._event_time_register[self._event_time_register.index==self._simulation_end_time].empty==True:
-            self._event_time_register=self._event_time_register.append(pd.DataFrame(data = False , index = [self._simulation_end_time], columns = EVENT_TYPE))
+            
+        # Sina: I removed teh following code at the tiem for immegration to
+        #Pandas 1.5.2. Not only it is not efficient piece of code, but also
+        #this nto required. The end time event is already made when teh event
+        #table is created.
+        #if self._event_time_register[self._event_time_register.index==self._simulation_end_time].empty==True:
+            #self._event_time_register=self._event_time_register.append(pd.DataFrame(data = False , index = [self._simulation_end_time], columns = EVENT_TYPE))
 
-    # These functions are no longer used
-    ##def getEventTimeList(self):
-    ##    """
-    ##    gets event time in a series
-##
-    ##    Returns
-    ##    -------
-     ##   Panda Series
-    ##        Event Times
-##
-   ##    """
-  ##      return pd.Series(self._event_time_register.index)
-    
-    #def add_repair(self, time_of_repair, sim_end_time):
-        #self.addEventTime(time_of_repair, event_type = 'rpr')
-        
     def iFunctionalityRequirementReached(self):
         
         logger.debug("Func: node functionality")
@@ -236,7 +225,7 @@ class Timeline():
             """
             calcualting requried demand for each dmeand node
             """
-            0
+            
             #demand_ratio      = self.registry.settings['demand_ratio']
             time_index        = demand_met.index
             req_node_demand   = {}
@@ -276,7 +265,7 @@ class Timeline():
                     cur_node_req_demand = multiplier[pattern_name] * self.registry.wn.get_node(node_name).demand_timeseries_list[0].base_value 
                     cur_node_req_demand.name = node_name
                     cur_node_req_demand=pd.DataFrame(cur_node_req_demand).transpose()
-                    req_node_demand = req_node_demand.append(cur_node_req_demand)
+                    req_node_demand = pd.concat([req_node_demand, cur_node_req_demand])
 
             #print(req_node_demand)
             #raise

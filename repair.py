@@ -238,9 +238,9 @@ class Repair():
             _pipe_size      = pipe_A.diameter
             new_pipe_name_1 = damage_node_name + '-lK1'
             new_pipe_name_2 = damage_node_name + '-lK2'
-            wn.add_pipe(new_pipe_name_1, new_reservoir_A, first_node_pipe_A.name, diameter = _pipe_size, length=5, check_valve_flag=True)
+            wn.add_pipe(new_pipe_name_1, new_reservoir_A, first_node_pipe_A.name, diameter = _pipe_size, length=5, check_valve=True)
             history['ADDED_PIPE_A'] = new_pipe_name_1 #ٌIt Added Pipe is collective now. Won't be removed till all damaegs in the pipe is removed
-            wn.add_pipe(new_pipe_name_2, new_reservoir_B, second_node_pipe_B.name, diameter = _pipe_size, length=5, check_valve_flag=True)
+            wn.add_pipe(new_pipe_name_2, new_reservoir_B, second_node_pipe_B.name, diameter = _pipe_size, length=5, check_valve=True)
             history['ADDED_PIPE_B'] = new_pipe_name_2 #ٌIt Added Pipe is collective now. Won't be removed till all damaegs in the pipe is removed
         
         elif _type=='PUMP':
@@ -274,8 +274,8 @@ class Repair():
             wn.add_junction(new_RP_middle_name1, elevation=elavation1, coordinates= coord1)
             wn.add_junction(new_RP_middle_name2, elevation=elavation2, coordinates= coord2)
             
-            wn.add_pipe(new_pipe_name_1, new_reservoir_A, new_RP_middle_name1, diameter = _pipe_size, length = 1, roughness =100000000, minor_loss = 7, check_valve_flag = True)
-            wn.add_pipe(new_pipe_name_2, new_reservoir_B, new_RP_middle_name2, diameter = _pipe_size, length = 1, roughness =100000000, minor_loss = 7, check_valve_flag = True)
+            wn.add_pipe(new_pipe_name_1, new_reservoir_A, new_RP_middle_name1, diameter = _pipe_size, length = 1, roughness =100000000, minor_loss = 7, check_valve = True)
+            wn.add_pipe(new_pipe_name_2, new_reservoir_B, new_RP_middle_name2, diameter = _pipe_size, length = 1, roughness =100000000, minor_loss = 7, check_valve = True)
             
             wn.add_valve(new_valve_name_1, new_RP_middle_name1, first_node_pipe_A.name, valve_type = 'FCV', setting=0.2500)
             wn.add_valve(new_valve_name_2, new_RP_middle_name2, second_node_pipe_B.name, valve_type = 'FCV', setting=0.2500)

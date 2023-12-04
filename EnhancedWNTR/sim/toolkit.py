@@ -9,6 +9,7 @@ import numpy as np
 import ctypes
 import os, sys
 from pkg_resources import resource_filename
+import platform
 
 import logging
 logger = logging.getLogger(__name__)
@@ -17,30 +18,56 @@ class EpanetException(Exception):
     pass
 
 class ENepanet(wntr.epanet.toolkit.ENepanet):
-    def __init__(self, inpfile='', rptfile='', binfile='', changed_epanet=False):
+    def __init__(self, inpfile='', rptfile='', binfile='', changed_epanet=False, version=2.2):
         if changed_epanet==False or changed_epanet==True:
             self.changed_epanet=changed_epanet
         else:
-            raise ValueError('changed_epanet must be a boolean value')
+            raise ValueError("changed_epanet must be a boolean value")
             
         if changed_epanet==False:
-            super().__init__(inpfile, rptfile, binfile)
-            return
-        try:
-            if os.name in ['nt','dos']:
-            
-                libepanet = resource_filename(__name__,'epanet/windows.dll')
-                self.ENlib = ctypes.windll.LoadLibrary(libepanet)
-            elif sys.platform in ['darwin']:
-                libepanet = resource_filename(__name__,'epanet/mac.dylib')
-                self.ENlib = ctypes.cdll.LoadLibrary(libepanet)
-            else:
-                libepanet = resource_filename(__name__,'epanet/linux.so')
-                self.ENlib = ctypes.cdll.LoadLibrary(libepanet)
-            return # OK!
-        except Exception as E1:
-            print(E1)
-            raise E1
+            try:
+                super().__init__(inpfile, rptfile, binfile, version=version)
+            except:
+                pass # to add robustness for the time when for the WNTR
+                     #cannot load the umodified DLLs for any reason
+        else:
+                     
+            if float(version) != 2.2:
+                raise ValueError("EPANET version must be 2.2 when using tegh changed version")
+        
+            elif float(version) == 2.2:
+                libnames = ["epanet22_mod", "epanet22_win32_mod"]
+                if "64" in platform.machine():
+                    libnames.insert(0, "epanet22_amd64_mod")
+            for lib in libnames:
+                try:
+                    if os.name in ["nt", "dos"]:
+                        libepanet = resource_filename(
+                            __name__, "Windows/%s.dll" % lib
+                        )
+                        self.ENlib = ctypes.windll.LoadLibrary(libepanet)
+                    elif sys.platform in ["darwin"]:
+                        libepanet = resource_filename(
+                            __name__, "Darwin/lib%s.dylib" % lib
+                        )
+                        self.ENlib = ctypes.cdll.LoadLibrary(libepanet)
+                    else:
+                        libepanet = resource_filename(
+                            __name__, "Linux/lib%s.so" % lib
+                        )
+                        self.ENlib = ctypes.cdll.LoadLibrary(libepanet)
+                    return
+                except Exception as E1:
+                    if lib == libnames[-1]:
+                        raise E1
+                    pass
+                finally:
+                    if version >= 2.2 and '32' not in lib:
+                        self._project = ctypes.c_uint64()
+                    elif version >= 2.2:
+                        self._project = ctypes.c_uint32()
+                    else:
+                        self._project = None                    
                 
                         
     def ENn(self, inpfile=None, rptfile=None, binfile=None):

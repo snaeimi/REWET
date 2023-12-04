@@ -14,8 +14,6 @@ import random
 import numpy as np
 from wntr.network.model import LinkStatus
 from EnhancedWNTR.morph.link import split_pipe, break_pipe
-#import warnings
-#warnings.filterwarnings("error")
 
 logger = logging.getLogger(__name__)
 
@@ -34,12 +32,12 @@ class EarthquakeScenario():
 class Damage:
     def __init__(self, registry, scenario_set):
         self.scenario_set     = scenario_set 
-        self.pipe_leak        = pd.Series()
-        self.pipe_break       = pd.Series()
+        self.pipe_leak        = pd.Series(dtype="O")
+        self.pipe_break       = pd.Series(dtype="O")
         self.pipe_all_damages = None
-        self.tank_damage      = pd.Series()
-        self.node_damage      = pd.Series()
-        self._earthquake      = pd.Series()
+        self.tank_damage      = pd.Series(dtype="O")
+        self.node_damage      = pd.Series(dtype="O")
+        #self._earthquake      = pd.Series(dtype="O")
         self._registry        = registry
         self.default_time     = 4
         #if damageEndTime==None:
@@ -48,8 +46,8 @@ class Damage:
             #self.end_time=damageEndTime
         self.is_timely_sorted = False
         
-        self._pipe_last_ratio = pd.Series()
-        self.damaged_pumps    = pd.Series()
+        self._pipe_last_ratio = pd.Series(dtype='float64')
+        self.damaged_pumps    = pd.Series(dtype='float64')
         self.nodal_equavalant_diameter = None
         
         #self._nodal_damage_method = None
@@ -476,7 +474,7 @@ class Damage:
                 nn = wn.get_node(new_node_name)
                 nn._emitter_coefficient = cd
                 wn.options.hydraulic.emitter_exponent=1;
-                wn.add_pipe(new_pipe_name, node_name, new_node_name, diameter=equavalant_pipe_diameter, length=1, roughness=new_C, check_valve_flag=True)
+                wn.add_pipe(new_pipe_name, node_name, new_node_name, diameter=equavalant_pipe_diameter, length=1, roughness=new_C, check_valve=True)
                 #wn.add_reservoir(new_node_name+'_res', base_head = new_elavation + 10000, coordinates = new_coord)
                 #wn.add_pipe(new_pipe_name+'_res', node_name, new_node_name+'_res', diameter=1, length=1, roughness=new_C, check_valve_flag=True)
             
@@ -484,7 +482,7 @@ class Damage:
                 nd = self.getNd(mp, number_of_damages, sum_of_length)
                 equavalant_pipe_diameter = ( ((nd-1)*q)**2 /(0.125*9.81*3.14**2 * mp) )**(1/4) * 1
                 wn.add_reservoir(new_node_name, base_head=new_elavation, coordinates=new_coord)
-                wn.add_pipe(new_pipe_name, node_name, new_node_name, diameter=equavalant_pipe_diameter, length=1, roughness=new_C, check_valve_flag=True, minor_loss=1)
+                wn.add_pipe(new_pipe_name, node_name, new_node_name, diameter=equavalant_pipe_diameter, length=1, roughness=new_C, check_valve=True, minor_loss=1)
             self._registry.addEquavalantDamageHistory(node_name, new_node_name, new_pipe_name, equavalant_pipe_diameter, number_of_damages)
         
         elif method == 'SOD':
@@ -700,7 +698,7 @@ class Damage:
             
             new_pipe_name = value+'_tank_mid_pipe'
             #print(value + str("  -> " ) + new_pipe_name)
-            WaterNetwork.add_pipe(new_pipe_name, value, new_mid_node_name, status = 'CLOSED')
+            WaterNetwork.add_pipe(new_pipe_name, value, new_mid_node_name, initial_status = 'CLOSED')
             
             new_node = WaterNetwork.get_node(new_mid_node_name)
             

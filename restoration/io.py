@@ -509,7 +509,10 @@ class RestorationIO():
             raise ValueError('Logical error. The following agent types are not defined in the prioirty sections:\n'+repr(not_defined))
     
     def _read_jobs(self):
+        jobs_definition = []
         for lnum, line in self.sections['[JOBS]']:
+            
+            cur_job_definition = {}
             words, comments = _split_line(line)
             
             if words is not None and len(words) > 0:
@@ -542,8 +545,14 @@ class RestorationIO():
                 effect = None
                 if len(words)>=4:
                     effect = words[3]
-                                    
-                self.rm.jobs.setJob(agent_type, entity, action, argument, effect)
+                
+                cur_job_definition = {'agent_type':agent_type,
+                                      'entity':entity,
+                                      'action':action,
+                                      'time_argument':argument,
+                                      'effect':effect}
+                jobs_definition.append(cur_job_definition)
+        self.rm.jobs.setJob(jobs_definition)
                 
     def _read_define(self):
         job={}

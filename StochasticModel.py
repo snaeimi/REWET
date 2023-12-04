@@ -261,10 +261,10 @@ class StochasticModel():
         if self.registry.if_first_event_occured == False:
             self.registry.pre_event_demand_met = self.registry.pre_event_demand_met.append(result.node['demand'])
         
-        if node_attributes == None:
-            node_attributes = ['pressure','head','demand','quality']
-        if link_attributes == None:
-            link_attributes = ['linkquality', 'flowrate', 'headloss', 'velocity', 'status', 'setting', 'frictionfact', 'rxnrate']
+        #if node_attributes == None:
+            #node_attributes = ['pressure','head','demand','quality']
+        #if link_attributes == None:
+            #link_attributes = ['linkquality', 'flowrate', 'headloss', 'velocity', 'status', 'setting', 'frictionfact', 'rxnrate']
         
         just_initialized_flag = False
         if self._linear_result == None:
@@ -272,8 +272,8 @@ class StochasticModel():
             self._linear_result   = result
             
             self.restoration._registry.result = self._linear_result
-            node_result_type_elimination_list = set(['pressure','head','demand','quality' , 'leak']) - set(node_attributes)
-            link_result_type_elimination_list = set(['linkquality', 'flowrate', 'headloss', 'velocity', 'status', 'setting', 'frictionfact', 'rxnrate']) - set(link_attributes)
+            node_result_type_elimination_list = set( result.node.keys() ) - set(node_attributes)
+            link_result_type_elimination_list = set( result.link.keys() ) - set(link_attributes)
             
             for node_result_type in node_result_type_elimination_list:
                 self._linear_result.node.pop(node_result_type)
@@ -281,7 +281,7 @@ class StochasticModel():
             for link_result_type in link_result_type_elimination_list:
                 self._linear_result.link.pop(link_result_type)
                 
-            self._linear_result.node['leak'] = pd.DataFrame()
+            self._linear_result.node['leak'] = pd.DataFrame(dtype=float)
         
         active_pipe_damages  = self.restoration._registry.active_pipe_damages
         
@@ -295,7 +295,7 @@ class StochasticModel():
         
         if len(temp_active) > 0:
             #this must be here in the case that a node that is not isolated at
-            # this step has not result. This can happen if the result is being
+            # this step does not have a result. This can happen if the result is
             #simulated without run.. For example, in the latest vallid result
             #some nodes were isolated, but not in the current run.
             available_nodes_in_current_result = result.node['demand'].columns.to_list()
