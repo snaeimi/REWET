@@ -1,6 +1,156 @@
 import os
 import pandas as pd
 import pickle
+import json
+
+
+##################### Read files From json #####################
+def read_pipe_damage_seperate_json_file(directory, pipe_file_name):
+    """Read pipe damage of a single scenario.
+
+    Args:
+        directory (path): damage scnearios path
+        pipe_file_name (str): pipe damage file name
+
+    Raises:
+        ValueError: _description_
+        RuntimeError: _description_
+
+    Returns:
+        Pandas.Series: Pipe Damage 
+    """
+    pipe_damaage = []
+    pipe_time = []
+
+    file_dest = os.path.join(directory, pipe_file_name)
+    
+    with open(file_dest, "rt") as f:
+        read_file = json.load(f)
+
+    if not isinstance(read_file, list):
+        raise ValueError("Wrong inpout in PIPE damage file")
+    
+    for each_damage in read_file:
+        pipe_time.append(each_damage.get("time") )
+        
+        cur_damage = {"pipe_ID": each_damage.get("Pipe_ID"),
+                      "damage_loc": each_damage.get("Loc"),
+                      "type": each_damage.get("Type"),
+                      "Material": each_damage.get("Material")
+        }
+
+        pipe_damaage.append(cur_damage)
+
+    return pd.Series(index = pipe_time, data = pipe_damaage)
+    
+def read_node_damage_seperate_json_file(directory, node_file_name):
+    """Read node damage of a single scenario.
+
+    Args:
+        directory (path): damage scnearios path
+        pipe_file_name (str): node damage file name
+
+    Raises:
+        ValueError: _description_
+        RuntimeError: _description_
+
+    Returns:
+        Pandas.Series: node Damage 
+    """
+    node_damage = []
+    node_time = []
+
+    file_dest = os.path.join(directory, node_file_name)
+    
+    with open(file_dest, "rt") as f:
+        read_file = json.load(f)
+
+    if not isinstance(read_file, list):
+        raise ValueError("Wrong inpout in NODE damage file")
+    
+    for each_damage in read_file:
+        node_time.append(each_damage.get("time") )
+        
+        cur_damage = {"node_name": each_damage.get("Node_ID"),
+                      "Number_of_damages": each_damage.get("Number_of_Damages"),
+                      "node_Pipe_Length": each_damage.get("Pipe Length")
+        }
+
+        node_damage.append(cur_damage)
+
+    return pd.Series(index = node_time, data = node_damage)
+
+def read_tank_damage_seperate_json_file(directory, tank_file_name):
+    """Read tank damage of a single scenario.
+
+    Args:
+        directory (path): tank scnearios path
+        pipe_file_name (str): tank damage file name
+
+    Raises:
+        ValueError: _description_
+        RuntimeError: _description_
+
+    Returns:
+        Pandas.Series: tank Damage 
+    """
+    tank_damage = []
+    tank_time = []
+
+    file_dest = os.path.join(directory, tank_file_name)
+    
+    with open(file_dest, "rt") as f:
+        read_file = json.load(f)
+
+    if not isinstance(read_file, list):
+        raise ValueError("Wrong inpout in TANK damage file")
+    
+    for each_damage in read_file:
+        tank_time.append(each_damage.get("time") )
+        
+        cur_damage = {"Tank_ID": each_damage.get("Tank_ID"),
+                      "Restore_time": each_damage.get("Restore_time"),
+        }
+
+        tank_time.append(cur_damage)
+
+    return pd.Series(index = tank_time, data = tank_damage)
+
+def read_pump_damage_seperate_json_file(directory, pump_file_name):
+    """Read pump damage of a single scenario.
+
+    Args:
+        directory (path): pump scnearios path
+        pipe_file_name (str): pump damage file name
+
+    Raises:
+        ValueError: _description_
+        RuntimeError: _description_
+
+    Returns:
+        Pandas.Series: pump Damage 
+    """
+    pump_damage = []
+    pump_time = []
+
+    file_dest = os.path.join(directory, pump_file_name)
+    
+    with open(file_dest, "rt") as f:
+        read_file = json.load(f)
+
+    if not isinstance(read_file, list):
+        raise ValueError("Wrong inpout in PUMP damage file")
+    
+    for each_damage in read_file:
+        pump_time.append(each_damage.get("time") )
+        
+        cur_damage = {"PUMP_ID": each_damage.get("Pump_ID"),
+                      "Restore_time": each_damage.get("Restore_time"),
+        }
+
+        pump_time.append(cur_damage)
+
+    return pd.Series(index = pump_time, data = pump_damage)
 
 
 ##################### Read files From Pickle #####################
