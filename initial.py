@@ -53,7 +53,12 @@ class Starter():
         settings = Settings()
         if type(project_file) != type(None):
             if type(project_file) == str:
-                settings.importProject(project_file)
+                if project_file.split(".")[-1].lower() == "prj":
+                    settings.importProject(project_file)
+                elif project_file.split(".")[-1].lower() == "json":
+                    settings.importJsonSettings(project_file)
+                else:
+                    raise ValueError("The input file has an unrgnizable extension: {}".format(project_file.split(".")[-1].lower()) )
             else:
                 raise ValueError("project type unrecognized")
             

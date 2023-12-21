@@ -1,3 +1,4 @@
+import json
 import warnings
 import pickle
 import pandas as pd
@@ -30,7 +31,7 @@ class Process_Settings(base):
         self.settings['minimum_simulation_time'      ] = (10 + 24 * 2) * 3600 #seconds
         self.settings['simulation_time_step'         ] = 3600 #seconds 
         self.settings['number_of_damages'            ] = 'single' #single or multiple. If single, indicate single damage files. If multiple, indicate "pipe_damage_file_list"
-        self.settings['result_directory'             ] = "X:/Sina Naeimi/res/temptemp" #"Net3//Result"
+        self.settings['result_directory'             ] = "Result" #"Net3//Result"
         self.settings['temp_directory'               ] = "RunFiles" 
         self.settings['save_time_step'               ] = True  
         self.settings['last_sequence_termination'    ] = True  #sina needs to be applied in GUI
@@ -44,7 +45,7 @@ class Process_Settings(base):
         """
         Hydraulic settings
         """
-        self.settings['WN_INP'             ] = 'giraffe386-4-1.inp' #"Anytown.inp"#'giraffe386-4-1.inp' #"Net3/net3.inp"
+        self.settings['WN_INP'             ] = "Example/net3.inp" #'giraffe386-4-1.inp' #"Anytown.inp"#'giraffe386-4-1.inp' #"Net3/net3.inp"
         self.settings['demand_ratio'       ] = 1
         self.settings['solver'             ] = 'ModifiedEPANETV2.2' # sina needs to be implemented
         #self.settings['hydraulic_time_step'] = 3600
@@ -53,8 +54,8 @@ class Process_Settings(base):
         """
         Damage settings
         """
-        self.settings['pipe_damage_file_list'     ] = "Nafiseh Damage Data/9_final_akhar/list_1_final.xlsx" #"preprocess/list2-3.xlsx"#"preprocess/list2-3.xlsx" #"list_akhar_with_prob_pgv_epicenter_1.xlsx"#"preprocess/list2-3.xlsx" #"Net3/list.xlsx" #"preprocess/list2-3.xlsx" #"list_W147_6.xlsx" #'Nafiseh Damage Data/list.xlsx'
-        self.settings['pipe_damage_file_directory'] =  'Nafiseh Damage Data/9_final_akhar'#"" #'Net3' #'Nafiseh Damage Data/out'"X:\\Sina Naeimi\\anytown_damage\\"
+        self.settings['pipe_damage_file_list'     ] = "Example/example_list.xlsx"#"Nafiseh Damage Data/9_final_akhar/list_1_final.xlsx" #"preprocess/list2-3.xlsx"#"preprocess/list2-3.xlsx" #"list_akhar_with_prob_pgv_epicenter_1.xlsx"#"preprocess/list2-3.xlsx" #"Net3/list.xlsx" #"preprocess/list2-3.xlsx" #"list_W147_6.xlsx" #'Nafiseh Damage Data/list.xlsx'
+        self.settings['pipe_damage_file_directory'] = "Example\Damages" #'Nafiseh Damage Data/9_final_akhar'#"" #'Net3' #'Nafiseh Damage Data/out'"X:\\Sina Naeimi\\anytown_damage\\"
         self.settings['pump_damage_relative_time' ] = True #needs to be implemented in the code
         self.settings['tank_damage_relative_time' ] = True #needs to be implemented in teh code
         
@@ -101,7 +102,7 @@ class Scenario_Settings(base):
         """
         Damage settings
         """
-        self.settings['Pipe_damage_input_method'   ] = 'pickle' #excel or pickle
+        self.settings['Pipe_damage_input_method'   ] = 'excel' #excel or pickle
         self.settings['pipe_damage_model'          ] = {"CI":{"alpha":-0.0038, "beta":0.1096, "gamma":0.0196, "a":2, "b":1 }, "DI":{"alpha":-0.0079, "beta":0.0805, "gamma":0.0411, "a":2, "b":1 }, "STL":{"alpha":-0.009, "beta":0.0808, "gamma":0.0472, "a":2, "b":1 }, "CON":{"alpha":-0.0083, "beta":0.0738, "gamma":0.0431, "a":2, "b":1 }, "RS":{"alpha":-0.0088, "beta":0.0886, "gamma":0.0459, "a":2, "b":1 } } # sina needs to be implemented
         self.settings['default_pipe_damage_model'  ] = {"alpha":-0.0038, "beta":0.1096, "gamma":0.0196, "a":2, "b":1 }
         self.settings['node_damage_model'          ] = {'x':0.9012,'a':0.0036, 'aa':1, 'b':0, 'bb':0, 'c':-0.877, 'cc':1, 'd':0, 'dd':0, 'e':0.0248, 'ee1':1, 'ee2':1, 'f':0, 'ff1':0, 'ff2':0, "damage_node_model": "equal_diameter_emitter"} # sina needs to be implemented
@@ -110,7 +111,7 @@ class Scenario_Settings(base):
         Restoration settings 
         """
         self.settings['Restoraion_policy_type'          ] = 'script' # sina needs to be implemented in the code
-        self.settings['Restortion_config_file'          ] = "config-ghab-az-tayid.txt" #'X:\\Sina Naeimi\\anytown_damage\\config-base_base.txt'#'config-base_hydsig.txt' #'Net3/config.txt' #
+        self.settings['Restortion_config_file'          ] = "Example/exampe_config.txt"#"config-ghab-az-tayid.txt" #'X:\\Sina Naeimi\\anytown_damage\\config-base_base.txt'#'config-base_hydsig.txt' #'Net3/config.txt' #
         self.settings['pipe_damage_discovery_model'     ] = {'method': 'leak_based', 'leak_amount': 0.025, 'leak_time': 3600*12} # sina needs to be implemented
         self.settings['node_damage_discovery_model'     ] = {'method': 'leak_based', 'leak_amount': 0.001, 'leak_time': 3600*12} # sina needs to be implemented
         self.settings['pump_damage_discovery_model'     ] = {'method': 'time_based', 'time_discovery_ratio': pd.Series([1], index = [3600*n for n in [0]])} # sina needs to be implemented
@@ -161,6 +162,24 @@ class Settings():
                 return True
         
         return False
+    
+    def importJsonSettings(self, json_file_path):
+        """read a settinsg json file and import the data
+
+        Args:
+            json_file_path (path): JSON file path
+        """
+        with open(json_file_path, "rt") as f:
+            settings_data = json.load(f)
+        
+        if not isinstance(settings_data, dict):
+            raise ValueError("Wrong JSON file type for teh settings. The settings JSOn file must be an OBJECT file type.")
+
+        for key, val in settings_data.items():
+            if key not in self:
+                raise ValueError("REWET settinsg does not have \"{}\" as a settings key".fomart(key))
+            
+            self[key] = val
     
     def importProject(self, project_addr):
         with open(project_addr, 'rb') as f:
