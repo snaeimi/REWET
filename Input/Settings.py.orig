@@ -54,9 +54,21 @@ class Process_Settings(base):
         """
         Damage settings
         """
-
+<<<<<<< HEAD
+<<<<<<< HEAD
+        self.settings['pipe_damage_file_list'     ] = "../LADWPNET/preprocess/list2-3.xlsx" #"preprocess/list2-3.xlsx"#"preprocess/list2-3.xlsx" #"list_akhar_with_prob_pgv_epicenter_1.xlsx"#"preprocess/list2-3.xlsx" #"Net3/list.xlsx" #"preprocess/list2-3.xlsx" #"list_W147_6.xlsx" #'Nafiseh Damage Data/list.xlsx'
+        self.settings['pipe_damage_file_directory'] =  '../LADWPNET'#"" #'Net3' #'Nafiseh Damage Data/out'"X:\\Sina Naeimi\\anytown_damage\\"
+=======
         self.settings['pipe_damage_file_list'     ] = "Example/example_list.xlsx"#"Nafiseh Damage Data/9_final_akhar/list_1_final.xlsx" #"preprocess/list2-3.xlsx"#"preprocess/list2-3.xlsx" #"list_akhar_with_prob_pgv_epicenter_1.xlsx"#"preprocess/list2-3.xlsx" #"Net3/list.xlsx" #"preprocess/list2-3.xlsx" #"list_W147_6.xlsx" #'Nafiseh Damage Data/list.xlsx'
         self.settings['pipe_damage_file_directory'] = "Example\Damages" #'Nafiseh Damage Data/9_final_akhar'#"" #'Net3' #'Nafiseh Damage Data/out'"X:\\Sina Naeimi\\anytown_damage\\"
+>>>>>>> 4c940f9 (commit everything already here)
+||||||| 2eb99a1
+        self.settings['pipe_damage_file_list'     ] = "Nafiseh Damage Data/9_final_akhar/list_1_final.xlsx" #"preprocess/list2-3.xlsx"#"preprocess/list2-3.xlsx" #"list_akhar_with_prob_pgv_epicenter_1.xlsx"#"preprocess/list2-3.xlsx" #"Net3/list.xlsx" #"preprocess/list2-3.xlsx" #"list_W147_6.xlsx" #'Nafiseh Damage Data/list.xlsx'
+        self.settings['pipe_damage_file_directory'] =  'Nafiseh Damage Data/9_final_akhar'#"" #'Net3' #'Nafiseh Damage Data/out'"X:\\Sina Naeimi\\anytown_damage\\"
+=======
+        self.settings['pipe_damage_file_list'     ] = "Example/example_list.xlsx"#"Nafiseh Damage Data/9_final_akhar/list_1_final.xlsx" #"preprocess/list2-3.xlsx"#"preprocess/list2-3.xlsx" #"list_akhar_with_prob_pgv_epicenter_1.xlsx"#"preprocess/list2-3.xlsx" #"Net3/list.xlsx" #"preprocess/list2-3.xlsx" #"list_W147_6.xlsx" #'Nafiseh Damage Data/list.xlsx'
+        self.settings['pipe_damage_file_directory'] = "Example\Damages" #'Nafiseh Damage Data/9_final_akhar'#"" #'Net3' #'Nafiseh Damage Data/out'"X:\\Sina Naeimi\\anytown_damage\\"
+>>>>>>> 4c940f994d2ff143030a6137a51752d9d216f6c0
         self.settings['pump_damage_relative_time' ] = True #needs to be implemented in the code
         self.settings['tank_damage_relative_time' ] = True #needs to be implemented in teh code
         
