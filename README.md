@@ -65,7 +65,13 @@ to discuss what you would like to change.
 For any pottential collaboratiion, please contact the author.
 
 ## Citing
+
 For citation, please contact the author.
 
 ## License
+
 No Liciense yet
+
+## ACKNOWLEDGMENTS
+
+This project was funded with National Science Foundation Award No. CMMI-1735483. The Developer also extended gratitude to Los Angeles Department of Water and Power (LADWP) for providing the input and water network which was the testbed for the development of REWET. REWET was produced as part of Doctoral Dissertation at University of Delaware, and is supervised by Doctor Rachel Davidson, Department of Civil and Environmental Engineering, University of Delaware.
