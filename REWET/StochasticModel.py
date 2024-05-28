@@ -7,16 +7,16 @@ Created on Wed Apr  8 20:19:10 2020
 import os
 import pickle
 import wntr
-import Damage
+import rewet.Damage
 import pandas as pd
 import logging
-from timeline import Timeline
+from rewet.timeline import Timeline
 import sys
 #from wntrplus import WNTRPlus
 from wntr.utils.ordered_set import OrderedSet
-from Sim.Simulation import Hydraulic_Simulation
-import EnhancedWNTR.network.model
-from EnhancedWNTR.sim.results import SimulationResults
+from rewet.Sim.Simulation import Hydraulic_Simulation
+import rewet.EnhancedWNTR.network.model
+from rewet.EnhancedWNTR.sim.results import SimulationResults
 from wntr.network.model import LinkStatus
 
 

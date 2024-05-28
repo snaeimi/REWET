@@ -9,8 +9,8 @@ import pandas as pd
 import numpy as np
 import logging
 from collections import OrderedDict
-from   restoration.restorationlog import RestorationLog 
-from restoration.base import get_node_name
+from rewet.restoration.restorationlog import RestorationLog 
+from rewet.restoration.base import get_node_name
 
 logger = logging.getLogger(__name__)
 

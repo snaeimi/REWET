@@ -13,7 +13,7 @@ import pickle
 import random
 import numpy as np
 from wntr.network.model import LinkStatus
-from EnhancedWNTR.morph.link import split_pipe, break_pipe
+from rewet.EnhancedWNTR.morph.link import split_pipe, break_pipe
 #import warnings
 #warnings.filterwarnings("error")
 

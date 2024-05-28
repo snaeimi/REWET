@@ -6,6 +6,7 @@ MPI_results - Copy/
 javab/
 net3/
 out/
+__pycache__
 Demand Polygons/
 *.cpg
 *.dbf

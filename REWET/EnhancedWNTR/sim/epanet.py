@@ -11,7 +11,7 @@ import scipy.sparse.csr
 from collections import OrderedDict
 from wntr.sim.core import WaterNetworkSimulator
 import wntr.epanet.io
-import EnhancedWNTR.epanet.io
+import rewet.EnhancedWNTR.epanet.io
 from wntr.sim.network_isolation import check_for_isolated_junctions, get_long_size
 from wntr.sim.core import _get_csr_data_index
 from wntr.utils.ordered_set import OrderedSet

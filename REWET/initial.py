@@ -6,7 +6,7 @@ Created on Tue Jun  1 21:04:18 2021
 """
 
 import StochasticModel
-import Damage
+import rewet.Damage
 import os
 import signal
 import pickle
@@ -15,11 +15,11 @@ import pandas as pd
 import logging
 
 import Input.Input_IO as io
-from Input.Settings             import Settings
-from EnhancedWNTR.network.model import WaterNetworkModel
-from restoration.registry       import Registry
-from restoration.model          import Restoration
-from Project                    import Project
+from rewet.Input.Settings             import Settings
+from rewet.EnhancedWNTR.network.model import WaterNetworkModel
+from rewet.restoration.registry       import Registry
+from rewet.restoration.model          import Restoration
+from rewet.Project                    import Project
 
 logging.basicConfig(level=50)
 

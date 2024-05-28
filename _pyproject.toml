@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rewet"
+version = "0.5.2"
+authors = [
+  { name="Sina Naeimi", email="snaeimi@udel.edu" },
+]
+description = "Restoration of Water Distribution Network after Event"
+readme = "README.md"
+requires-python = ">=3.7.2"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/snaeimi/rewet"
+
+# OR
+[tool.setuptools.packages.find]
+# All the following settings are optional:
+where = ["src"]  # ["."] by default
+include = ["rewet*"]  # ["*"] by default
+# exclude = ["mypackage.tests*"]  # empty by default
+namespaces = false  # true by default

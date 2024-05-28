@@ -13,14 +13,14 @@ import pickle
 from collections import OrderedDict
 import copy
 #import Report_Reading
-from Output.Map import Map
-from Output.Map import Helper
-from Output.Raw_Data import Raw_Data
-from Output.Curve import Curve
-from Output.Crew_Report import Crew_Report
-from Output.Result_Time import Result_Time
-import Input.Input_IO as io
-from Project import Project as MainProject
+from rewet.Output.Map import Map
+from rewet.Output.Map import Helper
+from rewet.Output.Raw_Data import Raw_Data
+from rewet.Output.Curve import Curve
+from rewet.Output.Crew_Report import Crew_Report
+from rewet.Output.Result_Time import Result_Time
+import rewet.Input.Input_IO as io
+from rewet.Project import Project as MainProject
 
 class Project_Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
     def __init__(self, project_file_addr, result_directory=None, ignore_not_found=False, to_neglect_file=None, node_col='', result_file_dir = None, iObject=False):

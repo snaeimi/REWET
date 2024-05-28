@@ -7,14 +7,14 @@ Created on Fri Dec 25 05:09:25 2020
 
 import logging
 #import warnings
-import restoration.io as rio
-import restoration.base as base
+import rewet.restoration.io as rio
+import rewet.restoration.base as base
 import pandas as pd
 import numpy  as np
 import copy
 import random
-from restoration.base import get_node_name
-from repair           import Repair
+from rewet.restoration.base import get_node_name
+from rewet.repair           import Repair
 from collections      import OrderedDict
 
 logger = logging.getLogger(__name__)

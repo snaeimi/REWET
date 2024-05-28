@@ -2,8 +2,8 @@ import os
 import math
 import pandas as pd
 import numpy as np
-from EnhancedWNTR.sim.epanet import EpanetSimulator
-from EnhancedWNTR.sim.results import SimulationResults
+from rewet.EnhancedWNTR.sim.epanet import EpanetSimulator
+from rewet.EnhancedWNTR.sim.results import SimulationResults
 import wntr
 
 
