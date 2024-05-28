@@ -45,7 +45,7 @@ With running code above, you will run the example. However, you may want to run 
 
 ```json
 {
-    "RUN_TIME": 86400",
+    "RUN_TIME": 86400,
 }
 ```
 
