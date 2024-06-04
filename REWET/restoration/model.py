@@ -190,7 +190,7 @@ class Restoration():
                     entity_data = entity_data[(entity_data[entity]==True)]
                     entity_data = entity_data[(entity_data[action]==False)]
                     
-                    logger.warning('action='+action+', entity='+entity+', len(entity_data)='+repr(len(entity_data))+',  OC= '+repr(order_counter))
+                    #logger.warning('action='+action+', entity='+entity+', len(entity_data)='+repr(len(entity_data))+',  OC= '+repr(order_counter))
                     for previous_action in self.sequence[self.entity[entity]]:
                         if previous_action == action:
                             break
@@ -1189,15 +1189,16 @@ class Restoration():
             raise ValueError('Stop time is less than 0')
         
         #refined_pump = self.pump_restoration[self.pump_restoration['Restore_time']>=stop_time]
+
         if not self.pump_restoration.empty:
             self.pump_restoration['Restore_time'] = self.pump_restoration['Restore_time'] + stop_time
             
         if not self.tank_restoration.empty:
             self.tank_restoration['Restore_time'] = self.tank_restoration['Restore_time'] + stop_time
-        
+ 
         for ind, row, in self.pump_restoration.iterrows():
             self._addHardEvent(row['Restore_time'], 'pump')
-            
+        
         for ind, row, in self.tank_restoration.iterrows():
             self._addHardEvent(row['Restore_time'], 'tank')
         

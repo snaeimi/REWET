@@ -48,10 +48,10 @@ class Registry():
         self.hydraulic_significance    = pd.Series(dtype=float)
         self.if_first_event_occured    = 0
         self.restoration_log_book      = RestorationLog(settings)
-        self.explicit_leak_node        = pd.Series()
+        self.explicit_leak_node        = {}
         self.demand_node_name_list     = []
         self.all_node_name_list        = WaterNetwork.node_name_list.copy()
-        self.demand_node_users         = pd.Series()
+        #self.demand_node_users         = pd.Series()
         #self.minimum_time_devision     = 60*60
         self.nodal_equavalant_diameter = None
         self.original_pipe_data        = {}
@@ -75,8 +75,8 @@ class Registry():
             if node.demand_timeseries_list[0].base_value>0.00000008:
                 self.demand_node_name_list.append(node_name)
                 
-        for demand_node_name in self.demand_node_name_list:
-            self.demand_node_users.loc[demand_node_name]=1
+        #for demand_node_name in self.demand_node_name_list:
+            #self.demand_node_users.loc[demand_node_name]=1
         
         for node_name, node in WaterNetwork.nodes():
             self.all_node_table.loc[node_name, "X_COORD"] = node.coordinates[0]
@@ -93,7 +93,7 @@ class Registry():
         self._node_damage_table_time_series            = OrderedDict()
         self._tank_level_time_series                   = OrderedDict()
         self._restoration_reservoir_name_time_series   = OrderedDict()
-        self.ED_history = pd.Series() #Equavalant Damage Diameter
+        self.ED_history = pd.Series(dtype="O") #Equavalant Damage Diameter
         
         
         for pipe_name, pipe in WaterNetwork.pipes():

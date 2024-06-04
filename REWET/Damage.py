@@ -5,17 +5,15 @@ This module is responsble for calculating damage to t=different componenst of
 teh system, including pipe lines. pupmo and so.
 @author: snaeimi
 """
-import wntr
+import wntrfr
 import pandas as pd
 from scipy.stats import lognorm
 import logging
 import pickle
 import random
 import numpy as np
-from wntr.network.model import LinkStatus
+from wntrfr.network.model import LinkStatus
 from rewet.EnhancedWNTR.morph.link import split_pipe, break_pipe
-#import warnings
-#warnings.filterwarnings("error")
 
 logger = logging.getLogger(__name__)
 
@@ -29,17 +27,17 @@ class EarthquakeScenario():
         self.time=abs(eq_time)
         
     def getWNTREarthquakeObject(self):
-        return wntr.scenario.Earthquake((self.coordinate['X'] , self.coordinate['Y']), self.M, self.depth)
+        return wntrfr.scenario.Earthquake((self.coordinate['X'] , self.coordinate['Y']), self.M, self.depth)
 
 class Damage:
     def __init__(self, registry, scenario_set):
         self.scenario_set     = scenario_set 
-        self.pipe_leak        = pd.Series()
-        self.pipe_break       = pd.Series()
+        self.pipe_leak        = pd.Series(dtype="O")
+        self.pipe_break       = pd.Series(dtype="O")
         self.pipe_all_damages = None
-        self.tank_damage      = pd.Series()
-        self.node_damage      = pd.Series()
-        self._earthquake      = pd.Series()
+        self.tank_damage      = pd.Series(dtype="O")
+        self.node_damage      = pd.Series(dtype="O")
+        #self._earthquake      = pd.Series(dtype="O")
         self._registry        = registry
         self.default_time     = 4
         #if damageEndTime==None:
@@ -48,8 +46,8 @@ class Damage:
             #self.end_time=damageEndTime
         self.is_timely_sorted = False
         
-        self._pipe_last_ratio = pd.Series()
-        self.damaged_pumps    = pd.Series()
+        self._pipe_last_ratio = pd.Series(dtype='float64')
+        self.damaged_pumps    = pd.Series(dtype='float64')
         self.nodal_equavalant_diameter = None
         
         #self._nodal_damage_method = None
@@ -476,7 +474,7 @@ class Damage:
                 nn = wn.get_node(new_node_name)
                 nn._emitter_coefficient = cd
                 wn.options.hydraulic.emitter_exponent=1;
-                wn.add_pipe(new_pipe_name, node_name, new_node_name, diameter=equavalant_pipe_diameter, length=1, roughness=new_C, check_valve_flag=True)
+                wn.add_pipe(new_pipe_name, node_name, new_node_name, diameter=equavalant_pipe_diameter, length=1, roughness=new_C, check_valve=True)
                 #wn.add_reservoir(new_node_name+'_res', base_head = new_elavation + 10000, coordinates = new_coord)
                 #wn.add_pipe(new_pipe_name+'_res', node_name, new_node_name+'_res', diameter=1, length=1, roughness=new_C, check_valve_flag=True)
             
@@ -484,7 +482,7 @@ class Damage:
                 nd = self.getNd(mp, number_of_damages, sum_of_length)
                 equavalant_pipe_diameter = ( ((nd-1)*q)**2 /(0.125*9.81*3.14**2 * mp) )**(1/4) * 1
                 wn.add_reservoir(new_node_name, base_head=new_elavation, coordinates=new_coord)
-                wn.add_pipe(new_pipe_name, node_name, new_node_name, diameter=equavalant_pipe_diameter, length=1, roughness=new_C, check_valve_flag=True, minor_loss=1)
+                wn.add_pipe(new_pipe_name, node_name, new_node_name, diameter=equavalant_pipe_diameter, length=1, roughness=new_C, check_valve=True, minor_loss=1)
             self._registry.addEquavalantDamageHistory(node_name, new_node_name, new_pipe_name, equavalant_pipe_diameter, number_of_damages)
         
         elif method == 'SOD':
@@ -534,7 +532,7 @@ class Damage:
         
         Parameters
         ----------
-        WaterNetwork : wntr.network.model.WaterNetworkModel
+        WaterNetwork : wntrfr.network.model.WaterNetworkModel
             water network model ro be modified accroding to the damage
         
         registry : Registry object
@@ -617,7 +615,7 @@ class Damage:
                 sub_type = 1
                 if 'sub_type' in cur_damage:
                     sub_type = cur_damage['sub_type']
-                    
+                
                 WaterNetwork = split_pipe(WaterNetwork, pipe_id, new_pipe_id, new_node_id, split_at_point=ratio, return_copy=False)
                 leak_node = WaterNetwork.get_node(new_node_id)
                 leak_node.add_leak(WaterNetwork, area=area, discharge_coeff=1, start_time=damage_time, end_time=self.end_time+1)
@@ -700,7 +698,7 @@ class Damage:
             
             new_pipe_name = value+'_tank_mid_pipe'
             #print(value + str("  -> " ) + new_pipe_name)
-            WaterNetwork.add_pipe(new_pipe_name, value, new_mid_node_name, status = 'CLOSED')
+            WaterNetwork.add_pipe(new_pipe_name, value, new_mid_node_name, initial_status = 'CLOSED')
             
             new_node = WaterNetwork.get_node(new_mid_node_name)
             
@@ -786,7 +784,7 @@ class Damage:
         This function predict the water network model damage based on  probabilistic method.
         Parameters
         ----------
-        wn : wntr.network.model.WaterNetworkModel
+        wn : wntrfr.network.model.WaterNetworkModel
             Water Netwrok Model to be used to model the damages
         clear : TYPE, optional
             Boolian value, determining if the leak and break list must be
@@ -804,11 +802,11 @@ class Damage:
         
         for eq_in, eq in self._earthquake.items():
             wntr_eq = eq.getWNTREarthquakeObject()
-            distance_to_pipes = wntr_eq.distance_to_epicenter(wn, element_type=wntr.network.Pipe)
+            distance_to_pipes = wntr_eq.distance_to_epicenter(wn, element_type=wntrfr.network.Pipe)
             pga = wntr_eq.pga_attenuation_model(distance_to_pipes)
             pgv = wntr_eq.pgv_attenuation_model(distance_to_pipes)
             repair_rate = wntr_eq.repair_rate_model(pgv)
-            fc = wntr.scenario.FragilityCurve()
+            fc = wntrfr.scenario.FragilityCurve()
             fc.add_state('leak' , 1 , {'Default': lognorm(0.5 , scale=0.2)})
             fc.add_state('break' , 2 , {'Default': lognorm(0.5, scale=0.5)})
             failure_probability = fc.cdf_probability(pga)

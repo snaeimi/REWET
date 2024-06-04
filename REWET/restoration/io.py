@@ -9,6 +9,8 @@ import io
 import logging
 import pandas as pd
 from collections import OrderedDict
+from pathlib import Path
+from rewet.Input.Input_IO import resolve_path
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +49,7 @@ class RestorationIO():
         """
         
         #some of the following lines have been addopted from WNTR
-        self.rm= restoration_model
+        self.rm = restoration_model
         self.crew_data = {}
 
         expected_sections=['[FILES]','[ENTITIES]', '[JOBS]','[AGENTS]','[GROUPS]','[PRIORITIES]', '[SHIFTS]','[SEQUENCES]', '[DEFINE]', '[POINTS]']
@@ -62,7 +64,13 @@ class RestorationIO():
         section = None
         lnum = 0
         edata = {'fname': definition_file_name}
-        with io.open(definition_file_name, 'r', encoding='utf-8') as f:
+        #Sprint(definition_file_name)
+        
+        config_file_path = resolve_path(definition_file_name)
+        
+        self.config_file_dir = config_file_path.parent
+        
+        with io.open(config_file_path, 'r', encoding='utf-8') as f:
             for line in f:
                 lnum += 1
                 edata['lnum'] = lnum
@@ -151,6 +159,7 @@ class RestorationIO():
             except:
                 data_temp = self._read_each_file(file_address, method=1)
         elif method==1:
+            file_address = self.config_file_dir / file_address
             data_temp = pd.read_csv(file_address)
         else:
             raise ValueError('Uknown method: '+str(method))
@@ -509,7 +518,10 @@ class RestorationIO():
             raise ValueError('Logical error. The following agent types are not defined in the prioirty sections:\n'+repr(not_defined))
     
     def _read_jobs(self):
+        jobs_definition = []
         for lnum, line in self.sections['[JOBS]']:
+            
+            cur_job_definition = {}
             words, comments = _split_line(line)
             
             if words is not None and len(words) > 0:
@@ -542,8 +554,14 @@ class RestorationIO():
                 effect = None
                 if len(words)>=4:
                     effect = words[3]
-                                    
-                self.rm.jobs.setJob(agent_type, entity, action, argument, effect)
+                
+                cur_job_definition = {'agent_type':agent_type,
+                                      'entity':entity,
+                                      'action':action,
+                                      'time_argument':argument,
+                                      'effect':effect}
+                jobs_definition.append(cur_job_definition)
+        self.rm.jobs.setJob(jobs_definition)
                 
     def _read_define(self):
         job={}

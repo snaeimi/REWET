@@ -18,12 +18,12 @@ import logging
 import pandas as pd
 import numpy  as np
 from collections           import OrderedDict
-from wntr.network.base     import LinkStatus
-from wntr.network.elements import Pump
-from wntr.network.elements import Valve
+from wntrfr.network.base     import LinkStatus
+from wntrfr.network.elements import Pump
+from wntrfr.network.elements import Valve
 from ..epanet.io           import InpFile
 
-from wntr.network          import WaterNetworkModel
+from wntrfr.network          import WaterNetworkModel
 
 
 logger = logging.getLogger(__name__)
@@ -42,19 +42,10 @@ class WaterNetworkModel(WaterNetworkModel):
 
     def __init__(self, inp_file_name=None):
 
-        super().__init__(None) # None so that we manually run inpread only for once
-        self._inpfile = None
-        if inp_file_name:
-            self.read_inpfile(inp_file_name)
-        
-        self.breakage_link = pd.Series()
+        super().__init__(inp_file_name)
+        self.breakage_link = {}
         self.expicit_leak  = []
-        
-        #For WNTR Version 0.2.2.1. After WNTR Version 0.2.3 we won't need this/ Sina
-        self.demand_model = 'DDA'
-        self.options.hydraulic.minimum_pressure  = 0
-        self.options.hydraulic.required_pressure = 0.07
-        self.options.hydraulic.pressure_exponent = 0.5
+
     
     def updateWaterNetworkModelWithResult(self, result , registry, latest_simulation_time = None):
         """
@@ -103,75 +94,58 @@ class WaterNetworkModel(WaterNetworkModel):
             cur_node = self.get_node(tank_name)
             if cur_node._is_isolated:
                 continue
-            head = result.node['head'][tank_name][max_time]
+            head = result.node['head'].loc[max_time, tank_name]
                                                    
             tank_level = head - cur_node.elevation
             if tank_level < 0:
                 tank_level=0
+            
             if tank_level < cur_node.min_level:
-                                                         
                 tank_level = cur_node.min_level
-
                                                                                                    
             if tank_level - cur_node.max_level > 0:
-                #if not overflow_permitted:
-                    #print(tank_level)
-                    #print(cur_node.max_level)
-                         
-                                                  
-                    #raise ValueError('Tank Level for ' + tank_name + ' is more than max level')
-
                 tank_level = cur_node.max_level
             
             cur_node.init_level = abs(tank_level)
-            #cur_node.level     = abs(tank_level)
-            cur_node.head       = head
-            #logger.error('tank_level= '+ repr(tank_level))
-        #except Exception as myerr:
-            #logger.error(tank_name + ' exist in WaterNetwork but does not exist in result')
-            #print(myerr)
-            #raise ValueError(tank_name + ' exist in WaterNetwork but does not exist in result')
-        #if tank_name=='10':
-            #logger.error(tank_level)
+            cur_node._head       = cur_node.elevation + tank_level
+           
             if tank_level < 0.0:
                 logger.error('head= '+ repr(head))
                 logger.error('elevation= '+ repr(cur_node.elevation))
                 logger.error('tank_level= '+ repr(tank_level))
                 raise ValueError('Tank Level for ' + tank_name + ' is less than zero')
-        #i = 0
+        
         for link_name in self.link_name_list:
             link = self.get_link(link_name)
             setting = None
             status  = None
             try:
-                setting = result.link['setting'][link_name][max_time]
-                status  = result.link['status'][link_name][max_time]
+                setting = result.link['setting'].loc[max_time, link_name]
+                status  = result.link['status'].loc[max_time, link_name]
             except:
                 #logger.error(link_name + ' exist in WaterNetwork but does not exist in result')
                 #raise ValueError(link_name + ' exist in WaterNetwork but does not exist in result')
                 continue
+            
             if isinstance(link, Valve):
                 link.settings        = float(setting)
-                #link.initial_setting = float(setting)
+                
             elif isinstance(link, Pump):
                 link.setting.base_value = float(setting)
-                #link.initial_setting    = float(setting)
+                
             if status == 0:
-                link.status = LinkStatus.Closed
-                #link.initial_status = LinkStatus.Closed
+                link._user_status = LinkStatus.Closed
+                
             elif status == 1:
-                link.status = LinkStatus.Open
-                #link.initial_status = LinkStatus.Open
+                link._user_status = LinkStatus.Open
+                
             elif status == 2:
-                link.status = LinkStatus.Active
-                #link.initial_status = LinkStatus.Active
+                link._user_status = LinkStatus.Active
+                
             else:
                 logger.error('Element type is: '+repr(type(link)))
                 logger.error('Status is : ' + repr(status))
-                #i +=1
-                #raise ValueError("Unrecognized status" + repr(status))
-        #print(i)
-        #print(len(self.link_name_list))
+                
     def read_inpfile(self, filename):
         """
         Defines water network model components from an EPANET INP file
@@ -225,7 +199,7 @@ class WaterNetworkModel(WaterNetworkModel):
                 
                 
                 new_pipe_name = node_name+'-elk'
-                self.add_pipe(new_pipe_name, node_name, new_node_name, diameter=100, length=1, roughness=1000000, check_valve_flag=True)
+                self.add_pipe(new_pipe_name, node_name, new_node_name, diameter=100, length=1, roughness=1000000, check_valve=True)
                 
                 cd = node.leak_area*(2)**0.5 #(m^3ps/(KPa^0.5))
                 cd = cd/(0.145038**0.5)  #(gpm/(Psi^0.5))
@@ -237,7 +211,7 @@ class WaterNetworkModel(WaterNetworkModel):
                     raise ValueError('leak node has demand: '+node_name)
                 temp={'node_name':node_name, 'method':'emitter', 'element1':new_pipe_name, 'element2':new_node_name, 'attr1':cd}
                 self.expicit_leak.append(temp)
-                registry.explicit_leak_node.loc[node_name] = new_node_name
+                registry.explicit_leak_node[node_name] = new_node_name
                 registry.active_pipe_damages.update({new_node_name:node_name})
     
     def implicitLeakToExplicitReservoir(self, registry):
@@ -258,13 +232,13 @@ class WaterNetworkModel(WaterNetworkModel):
                 
                 new_pipe_name = node_name+'-rlk'
                 diameter      = np.sqrt(node.leak_area*4/3.14)
-                self.add_pipe(new_pipe_name, node_name, new_node_name, diameter=diameter, length=1, roughness=1000000, minor_loss = 1, check_valve_flag=True)
+                self.add_pipe(new_pipe_name, node_name, new_node_name, diameter=diameter, length=1, roughness=1000000, minor_loss = 1, check_valve=True)
                 
                 if node.demand_timeseries_list[0].base_value>0.001:
                     raise ValueError('leak node has demand: '+node_name)
                 temp={'node_name':node_name, 'method':'reservoir', 'element1':new_pipe_name, 'element2':new_node_name}
                 self.expicit_leak.append(temp)
-                registry.explicit_leak_node.loc[node_name]=new_node_name
+                registry.explicit_leak_node[node_name] = new_node_name
                 registry.active_pipe_damages.update({new_node_name:node_name})
     
     def resetExplicitLeak(self):
@@ -282,7 +256,8 @@ class WaterNetworkModel(WaterNetworkModel):
     def linkBreackage(self, registry):
         if len(self.breakage_link) > 0:
             raise ValueError("Breakckage is not unliked")
-        self.breakage_link = pd.Series()
+        
+        self.breakage_link = {}
         pipe_damage_table = registry.getDamageData('PIPE')
         broken_pipe_damage_table = pipe_damage_table[pipe_damage_table['damage_type']=='break']
         
@@ -308,10 +283,10 @@ class WaterNetworkModel(WaterNetworkModel):
                 
                 new_pipe_name = damage_node+'_BLP'
                 self.add_pipe(new_pipe_name, node1.name, node2.name, length=1, diameter=1*2.54/100, roughness=100)
-                self.breakage_link.loc[damage_node] = new_pipe_name
+                self.breakage_link[damage_node] = new_pipe_name
     
     def unlinkBreackage(self):
-        for damage_node, link_pipe_name in self.breakage_link.iteritems():
+        for damage_node, link_pipe_name in self.breakage_link.items():
             self.remove_link(link_pipe_name, force=True)
 
-        self.breakage_link = pd.Series()
+        self.breakage_link = {}

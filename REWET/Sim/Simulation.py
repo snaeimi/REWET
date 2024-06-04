@@ -2,9 +2,10 @@ import os
 import math
 import pandas as pd
 import numpy as np
-from rewet.EnhancedWNTR.sim.epanet import EpanetSimulator
+from rewet.EnhancedWNTR.sim.epanet  import EpanetSimulator
 from rewet.EnhancedWNTR.sim.results import SimulationResults
-import wntr
+from rewet.Input.Input_IO           import resolve_path
+import wntrfr
 
 
 class Hydraulic_Simulation():
@@ -16,10 +17,12 @@ class Hydraulic_Simulation():
         self.required_pressure     = 25
         self.current_stop_time     = current_stop_time
         self.worker_rank           = worker_rank
+        
+        self.wn.options.hydraulic.demand_model = "PDA"
+        
         temp_folder                = settings['temp_directory']
-        if type(temp_folder) != str:
-            raise ValueError("temp folder type is not str")
-            
+        temp_folder = resolve_path(temp_folder)
+                    
         if settings['save_time_step'] == True:
             if temp_folder == '':
                 self.temp_directory = str(worker_rank) + "_" + repr(current_stop_time)
@@ -44,7 +47,7 @@ class Hydraulic_Simulation():
         orginal_c_dict    = {}
         for itrr in range(0, maximum_iteration):
             print(itrr)
-            sim    = EpanetSimulator(self.wn, mode="PDD", min_pressure=minimum_pressure, nominal_pressure=required_pressure)
+            sim    = EpanetSimulator(self.wn)
             self.s = sim
             self._prev_isolated_junctions, self._prev_isolated_links = sim._get_isolated_junctions_and_links(self._prev_isolated_junctions, self._prev_isolated_links)
 
@@ -86,7 +89,7 @@ class Hydraulic_Simulation():
         self.closed_pipes = {}
         for itrr in range(0, maximum_iteration):
             print(itrr)
-            sim    = EpanetSimulator(self.wn, mode="PDD", min_pressure=minimum_pressure, nominal_pressure=required_pressure)
+            sim    = EpanetSimulator(self.wn)
             self._prev_isolated_junctions, self._prev_isolated_links = sim._get_isolated_junctions_and_links(self._prev_isolated_junctions, self._prev_isolated_links)
             sim.manipulateTimeOrder(current_stop_time, current_stop_time)
             rr, i_run_successful = sim.run_sim(file_prefix = temp_file_dest, start_time = current_stop_time, iModified=False)
@@ -117,7 +120,7 @@ class Hydraulic_Simulation():
         minimum_pressure  = self.minimum_pressure
         required_pressure = self.required_pressure
         temp_file_dest    = self.temp_directory
-        sim = EpanetSimulator(self.wn, mode="PDD", min_pressure=minimum_pressure, nominal_pressure=required_pressure)
+        sim = EpanetSimulator(self.wn)
         #self.s=sim
         self._prev_isolated_junctions, self._prev_isolated_links = sim._get_isolated_junctions_and_links(self._prev_isolated_junctions, self._prev_isolated_links)
         self._prev_isolated_junctions = self.isolateReservoirs(self._prev_isolated_junctions)
@@ -135,7 +138,7 @@ class Hydraulic_Simulation():
         minimum_pressure  = self.minimum_pressure
         required_pressure = self.required_pressure
         
-        sim = EpanetSimulator(self.wn, mode="PDD", min_pressure=minimum_pressure, nominal_pressure=required_pressure)
+        sim = EpanetSimulator(self.wn)
         duration = self.wn.options.time.duration
         report_time_step  = self.wn.options.time.report_timestep
         sim.manipulateTimeOrder(current_stop_time, current_stop_time)
@@ -180,7 +183,7 @@ class Hydraulic_Simulation():
         result_node_setting  = {}
         result_node_flowrate = {}
         
-        sim = EpanetSimulator(self.wn, mode="PDD", min_pressure=minimum_pressure, nominal_pressure=required_pressure)
+        sim = EpanetSimulator(self.wn)
         
         self._prev_isolated_junctions, self._prev_isolated_links = sim._get_isolated_junctions_and_links(self._prev_isolated_junctions, self._prev_isolated_links)
         self._prev_isolated_junctions = self.isolateReservoirs(self._prev_isolated_junctions)

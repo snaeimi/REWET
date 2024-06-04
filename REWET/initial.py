@@ -5,8 +5,8 @@ Created on Tue Jun  1 21:04:18 2021
 @author: snaeimi
 """
 
-import StochasticModel
-import rewet.Damage
+from rewet import StochasticModel
+from rewet import Damage
 import os
 import signal
 import pickle
@@ -14,23 +14,23 @@ import time
 import pandas as pd
 import logging
 
-import Input.Input_IO as io
+import rewet.Input.Input_IO as io
 from rewet.Input.Settings             import Settings
 from rewet.EnhancedWNTR.network.model import WaterNetworkModel
 from rewet.restoration.registry       import Registry
 from rewet.restoration.model          import Restoration
 from rewet.Project                    import Project
+from rewet.Input.Input_IO             import resolve_path
 
-logging.basicConfig(level=50)
-
-log=[]
-
+#logging.basicConfig(level=50)
 
 class Starter():
     
     def createProjectFile(self, project_settings, damage_list, project_file_name):
         project = Project(project_settings, damage_list)
         project_file_addr = os.path.join(project_settings.process['result_directory'], project_file_name)
+        print(project_file_addr)
+        project_file_addr = resolve_path(project_file_addr)
         with open(project_file_addr, 'wb') as f:
             pickle.dump(project, f)
     
@@ -52,10 +52,20 @@ class Starter():
         """
         settings = Settings()
         if type(project_file) != type(None):
-            if type(project_file) == str:
+            project_file = str(project_file)
+
+        if type(project_file) == str:
+            if project_file.split(".")[-1].lower() == "prj":
                 settings.importProject(project_file)
+            elif project_file.split(".")[-1].lower() == "json":
+                settings.importJsonSettings(project_file)
+                project_file = None
             else:
-                raise ValueError("project type unrecognized")
+                raise ValueError("The input file has an unrgnizable extension: {}".format(project_file.split(".")[-1].lower()) )
+# =============================================================================
+#             else:
+#                 raise ValueError("project type unrecognized")
+# =============================================================================
             
             
         damage_list = io.read_damage_list(settings.process['pipe_damage_file_list'], settings.process['pipe_damage_file_directory'])
@@ -154,13 +164,12 @@ class Starter():
             raise ValueError("Unknown value for settings['Pipe_damage_input_method']")
         
         if pipe_damages.empty == True and node_damages.empty == True and tank_damages.empty == True and pump_damages.empty == True and settings.process['ignore_empty_damage']:
-            log.append('Empty pipe damage')
             return 2 #means it didn't  run due to lack of any damage in pipe lines
         
         """
             reads WDN definition and checks set the settinsg defined from settings
         """
-        wn = WaterNetworkModel(settings.process['WN_INP'])
+        wn = WaterNetworkModel(resolve_path(settings.process['WN_INP'] ))
         
         delta_t_h = settings['hydraulic_time_step']
         wn.options.time.hydraulic_timestep = int(delta_t_h)

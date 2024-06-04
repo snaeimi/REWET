@@ -6,25 +6,25 @@ Created on Wed Apr  8 20:19:10 2020
 """
 import os
 import pickle
-import wntr
-import rewet.Damage
+import wntrfr
+from rewet import Damage
 import pandas as pd
 import logging
 from rewet.timeline import Timeline
 import sys
 #from wntrplus import WNTRPlus
-from wntr.utils.ordered_set import OrderedSet
+from wntrfr.utils.ordered_set import OrderedSet
 from rewet.Sim.Simulation import Hydraulic_Simulation
 import rewet.EnhancedWNTR.network.model
 from rewet.EnhancedWNTR.sim.results import SimulationResults
-from wntr.network.model import LinkStatus
+from wntrfr.network.model import LinkStatus
 
 
 logger = logging.getLogger(__name__)
 
 class StochasticModel():
     def __init__(self, water_network, damage_model , registry,  simulation_end_time, restoration, mode='PDD', i_restoration=True):
-        if type(water_network) != wntr.network.model.WaterNetworkModel and type(water_network) != EnhancedWNTR.network.model.WaterNetworkModel:
+        if type(water_network) != wntrfr.network.model.WaterNetworkModel and type(water_network) != rewet.EnhancedWNTR.network.model.WaterNetworkModel:
             raise ValueError('Water_network model is not legitimate water Network Model')
         if type(damage_model) != Damage.Damage:
             raise ValueError('damage_model is not a ligitimate Damage Model')
@@ -261,10 +261,10 @@ class StochasticModel():
         if self.registry.if_first_event_occured == False:
             self.registry.pre_event_demand_met = self.registry.pre_event_demand_met.append(result.node['demand'])
         
-        if node_attributes == None:
-            node_attributes = ['pressure','head','demand','quality']
-        if link_attributes == None:
-            link_attributes = ['linkquality', 'flowrate', 'headloss', 'velocity', 'status', 'setting', 'frictionfact', 'rxnrate']
+        #if node_attributes == None:
+            #node_attributes = ['pressure','head','demand','quality']
+        #if link_attributes == None:
+            #link_attributes = ['linkquality', 'flowrate', 'headloss', 'velocity', 'status', 'setting', 'frictionfact', 'rxnrate']
         
         just_initialized_flag = False
         if self._linear_result == None:
@@ -272,8 +272,8 @@ class StochasticModel():
             self._linear_result   = result
             
             self.restoration._registry.result = self._linear_result
-            node_result_type_elimination_list = set(['pressure','head','demand','quality' , 'leak']) - set(node_attributes)
-            link_result_type_elimination_list = set(['linkquality', 'flowrate', 'headloss', 'velocity', 'status', 'setting', 'frictionfact', 'rxnrate']) - set(link_attributes)
+            node_result_type_elimination_list = set( result.node.keys() ) - set(node_attributes)
+            link_result_type_elimination_list = set( result.link.keys() ) - set(link_attributes)
             
             for node_result_type in node_result_type_elimination_list:
                 self._linear_result.node.pop(node_result_type)
@@ -281,7 +281,7 @@ class StochasticModel():
             for link_result_type in link_result_type_elimination_list:
                 self._linear_result.link.pop(link_result_type)
                 
-            self._linear_result.node['leak'] = pd.DataFrame()
+            self._linear_result.node['leak'] = pd.DataFrame(dtype=float)
         
         active_pipe_damages  = self.restoration._registry.active_pipe_damages
         
@@ -295,7 +295,7 @@ class StochasticModel():
         
         if len(temp_active) > 0:
             #this must be here in the case that a node that is not isolated at
-            # this step has not result. This can happen if the result is being
+            # this step does not have a result. This can happen if the result is
             #simulated without run.. For example, in the latest vallid result
             #some nodes were isolated, but not in the current run.
             available_nodes_in_current_result = result.node['demand'].columns.to_list()
@@ -356,7 +356,7 @@ class StochasticModel():
                     
                     former_nodes_list = set(self._linear_result.node['leak'].columns)
                     to_add_nodes_list = set(result.node[att].columns)
-                    complete_result_node_list  = (to_add_nodes_list - former_nodes_list)
+                    complete_result_node_list  = list(to_add_nodes_list - former_nodes_list)
                     if len(complete_result_node_list) > 0:
                         _leak_flag = True
                         
@@ -364,7 +364,7 @@ class StochasticModel():
                 
                 if att in result.node:
                     result.node[att].drop(result.node[att].index[0], inplace=True)
-                    self._linear_result.node[att] = self._linear_result.node[att].append(result.node[att])
+                    self._linear_result.node[att] = pd.concat([self._linear_result.node[att], result.node[att]])
                 
                 if _leak_flag:
                     self._linear_result.node['leak'].loc[leak_first_time_result.name, leak_first_time_result.index] = leak_first_time_result
@@ -372,7 +372,7 @@ class StochasticModel():
                     
             for att in link_attributes:
                 result.link[att].drop(result.link[att].index[0], inplace=True)
-                self._linear_result.link[att] = self._linear_result.link[att].append(result.link[att])
+                self._linear_result.link[att] = pd.concat([self._linear_result.link[att], result.link[att]])
     
     def dumpPartOfResult(self):
         limit_size = self.registry.settings["limit_result_file_size"]

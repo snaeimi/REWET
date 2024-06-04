@@ -3,7 +3,7 @@ The wntr.morph.link module contains functions to split/break pipes.
 """
 import logging
 import copy
-from wntr.network.elements import Reservoir, Pipe
+from wntrfr.network.elements import Reservoir, Pipe
 
 logger = logging.getLogger(__name__)
 

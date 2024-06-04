@@ -10,6 +10,6 @@ from rewet import StochasticModel
 from rewet import EnhancedWNTR
 
 
-__version__ = '0.15.2'
+__version__ = '0.2'
 
 

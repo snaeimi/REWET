@@ -22,7 +22,7 @@ import geopandas as gpd
 import pandas    as pd
 import numpy     as np
 import shapely
-import .Helper as Helper
+import Output.Helper as Helper
 import  initial
 #import time
 
@@ -224,14 +224,14 @@ class Map():
         
         return geopandas_df
     
-    def getOutageTimeGeoPandas_5(self, scn_name, bsc='DL' , iConsider_leak=False, leak_ratio=0, consistency_time_window=7200):
+    def getOutageTimeGeoPandas_5(self, scn_name, bsc='DL' , iConsider_leak=False, leak_ratio=0, consistency_time_window=7200, sum_time=False):
         self.loadScneariodata(scn_name)
         res                = self.data[scn_name]
         map_res            = pd.Series(data=0 , index=self.demand_node_name_list, dtype=np.int64)
         
         required_demand    = self.getRequiredDemandForAllNodesandtime(scn_name)
         delivered_demand   = res.node['demand'][self.demand_node_name_list]
-        common_nodes_leak  = set(res.node['leak'].columns).intersection(set(self.demand_node_name_list))
+        common_nodes_leak  = list (set( res.node['leak'].columns ).intersection( set(  self.demand_node_name_list  ) ))
         leak_res           = res.node['leak'][common_nodes_leak]
         
         common_nodes_demand = list( set(delivered_demand.columns).intersection(set(self.demand_node_name_list) ) )
@@ -245,9 +245,9 @@ class Map():
         #return delivered_demand, required_demand, leak_res
         
         if bsc=="DL":
-            bsc_res_not_met_bool = (delivered_demand.fillna(0) <= required_demand * 0.1)
+            bsc_res_not_met_bool = (delivered_demand.fillna(0) <= required_demand * 0.0001)
         elif bsc =="QN":
-            bsc_res_not_met_bool = (delivered_demand.fillna(0) <  required_demand * 0.98)
+            bsc_res_not_met_bool = (delivered_demand.fillna(0) <  required_demand * 0.9999)
         else:
             raise ValueError("Unknown BSC= "+str(bsc))
             
@@ -267,22 +267,25 @@ class Map():
         
         #end_time = delivered_demand.min()
         end_time = delivered_demand.index.max()
-        time_beg_step_list = np.arange(0, end_time, consistency_time_window)
-        
-        #time_beg_step_list = np.append(time_beg_step_list, [end_time])
-        time_end_step_list = time_beg_step_list # + consistency_time_window
-        window_bsc_not_met = pd.DataFrame(index=time_end_step_list, columns= bsc_res_not_met_bool.columns, dtype=bool) 
-        #return bsc_res_not_met_bool#, delivered_demand, required_demand
-        for step_time_beg in time_beg_step_list:
-            step_time_end = step_time_beg + consistency_time_window
-            window_data   = bsc_res_not_met_bool.loc[step_time_beg:step_time_end]
-            if len(window_data) > 0:
-                window_data   = window_data.all()
-                window_bsc_not_met.loc[step_time_beg, window_data.index] = window_data
-            else:
-               # print(step_time_beg)
-                window_bsc_not_met.drop(step_time_beg, inplace=True)
-        #return window_bsc_not_met
+        if consistency_time_window > 1:
+            time_beg_step_list = np.arange(0, end_time, consistency_time_window)
+            
+            #time_beg_step_list = np.append(time_beg_step_list, [end_time])
+            time_end_step_list = time_beg_step_list # + consistency_time_window
+            window_bsc_not_met = pd.DataFrame(index=time_end_step_list, columns= bsc_res_not_met_bool.columns, dtype=bool) 
+            #return bsc_res_not_met_bool#, delivered_demand, required_demand
+            for step_time_beg in time_beg_step_list:
+                step_time_end = step_time_beg + consistency_time_window
+                window_data   = bsc_res_not_met_bool.loc[step_time_beg:step_time_end]
+                if len(window_data) > 0:
+                    window_data   = window_data.all()
+                    window_bsc_not_met.loc[step_time_beg, window_data.index] = window_data
+                else:
+                   # print(step_time_beg)
+                    window_bsc_not_met.drop(step_time_beg, inplace=True)
+        else:
+            window_bsc_not_met = bsc_res_not_met_bool
+            
         pre_incident = (window_bsc_not_met.loc[:3600*3]).any()
         non_incident = pre_incident[pre_incident==False].index
         
@@ -293,8 +296,17 @@ class Map():
         
         not_met_node_name_list = not_met_node_name_list[not_met_node_name_list==True]
         not_met_node_name_list = not_met_node_name_list.index
-        window_bsc_not_met     = window_bsc_not_met[not_met_node_name_list]
         
+        
+        if sum_time:
+            time_difference = window_bsc_not_met.index[1:] - window_bsc_not_met.index[:-1]
+            timed_diference_window_bsc_not_met = \
+                (time_difference * window_bsc_not_met.iloc[1:].transpose()).transpose()
+            timed_diference_window_bsc_not_met.iloc[0] = 0
+            sum_window_bsc_not_met = timed_diference_window_bsc_not_met.sum()
+            return sum_window_bsc_not_met
+        
+        window_bsc_not_met     = window_bsc_not_met[not_met_node_name_list]
         cut_time = window_bsc_not_met.index.max()
         non_incident = list( set(non_incident).intersection(set(not_met_node_name_list) ) )
         for step_time, row in window_bsc_not_met[non_incident].iterrows():

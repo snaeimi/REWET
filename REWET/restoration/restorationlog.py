@@ -42,19 +42,18 @@ class RestorationLog():
                 temp = pd.Series(data=[int(time), _name, _type, _lable, _action, _EFN, _MN, _loc, _x, _y], index=['Time','Name', 'Type','Lable','Action','EFN','MN', 'Location','X','Y'] )
             
             #if temp != None:
-            self._agent_state_log_book=self._agent_state_log_book.append(temp, ignore_index=True)
+            self._agent_state_log_book = pd.concat([self._agent_state_log_book.transpose(), temp], axis=1).transpose()
                 
     def addAgentActionToLogBook(self, agent_name, node_name, entity, action, time, end_time, travel_time, effect_definition_name ,method_name, iFinished=True):
         if self.settings["record_restoration_agent_logs"] == False:
             return
         
         temp = pd.Series(data=[agent_name, node_name, entity, action, time, end_time, travel_time, effect_definition_name, method_name, iFinished], index=['Agent', 'Node', 'Entity', 'Action', 'Time', 'End_time', 'Travel_time', 'effect_definition_name', 'method_name', 'iFinished'])
-        self._agent_action_log_book = self._agent_action_log_book.append(temp, ignore_index=True)
+        self._agent_action_log_book = pd.concat([self._agent_action_log_book.transpose(), temp], axis=1).transpose()
     
     def addEndTimegentActionToLogBook(self, agent_name, time, modified_end_time):
         if self.settings["record_restoration_agent_logs"] == False:
             return
-        
         temp = self._agent_action_log_book[['Agent','Time']]==[agent_name, time]
         temp = self._agent_action_log_book[temp.all(1)]
         

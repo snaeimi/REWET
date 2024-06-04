@@ -267,32 +267,32 @@ class Agents():
     
     def setChangeShift(self, time, working_check = True):
         for name, agent in self._agents.iterrows():
-            if agent['data'].isOnShift(time):
+            if self._agents.loc[name, "data"].isOnShift(time):
                 
-                if agent['active']==False: #if agent is active already and is on shift, it means that the agent has been active before teh shift change event
-                    if agent['available']==True:
-                        agent['active'] = True
-                        agent['ready']  = True
+                if self._agents.loc[name, "active"]==False: #if agent is active already and is on shift, it means that the agent has been active before teh shift change event
+                    if self._agents.loc[name, "available"]==True:
+                        self._agents.loc[name, "active"] = True
+                        self._agents.loc[name, "ready"]  = True
 
             else:
-                if agent['ready'] == True and agent['data'].isWorking == True:
+                if self._agents.loc[name, "ready"] == True and self._agents.loc[name, "data"].isWorking == True:
                     raise RuntimeError(name + ' is working')
-                agent['active'] = False
-                agent['ready']  = False
+                self._agents.loc[name, "active"] = False
+                self._agents.loc[name, "ready"]  = False
         
     def initializeActiveAgents(self, time):
         for name, agent in self._agents.iterrows():
-            if agent['data'].isOnShift(time):
-                agent['active']=True
+            if self._agents.loc[name, 'data'].isOnShift(time):
+                self._agents.loc[name, 'active']=True
             else:
-                agent['active']=False
+                self._agents.loc[name, 'active']=False
     
     def initializeReadyAgents(self):
         for name, agent in self._agents.iterrows():
-            if agent['active'] == True:
-                agent['ready'] = True
+            if self._agents.loc[name, 'active'] == True:
+                self._agents.loc[name, 'ready'] = True
             else:
-                agent['ready'] = False
+                self._agents.loc[name, 'ready'] = False
                 
     def getReadyAgents(self):
         temp = self._agents[(self._agents['ready']==True) & (self._agents['available']==True)]
@@ -520,7 +520,7 @@ class Shifting():
         daily_time  = time%(24*3600)
         num_of_days = int(time/(24*3600 ))
         
-        next_shift_candidate=pd.Series()
+        next_shift_candidate=pd.Series(dtype="O")
         
         for shift_name, shift_data in self._shift_data.iterrows():
             beg_time = shift_data[0]
@@ -716,7 +716,7 @@ class Dispatch():
                             discovery_list.add(candidate_break_A)
                         else:
                             discovery_list.add(discovery_candidate)
-                    #discovery_list = list(discovery_list)
+                    discovery_list = list(discovery_list)
                     pipe_damage_table.loc[discovery_list, 'discovered'] = True
                     
             if self.settings['node_damage_discovery_model']['method'] == 'leak_based':
@@ -1064,7 +1064,7 @@ class Jobs():
     def __init__(self, restoration):
         self._rm              = restoration
         self._job_list        = pd.DataFrame(columns=['agent_type','entity', 'action', 'time_argument'])
-        self._effect_defualts = pd.DataFrame(columns=['effect_definition_name', 'method_name','argument','value'])
+        self._effect_defualts = {} #pd.DataFrame(columns=['effect_definition_name', 'method_name','argument','value'])
         self._effect_data     = {}
         self._time_overwrite  = {}
         self._final_method    = {}
@@ -1085,9 +1085,8 @@ class Jobs():
         else:
             self._effect_data[effect_name][method_name]=def_data
     
-    def setJob(self, agent_type, entity, action, time_argument, effect):
-        series_temp = pd.Series([agent_type, entity, action, time_argument, effect], index=['agent_type','entity', 'action', 'time_argument', 'effect'])
-        self._job_list = self._job_list.append(series_temp, ignore_index=True)
+    def setJob(self, jobs_definition):
+        self._job_list = pd.DataFrame.from_records(jobs_definition)
     
     def _filter(self, agent_type, entity, action):
         temp = self._job_list
@@ -1110,11 +1109,12 @@ class Jobs():
                 time_arg = overwrite_data['FIXED_TIME_OVERWRITE']
             else:
                 raise ValueError('Unknown Time Data')
-        time = None
-        if type(time_arg) == int:
-            time = time_arg
-        else:
-            raise ValueError('Unknow time argument: '+str(type(time_arg)))    
+        time = int(time_arg)
+        #try:
+            #time_arg = int(time_arg):
+            #time = time_arg
+        #except:
+            #raise ValueError('Unknow time argument: '+str(type(time_arg)))    
         
         once_flag = False
         if operation_name in self._once:
@@ -1149,13 +1149,12 @@ class Jobs():
             return 
              
     def addEffectDefaultValue(self,input_dict):
+        _key = (input_dict['effect_definition_name'], input_dict['method_name'], input_dict["argument"])
         
-        temp = self._effect_defualts[['effect_definition_name','method_name','argument']]==[input_dict['effect_definition_name'],input_dict['method_name'],input_dict['argument']]
-        if temp.all(1).any():
-            #print(self._effect_defualts)
-            raise ValueError('Default is defined before: '+repr(input_dict['effect_definition_name'])+', '+repr(input_dict['method_name'])+', '+repr(input_dict['argument']))
-        temp_s=pd.Series(input_dict)
-        self._effect_defualts= self._effect_defualts.append(temp_s, ignore_index=True)
+        if _key in self._effect_defualts:
+            raise ValueError("Duplicate effects definition: {0}, {1}, {2}".format( repr(input_dict['effect_definition_name']), repr(input_dict['method_name']), repr(input_dict["argument"]) ))
+        
+        self._effect_defualts[_key] = input_dict['value'] #self._effect_defualts.append(temp_s, ignore_index=True)
         
         
     def getEffectsList(self, effect_definition_name, method_name):
@@ -1248,15 +1247,9 @@ class Jobs():
     
     def getDefualtValue(self, effects_definition_name, method_name, argument):
         _default = self._effect_defualts
-        temp_val = _default[['effect_definition_name', 'method_name', 'argument'] ]==[effects_definition_name,method_name, argument]
-        temp_val = temp_val.all(1)
-        temp_val = _default[temp_val]['value']
-        if len(temp_val)>1:
-            raise ValueError('There is something wrong here:'+repr(effects_definition_name)+repr(method_name)+repr(argument))
-        elif len(temp_val)==1:
-            return temp_val.iloc[0]
-        else:
-            return None
+        value = _default.get((effects_definition_name, method_name, argument), None)
+        
+        return value
     
     def iEffectApplicableByOtherConditions(self, effects_definition_name, method_name, damaged_node_name, entity):
         element_type = self._rm.entity[entity]

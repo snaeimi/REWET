@@ -76,7 +76,10 @@ class RestorationIO():
         
         self.crew_data={}
         
-        expected_sections=['[FILES]','[ENTITIES]', '[JOBS]','[AGENTS]','[GROUPS]','[PRIORITIES]', '[SHIFTS]','[SEQUENCES]', '[DEFINE]']
+        expected_sections=['[FILES]','[ENTITIES]', '[JOBS]','[AGENTS]',
+                           '[GROUPS]','[PRIORITIES]', '[SHIFTS]',
+                           '[SEQUENCES]', '[DEFINE]', '[DAMAGE GROUPS]',
+                           '[EFFECTS]', '[CREWS]']
         
         self.config_file_comment = []
         self.edata = []       
@@ -182,8 +185,6 @@ class RestorationIO():
         return data_temp
     
     def _read_shifts(self):
-        #self._shift_data=pd.DataFrame()
-        #self._file_handle_address = {}
         
         for lnum, line in self.sections['[SHIFTS]']:
             #edata['lnum'] = lnum
@@ -198,7 +199,29 @@ class RestorationIO():
                 self.rm.shift[shift_name] = (shift_begining, shift_ending)
                 
     def _read_entities(self):
-        for lnum, line in self.sections['[ENTITIES]']:
+            """
+        Reads damage group definitions and updates the Restoration Model
+        object data.
+
+        Raises
+        ------
+        RuntimeError
+            If the number of damages are not right.
+        ValueError
+            If the input data is not correctly provided.
+        
+            If the input data is not correctly provided.
+        
+        Returns
+        -------
+        None.
+
+        """
+        
+        # Entities is kept for legacy compatibility with the first version
+        damage_group_data = self.sections.get('[ENTITIES]', self.sections.get('[Damage Group]'))
+        
+        for lnum, line in damage_group_data:
             arg1 = None
             arg2 = None
             words, comments = _split_line(line)
@@ -303,7 +326,8 @@ class RestorationIO():
         group_names  = {}
         group_column = {}
         
-        for lnum, line in self.sections['[AGENTS]']:
+        crews_data = self.sections.get('[AGENTS]', self.sections.get('CREWS') )
+        for lnum, line in crews_data:
             #edata['lnum'] = lnum
             words, comments = _split_line(line)
             if words is not None and len(words) > 0:
@@ -473,11 +497,9 @@ class RestorationIO():
                 
     def _read_define(self):
         job={}
-        #used_jobs = self.rm.jobs._job_list.effect.unique().tolist()
-         
-        #for key in used_effect:
-            #job[key]=[]
-        for lnum, line in self.sections['[DEFINE]']:
+        
+        effect_data = self.sections.get('[DEFINE]', self.sections.get('[EFFECTS]'))
+        for lnum, line in effect_data:
             words, comments = _split_line(line)
             if words is not None and len(words) > 0:
                 #if not len(words) >= 3:

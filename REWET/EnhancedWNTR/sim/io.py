@@ -222,7 +222,7 @@ def _sec_to_string(sec):
     return (hours, mm, int(sec))
 
 
-class InpFile(wntr.epanet.InpFile):
+class InpFile(wntrfr.epanet.InpFile):
     """
 	EPANET INP file reader and writer class.
 
@@ -438,7 +438,7 @@ class InpFile(wntr.epanet.InpFile):
             if link.initial_status in (LinkStatus.Closed,):
                 f.write('{:10s} {:10s}\n'.format(link_name,
                         LinkStatus(link.initial_status).name).encode('ascii'))
-            if isinstance(link, wntr.network.Valve) and link.initial_status in (LinkStatus.Open, LinkStatus.Opened):
+            if isinstance(link, wntrfr.network.Valve) and link.initial_status in (LinkStatus.Open, LinkStatus.Opened):
 #           if link.initial_status in (LinkStatus.Closed,):
                 f.write('{:10s} {:10s}\n'.format(link_name,
                         LinkStatus(link.initial_status).name).encode('ascii'))
@@ -887,7 +887,7 @@ class InpFile(wntr.epanet.InpFile):
 
     ### End of File
 
-class BinFile(wntr.epanet.io.BinFile):
+class BinFile(wntrfr.epanet.io.BinFile):
     """
     EPANET binary output file reader class.
     
@@ -949,7 +949,7 @@ class BinFile(wntr.epanet.io.BinFile):
             simulation results in a different format (such as directly to a file or database).
             
         """
-        self.results = wntr.sim.SimulationResults()
+        self.results = wntrfr.sim.SimulationResults()
         logger.debug(start_time)
         if start_time == None:
             start_time = 0

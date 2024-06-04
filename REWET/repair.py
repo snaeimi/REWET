@@ -5,7 +5,7 @@ Created on Tue Feb  2 20:22:09 2021
 @author: snaeimi
 """
 
-from wntr.network.model import LinkStatus
+from wntrfr.network.model import LinkStatus
 from collections        import OrderedDict
 
 LINK_TYPE_COLLECTIVES = {"BYPASS_PIPE", "ADDED_PIPE_A", "ADDED_PIPE_B", "ADDED_PIPE_C", "ADDED_PIPE_D", "ADDED_PUMP_A", "ADDED_PUMP_B", "PIPE_CLOSED_FROM_OPEN", "PIPE_CLOSED_FROM_CV"}
@@ -168,9 +168,10 @@ class Repair():
                         history['PIPE_CLOSED_FROM_CV']=pipe_B_name
                     
                     pipe_B.initial_status = LinkStatus(0)
-                history['NODE_A_DEMAND_BEFORE'] = node_A.leak_area
-                node_A.leak_area                = opening * node_A.leak_area
-                history['NODE_A_DEMAND_AFTER']  = node_A.leak_area
+                history['NODE_A_DEMAND_BEFORE'] = node_A._leak_area
+                node_A_leak_area                = opening * node_A._leak_area
+                node_A.add_leak(wn, node_A_leak_area, discharge_coeff=1)
+                history['NODE_A_DEMAND_AFTER']  = node_A._leak_area
                 
                 if abs(opening) < 0.001:
                     node_A.remove_leak(wn)
@@ -185,25 +186,32 @@ class Repair():
                 
                 node_A = wn.get_node(cur_damage_node_name)
                 
-                history['NODE_A_DEMAND_BEFORE'] = node_A.leak_area
-                node_A.leak_area                = opening * node_A.leak_area
-                history['NODE_A_DEMAND_AFTER']  = node_A.leak_area
+                history['NODE_A_DEMAND_BEFORE'] = node_A._leak_area
+                node_A_leak_area = opening * node_A._leak_area
+                node_A.add_leak(wn, node_A_leak_area, discharge_coeff=1)
+                
+                history['NODE_A_DEMAND_AFTER']  = node_A._leak_area
                 
                 if abs(opening) < 0.001:
                     node_A.remove_leak(wn)
+                    node_A._leak_area = 0
                     history['NODE_A'] = 'REMOVED'
                 else:
                     history['NODE_A'] = 'REDUCED'
                 node_B = wn.get_node(node_B_name)
                 
-                history['NODE_B_DEMAND_BEFORE']=node_B.leak_area
-                node_B.leak_area = opening * node_B.leak_area
-                history['NODE_B_DEMAND_AFTER']=node_B.leak_area
-                if abs(opening)<0.001:
+                history['NODE_B_DEMAND_BEFORE']=node_B._leak_area
+                node_B_leak_area = opening * node_B._leak_area
+                node_B.add_leak(wn, node_B_leak_area, discharge_coeff=1)
+                history['NODE_B_DEMAND_AFTER']=node_B._leak_area
+                
+                if abs(opening) < 0.001:
                     node_B.remove_leak(wn)
+                    node_B._leak_area = 0
                     history['NODE_B'] = 'REMOVED'
                 else:
                     history['NODE_B'] = 'REDUCED'
+                    
             else:
                 raise ValueError('Unknown Damage type:'+repr(damage_type))
         
@@ -238,9 +246,9 @@ class Repair():
             _pipe_size      = pipe_A.diameter
             new_pipe_name_1 = damage_node_name + '-lK1'
             new_pipe_name_2 = damage_node_name + '-lK2'
-            wn.add_pipe(new_pipe_name_1, new_reservoir_A, first_node_pipe_A.name, diameter = _pipe_size, length=5, check_valve_flag=True)
+            wn.add_pipe(new_pipe_name_1, new_reservoir_A, first_node_pipe_A.name, diameter = _pipe_size, length=5, check_valve=True)
             history['ADDED_PIPE_A'] = new_pipe_name_1 #ٌIt Added Pipe is collective now. Won't be removed till all damaegs in the pipe is removed
-            wn.add_pipe(new_pipe_name_2, new_reservoir_B, second_node_pipe_B.name, diameter = _pipe_size, length=5, check_valve_flag=True)
+            wn.add_pipe(new_pipe_name_2, new_reservoir_B, second_node_pipe_B.name, diameter = _pipe_size, length=5, check_valve=True)
             history['ADDED_PIPE_B'] = new_pipe_name_2 #ٌIt Added Pipe is collective now. Won't be removed till all damaegs in the pipe is removed
         
         elif _type=='PUMP':
@@ -274,8 +282,8 @@ class Repair():
             wn.add_junction(new_RP_middle_name1, elevation=elavation1, coordinates= coord1)
             wn.add_junction(new_RP_middle_name2, elevation=elavation2, coordinates= coord2)
             
-            wn.add_pipe(new_pipe_name_1, new_reservoir_A, new_RP_middle_name1, diameter = _pipe_size, length = 1, roughness =100000000, minor_loss = 7, check_valve_flag = True)
-            wn.add_pipe(new_pipe_name_2, new_reservoir_B, new_RP_middle_name2, diameter = _pipe_size, length = 1, roughness =100000000, minor_loss = 7, check_valve_flag = True)
+            wn.add_pipe(new_pipe_name_1, new_reservoir_A, new_RP_middle_name1, diameter = _pipe_size, length = 1, roughness =100000000, minor_loss = 7, check_valve = True)
+            wn.add_pipe(new_pipe_name_2, new_reservoir_B, new_RP_middle_name2, diameter = _pipe_size, length = 1, roughness =100000000, minor_loss = 7, check_valve = True)
             
             wn.add_valve(new_valve_name_1, new_RP_middle_name1, first_node_pipe_A.name, valve_type = 'FCV', setting=0.2500)
             wn.add_valve(new_valve_name_2, new_RP_middle_name2, second_node_pipe_B.name, valve_type = 'FCV', setting=0.2500)

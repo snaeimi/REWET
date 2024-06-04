@@ -5,7 +5,7 @@ Created on Sun Oct 23 15:00:31 2022
 @author: snaeimi
 """
 
-import wntr
+import wntrfr
 import pandas as pd
 import numpy as np
 import os
@@ -60,7 +60,7 @@ class Project_Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
         self._RequiredDemandForAllNodesandtime = {}
         self.demand_ratio             = self.project.project_settings.process['demand_ratio']
         self.scn_name_list_that_result_file_not_found = []
-        self.wn = wntr.network.WaterNetworkModel(self.project.project_settings.process['WN_INP']    )    
+        self.wn = wntrfr.network.WaterNetworkModel(self.project.project_settings.process['WN_INP']    )    
         
         self.result_directory            = self.project.project_settings.process['result_directory']
         
@@ -329,12 +329,16 @@ class Project_Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
             return self._RequiredDemandForAllNodesandtime[scn_name]
         undamaged_wn      = self.wn
         time_index        = self.data[scn_name].node['demand'].index
-        req_node_demand   = pd.DataFrame(index=time_index.unique())
+        #req_node_demand   = pd.DataFrame(index=time_index.unique())
         default_pattern   = undamaged_wn.options.hydraulic.pattern
         node_pattern_list = pd.Series(index=undamaged_wn.junction_name_list, dtype=str)
         _size=len(self.demand_node_name_list)
         i=0
-        req_node_demand = req_node_demand.transpose()
+        #req_node_demand = req_node_demand.transpose()
+        
+        all_base_demand = []
+        all_node_name_list = []
+        
         while i < _size:
             node_name = self.demand_node_name_list[i]
             #print(i)
@@ -348,9 +352,13 @@ class Project_Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
             else:
                 node_pattern_list[node_name] = None
                 base_demand = node.base_demand * demand_ratio
-                temp=pd.DataFrame(data = base_demand, index = time_index, columns = [node_name])
-                req_node_demand = req_node_demand.append(temp.transpose())
+                all_base_demand.append([base_demand for i in time_index])
+                all_node_name_list.append(node_name)
+                #temp=pd.DataFrame(data = base_demand, index = time_index, columns = [node_name])
+                #req_node_demand = req_node_demand.append(temp.transpose())
+        #constant_base_demand = [constant_base_demand for i in time_index]
         node_pattern_list = node_pattern_list.dropna()
+
         patterns_list = node_pattern_list.unique()
         multiplier = pd.DataFrame(index=time_index, columns = patterns_list)
         
@@ -359,13 +367,42 @@ class Project_Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
             time_index = time_index.unique()
             for time in iter(time_index):
                 multiplier[pattern_name].loc[time] = cur_pattern.at(time)
-
+        
+        variable_base_demand = []
+        variable_node_name_list = []
         for node_name, pattern_name in node_pattern_list.items():
             cur_node_req_demand = multiplier[pattern_name] * undamaged_wn.get_node(node_name).demand_timeseries_list[0].base_value * demand_ratio
-            cur_node_req_demand.name = node_name
-            cur_node_req_demand=pd.DataFrame(cur_node_req_demand).transpose()
-            req_node_demand = req_node_demand.append(cur_node_req_demand)
+            
+            all_node_name_list.append(node_name)
+            all_base_demand.append(cur_node_req_demand.to_list())
+            #cur_node_req_demand.name = node_name
+            #cur_node_req_demand=pd.DataFrame(cur_node_req_demand).transpose()
+            #req_node_demand = req_node_demand.append(cur_node_req_demand)
+        #variable_base_demand = np.array(variable_base_demand).transpose().tolist()
+        req_node_demand = pd.DataFrame(columns=time_index, index=all_node_name_list, data = all_base_demand)
         req_node_demand = req_node_demand.transpose()
+        #constant_node_demand_df = pd.DataFrame(data = constant_base_demand, index = time_index, columns = constant_node_name_list)
+        #variable_node_demand_df = pd.DataFrame(data = variable_base_demand, index = time_index, columns = variable_node_name_list)
+        #if len(variable_base_demand) > 0 and len(variable_base_demand) == 0:
+            #req_node_demand = constant_node_demand_df
+        #elif len(variable_base_demand) == 0 and len(variable_base_demand) > 0:
+            #req_node_demand = variable_base_demand
+        #elif    len(variable_base_demand) == 0 and len(variable_base_demand) == 0:
+            #req_node_demand = constant_node_demand_df
+        #else: 
+            #req_node_demand = pd.concat([constant_node_demand_df.transpose(), variable_node_demand_df.transpose()]).transpose()
+        
+        #print(len(all_node_name_list))
+        #print(len(constant_base_demand))
+        #print(len(variant_base_demand))
+        #print("************************")
+        #all_base_demand = constant_base_demand
+        
+        
+        #req_node_demand = pd.DataFrame(index=time_index, columns=all_node_name_list, data=all_base_demand)
+        #req_node_demand = req_node_demand.transpose()
+        self._RequiredDemandForAllNodesandtime[scn_name] = req_node_demand.filter(self.demand_node_name_list)
+        return self._RequiredDemandForAllNodesandtime[scn_name]
         self._RequiredDemandForAllNodesandtime[scn_name] = req_node_demand.filter(self.demand_node_name_list)
         return self._RequiredDemandForAllNodesandtime[scn_name]
     
