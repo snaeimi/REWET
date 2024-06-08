@@ -7,7 +7,7 @@ from pathlib import Path
 def resolve_path(the_path):
     the_path = Path(the_path)
     
-    faield = False
+    failed = False
     try:
         resolved_path = the_path.resolve()
         

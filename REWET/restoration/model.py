@@ -721,7 +721,7 @@ class Restoration():
             temp=temp[group_name_list]
 
             temp_list=[]
-            for col_name, col in temp.iteritems():
+            for col_name, col in temp.items():
                 not_na = col.notna()
                 not_na = not_na[not_na==False]
                 

@@ -34,6 +34,8 @@ Demand Polygons/
 *.csv
 *.pkl
 *.txt
+/rewet.egg-info
+run.py
 !exampe_config.txt
 !Net3DA.txt
 !Net3RA.txt

@@ -286,7 +286,7 @@ class EpanetSimulator(EpanetSimulator):
             cols.append(to_node_id)
             rows.append(to_node_id)
             cols.append(from_node_id)
-            if link.initial_status == wntrfr.network.LinkStatus.closed:
+            if link.initial_status == wntrfr.network.LinkStatus.Closed:
                 vals.append(0)
                 vals.append(0)
                 #sina remove comment amrks

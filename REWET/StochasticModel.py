@@ -6,21 +6,20 @@ Created on Wed Apr  8 20:19:10 2020
 """
 import os
 import pickle
-import wntrfr
-from rewet import Damage
-import pandas as pd
-import logging
-from rewet.timeline import Timeline
 import sys
-#from wntrplus import WNTRPlus
+import logging
+import pandas as pd
+import wntrfr
 from wntrfr.utils.ordered_set import OrderedSet
+from rewet import Damage
+from rewet.timeline import Timeline
 from rewet.Sim.Simulation import Hydraulic_Simulation
 import rewet.EnhancedWNTR.network.model
 from rewet.EnhancedWNTR.sim.results import SimulationResults
 from wntrfr.network.model import LinkStatus
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("REWET")
 
 class StochasticModel():
     def __init__(self, water_network, damage_model , registry,  simulation_end_time, restoration, mode='PDD', i_restoration=True):
@@ -48,7 +47,6 @@ class StochasticModel():
         self.restoration              = restoration
         self._min_correction_time     = 900
         self.simulation_time          = 0
-        self.restoration_time         = 0
         self.iRestoration             = i_restoration
         self._prev_isolated_junctions = OrderedSet()
         self._prev_isolated_links     = OrderedSet()
@@ -56,44 +54,50 @@ class StochasticModel():
 
     def runLinearScenario(self, damage, settings, worker_rank=None):
         """
-        Runs a simple linear analysis of water damage scenario
-        Parameters
+        Runs WDN simulation with a gievn damage scneario and simulation policy.
+        The function then saves teh result in the directory defiend in settings
+        object with a predefined naming fashion.
         
-        Water Network object (WN) shall not be altered in any object except restoration
         ----------
         damage : Damage Object
+        settings:a Settings object
+        worker_rank: teh rank of the worker if MPI is setup. Otehrwise, None.
 
         Returns
         -------
-        Result.
+        None.
 
         """
         
         while self.timeline.iContinue():
-            sys.stdout.flush()
+            sys.stdout.flush() # flush print
             current_stop_time = self.timeline.getCurrentStopTime()
-            print('--------------------------------------')
-            print('At stop Time: ' + repr(current_stop_time/3600))
+            #print('--------------------------------------')
+            current_stop_time_hour = current_stop_time/3600
+            print(f"---------- At stop Time: {current_stop_time_hour} ----------")
 # =============================================================================
             #Restoration event Block
+            
             if self.timeline.iCurenttimeRestorationEvent() and self.iRestoration==True:
                 logger.debug('\t Restoration Event ')
-
                 event_time_list = self.restoration.perform_action(self.wn, current_stop_time)
 
                 self.timeline.addEventTime(event_time_list, event_type='rst')
 
 # =============================================================================
 #           Damage (earthquake) event block   
+            
+            #The following if block calculate teh effect of hydrualic significance 
             if self.timeline.iCurrentTimeDamageEvent():
-                self.ttemp = pd.DataFrame()
                 self.registry.if_first_event_occured = True
                 logger.debug('\t DAMAGE EVENT')
-                #pipe_list = self.restoration.getPipeListForHydraulicSignificant()
+                
                 if len(self.restoration.getHydSigPipeList() ) > 0:
                     last_demand_node_pressure = None
                     pipe_list = damage.getPipeDamageListAt(current_stop_time)
                     for pipe_name in pipe_list:
+                        # next if block gets the "last_demand_node_pressure"
+                        # for the first time
                         if type(last_demand_node_pressure) == type(None):
                             time_index = self.registry.result.node["pressure"].index
                             time_index = list(set(time_index) - set(self.registry.result.maximum_trial_time))
@@ -108,6 +112,7 @@ class StochasticModel():
                             demand_node_list = set(demand_node_list).intersection(self.registry.result.node["pressure"].columns)
                             last_demand_node_pressure = self.registry.result.node["pressure"].loc[time_index, list(demand_node_list)]
                             last_demand_node_pressure.loc[last_demand_node_pressure[last_demand_node_pressure < 0].index] = 0
+                        
                         pipe = self.wn.get_link(pipe_name)
                         initial_pipe_status = pipe.initial_status
                         if initial_pipe_status == LinkStatus.Closed:
@@ -119,10 +124,10 @@ class StochasticModel():
                         duration          = self.wn.options.time.duration
                         report_time_step  = self.wn.options.time.report_timestep
                         try: # Run with modified EPANET V2.2
-                            print("Performing method 1")
+                            logger.info("Performing method 1")
                             rr, i_run_successful = hyd_sim.performSimulation(current_stop_time, True)
-                            if current_stop_time in rr.maximum_trial_time:
-                                pass
+                            #if current_stop_time in rr.maximum_trial_time:
+                                #pass
                                 #self.registry.hydraulic_significance.loc[pipe_name] = -20000
                                 #pipe.initial_status = initial_pipe_status
                                 #self._prev_isolated_junctions = hyd_sim._prev_isolated_junctions
@@ -139,7 +144,7 @@ class StochasticModel():
                         except Exception as epa_err_1:
                             raise
                             if epa_err_1.args[0] == 'EPANET Error 110':
-                                print("Method 1 failed. Performing method 2")
+                                logger.info("Method 1 failed. Performing method 2")
                                 self.wn.options.time.duration        = duration
                                 self.wn.options.time.report_timestep = report_time_step
                                 self.registry.hydraulic_significance.loc[pipe_name] = -1
@@ -148,11 +153,14 @@ class StochasticModel():
                         self._prev_isolated_links     = hyd_sim._prev_isolated_links
                         self.wn.options.time.duration        = duration
                         self.wn.options.time.report_timestep = report_time_step
+                
+                #Apply pipe, nodal, Pump, and Tank damage
                 damage.applyPipeDamages(self.wn, current_stop_time)
                 damage.applyNodalDamage(self.wn, current_stop_time)
                 damage.applyPumpDamages(self.wn, current_stop_time)
                 damage.applyTankDamages(self.wn, current_stop_time)
                 
+                #initialize the teh restoration only when the restroatiopn is requested
                 if self.iRestoration == True:
                     event_time_list = self.restoration.initialize(self.wn, current_stop_time) # starts restoration
                     self.timeline.addEventTime(event_time_list, event_type='rst')
@@ -165,25 +173,30 @@ class StochasticModel():
 # =============================================================================
 #           runing the model
             next_event_time = self.timeline.getNextTime()
+            
             logger.debug('next event time is: '+ repr(next_event_time))
-
+            logger.info('***** Running hydraulic *****')
+            
+            #The next section runs the epanet.
+            
+            #changes the implicit wntr type leak to explicit leak in epanet style
             self.wn.implicitLeakToExplicitReservoir(self.registry)
             
-            print('***** Running hydraulic *****')
-            
+            # Creates Hydraulic simulation Object
             if type(worker_rank) != str:
                 worker_rank = str(worker_rank)
-            
             hyd_sim = Hydraulic_Simulation(self.wn, settings, current_stop_time, worker_rank, self._prev_isolated_junctions, self._prev_isolated_links)
+            
             self.hyd_temp = hyd_sim
             duration          = self.wn.options.time.duration
             report_time_step  = self.wn.options.time.report_timestep
+            
             try: # Run with modified EPANET V2.2
-                print("Performing method 1")
+                logger.info("Performing method 1")
                 rr, i_run_successful = hyd_sim.performSimulation(next_event_time, True)
             except Exception as epa_err_1:
                 if epa_err_1.args[0] == 'EPANET Error 110':
-                    print("Method 1 failed. Performing method 2")
+                    logger.info("Method 1 failed. Performing method 2")
                     try: # Remove Non-Demand Node by Python-Side iterative algorythm with closing
                         #self.wn.options.time.duration        = duration
                         #self.wn.options.time.report_timestep = report_time_step
@@ -201,7 +214,7 @@ class StochasticModel():
                                 rr, i_run_successful = hyd_sim.estimateRun(next_event_time, True)
                             except Exception as epa_err_3:
                                 if epa_err_3.args[0] == 'EPANET Error 110':
-                                    print("Method 3 failed. Performing method 4")
+                                    logger.info("Method 3 failed. Performing method 4")
                                     try: # Extend result from teh reult at the begining of teh time step with modified EPANET V2.2
                                         self.wn.options.time.duration        = duration
                                         self.wn.options.time.report_timestep = report_time_step
@@ -211,7 +224,7 @@ class StochasticModel():
                                             try:
                                                 self.wn.options.time.duration        = duration
                                                 self.wn.options.time.report_timestep = report_time_step
-                                                print("Method 4 failed. Performing method 5")
+                                                logger.info("Method 4 failed. Performing method 5")
                                                 # Extend result from teh reult at the begining of teh time step with modified EPANET V2.2
                                                 rr, i_run_successful = hyd_sim.estimateRun(next_event_time, False)
                                             except Exception as epa_err_5:
@@ -222,7 +235,7 @@ class StochasticModel():
                                                         self.wn.options.time.report_timestep = report_time_step
                                                         rr, i_run_successful = hyd_sim.estimateWithoutRun(self._linear_result, next_event_time)
                                                     except Exception as epa_err_6:        
-                                                        print("ERROR in rank="+repr(worker_rank)+" and time="+repr(current_stop_time))
+                                                        logger.info("ERROR in rank="+repr(worker_rank)+" and time="+repr(current_stop_time))
                                                         raise epa_err_6
                                                 else:
                                                     raise epa_err_5
@@ -236,42 +249,43 @@ class StochasticModel():
                     raise epa_err_1
             self._prev_isolated_junctions = hyd_sim._prev_isolated_junctions
             self._prev_isolated_links     = hyd_sim._prev_isolated_links
-            print('***** Finish Running at time '+ repr(current_stop_time)+'  '+repr(i_run_successful)+' *****')
+            logger.info('***** Finish Running at time '+ repr(current_stop_time)+'  '+repr(i_run_successful)+' *****')
             
-            if i_run_successful==False:
-                continue
-            self.wn.updateWaterNetworkModelWithResult(rr, self.restoration._registry)
-            
-            self.KeepLinearResult(rr, self._prev_isolated_junctions, node_attributes=['pressure','head','demand', 'leak'], link_attributes=['status', 'setting', 'flowrate'])
-            if self.registry.settings["limit_result_file_size"] > 0:
-                self.dumpPartOfResult()
-            #self.wp.unlinkBreackage(self.registry)
-            self.wn.resetExplicitLeak()
+            #if the running is successful, then update teh WDn object with new
+            #results and update the result in registery
+            if i_run_successful==True:
+                self.wn.updateWaterNetworkModelWithResult(rr, self.restoration._registry)
+                self.KeepLinearResult(rr, self._prev_isolated_junctions, node_attributes=['pressure','head','demand', 'leak'], link_attributes=['status', 'setting', 'flowrate'])
+                if self.registry.settings["limit_result_file_size"] > 0:
+                    self.dumpPartOfResult()
+                #self.wp.unlinkBreackage(self.registry)
+                self.wn.resetExplicitLeak()
         
         
 
 # =============================================================================
         #self.resoration._registry.updateTankTimeSeries(self.wn, current_stop_time)
+        #TODO: This section either must be expanded to all elemnt types or must be deleted
         self.restoration._registry.updateRestorationIncomeWaterTimeSeries(self.wn, current_stop_time)
         
         return self._linear_result
    
     def KeepLinearResult(self, result, isolated_nodes, node_attributes=None, link_attributes=None, iCheck=False):#, iNeedTimeCorrection=False, start_time=None):
-
+        # TODO: Move "if self._linear_result == None:" to the next condition ("just_initialized_flag")
         if self.registry.if_first_event_occured == False:
-            self.registry.pre_event_demand_met = self.registry.pre_event_demand_met.append(result.node['demand'])
+            self.registry.pre_event_demand_met = pd.concat( [self.registry.pre_event_demand_met, result.node['demand'] ] )
         
-        #if node_attributes == None:
-            #node_attributes = ['pressure','head','demand','quality']
-        #if link_attributes == None:
-            #link_attributes = ['linkquality', 'flowrate', 'headloss', 'velocity', 'status', 'setting', 'frictionfact', 'rxnrate']
+        if node_attributes == None:
+            node_attributes = ['pressure','head','demand','quality']
+        if link_attributes == None:
+            link_attributes = ['linkquality', 'flowrate', 'headloss', 'velocity', 'status', 'setting', 'frictionfact', 'rxnrate']
         
         just_initialized_flag = False
         if self._linear_result == None:
             just_initialized_flag = True
             self._linear_result   = result
             
-            self.restoration._registry.result = self._linear_result
+            self.registry.result = self._linear_result
             node_result_type_elimination_list = set( result.node.keys() ) - set(node_attributes)
             link_result_type_elimination_list = set( result.link.keys() ) - set(link_attributes)
             
@@ -283,10 +297,10 @@ class StochasticModel():
                 
             self._linear_result.node['leak'] = pd.DataFrame(dtype=float)
         
-        active_pipe_damages  = self.restoration._registry.active_pipe_damages
+        active_pipe_damages  = self.registry.active_pipe_damages
         
         temp_active = active_pipe_damages.copy()
-        for virtual_demand_node in active_pipe_damages:
+        for virtual_demand_node in temp_active:
             if virtual_demand_node in isolated_nodes or active_pipe_damages[virtual_demand_node] in isolated_nodes:
                 temp_active.pop(virtual_demand_node)
         
@@ -294,9 +308,9 @@ class StochasticModel():
         real_demand_nodes    = list(temp_active.values() )
         
         if len(temp_active) > 0:
-            #this must be here in the case that a node that is not isolated at
+            #this must be here in the case that a node which is not isolated at
             # this step does not have a result. This can happen if the result is
-            #simulated without run.. For example, in the latest vallid result
+            #simulated without run. For example, in the latest valid result
             #some nodes were isolated, but not in the current run.
             available_nodes_in_current_result = result.node['demand'].columns.to_list()
             not_available_virtual_node_names = set(virtual_demand_nodes) - set(available_nodes_in_current_result)
@@ -310,10 +324,10 @@ class StochasticModel():
             result.node['demand'][real_demand_nodes] = result.node['demand'][virtual_demand_nodes]
             result.node['demand'].drop(virtual_demand_nodes, axis =1, inplace=True)
         
-        active_nodal_damages = self.restoration._registry.active_nodal_damages
+        active_nodal_damages = self.registry.active_nodal_damages
         temp_active = active_nodal_damages.copy()
 
-        for virtual_demand_node in active_nodal_damages:
+        for virtual_demand_node in temp_active:
             if virtual_demand_node in isolated_nodes or temp_active[virtual_demand_node] in isolated_nodes:
                 temp_active.pop(virtual_demand_node)
         
@@ -321,9 +335,9 @@ class StochasticModel():
         real_demand_nodes    = list(temp_active.values() )
         
         if len(temp_active) > 0:
-            #this must be here in the case that a node that is not isolated at
-            # this step has not result. This can happen if the result is being
-            #simulated without run.. For example, in the latest vallid result
+            #this must be here in the case that a node which is not isolated at
+            # this step does not have a result. This can happen if the result is
+            #simulated without run. For example, in the latest valid result
             #some nodes were isolated, but not in the current run.
             available_nodes_in_current_result = result.node['demand'].columns.to_list()
             not_available_virtual_node_names = set(virtual_demand_nodes) - set(available_nodes_in_current_result)
@@ -337,22 +351,22 @@ class StochasticModel():
             non_isolated_pairs  = dict(zip(virtual_demand_nodes, real_demand_nodes))
             result.node['leak'] = result.node['demand'][virtual_demand_nodes].rename(non_isolated_pairs, axis=1)
             
-            
         if just_initialized_flag == False:
             self._linear_result.maximum_trial_time.extend(result.maximum_trial_time)
             
             saved_max_time = self._linear_result.node[list(self._linear_result.node.keys())[0]].index.max()
             to_be_saved_min_time = result.node[list(result.node.keys())[0]].index.min()
-            if abs(to_be_saved_min_time - saved_max_time) != 0: #>= min(self.wn.options.time.hydraulic_timestep, self.wn.options.time.report_timestep):
-                #logger.error(repr(to_be_saved_min_time)+ '  ' + repr(saved_max_time))
+
+            if abs(to_be_saved_min_time - saved_max_time) != 0:
                 raise ValueError("saved result and to be saved result are not the same. "+repr(saved_max_time) + "   "+repr(to_be_saved_min_time))
+
             for att in node_attributes:
                 if len(active_nodal_damages) == 0 and att == 'leak':
                     continue
-                _leak_flag = False
-
+                
                 leak_first_time_result = None
-                if att == 'leak' and 'leak' in result.node: #the second condition is not needed. It's there only for assurance
+                _leak_flag = False
+                if att == 'leak' and 'leak' in result.node: # the second condition is not needed. It's there only for assurance
                     
                     former_nodes_list = set(self._linear_result.node['leak'].columns)
                     to_add_nodes_list = set(result.node[att].columns)
