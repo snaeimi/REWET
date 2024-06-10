@@ -77,3 +77,10 @@ No Liciense yet
 ## ACKNOWLEDGMENTS
 
 This project was funded by National Science Foundation Award No. CMMI-1735483. The developer also extends gratitude to the Los Angeles Department of Water and Power (LADWP) for providing the input and water network, which served as the testbed for the development of REWET. REWET was produced as part of a Doctoral Dissertation at the University of Delaware, supervised by Dr. Rachel Davidson, Department of Civil and Environmental Engineering, University of Delaware.
+
+This project uses the Water Network Tool for Resilience (WNTR) [[1]](#1) developed by the U.S. Environmental Protection Agency. WNTR is a Python package designed for analyzing the resilience of water distribution networks. For more information about WNTR, visit the official WNTR documentation.
+
+
+## References
+<a id="1">[1]</a>
+Klise, K.A., Hart, D.B., Bynum, M., Hogge, J., Haxton, T., Murray, R., Burkhardt, J. (2020). Water Network Tool for Resilience (WNTR) User Manual: Version 0.2.3. U.S. EPA Office of Research and Development, Washington, DC, EPA/600/R-20/185, 82p.
