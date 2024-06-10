@@ -4,7 +4,6 @@ RunFiles/
 MPI_results/
 MPI_results - Copy/
 javab/
-net3/
 out/
 __pycache__
 Demand Polygons/
@@ -33,10 +32,10 @@ Demand Polygons/
 *.mat
 *.csv
 *.pkl
-*.txt
 /rewet.egg-info
 run.py
 !exampe_config.txt
 !Net3DA.txt
 !Net3RA.txt
 Examples/Net3/RunFiles/*
+_build
