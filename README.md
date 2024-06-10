@@ -72,10 +72,10 @@ For citation, please contact the author.
 
 ## License
 
-This project is licensed under the MIT License. See the LICENSE file for more details.
+**REWET** is licensed under the MIT License. See the [LICENSE file](https://raw.githubusercontent.com/snaeimi/REWET/main/LICENSE) for more details.
 
-WNTR is distributed under the MIT License. Please refer to the WNTR license file for more information.
-EPANET is di
+* **WNTR License:** is distributed under the MIT License. Please refer to the WNTR [license file](https://github.com/USEPA/WNTR/blob/master/LICENSE) for more information.
+* **EPANET License:** EPANET is distributed under the Public Domain. Please refer to the EPANET [license file](https://www.epa.gov/water-research/epanet) for more information.
 
 ## ACKNOWLEDGMENTS
 
