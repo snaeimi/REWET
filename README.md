@@ -4,7 +4,7 @@ REstoration of Water after Event Tool (REWET) is a tool for simulating the funct
 
 # Documentation
 
-REWET's `documentation<https://snaeimi.github.io/REWET>` is being devloped and is accessible. Meanwhile, please refer to the `PhD Dissertation<https://udspace.udel.edu/items/c0977c19-7138-4220-aa30-b4de91af084b>`.
+REWET's [documentation](https://snaeimi.github.io/REWET) is being devloped and is accessible. Meanwhile, please refer to the [PhD Dissertation](https://udspace.udel.edu/items/c0977c19-7138-4220-aa30-b4de91af084b).
 
 ## Installation
 
