@@ -10,11 +10,11 @@ import sys
 import logging
 import pandas as pd
 import wntrfr
+import rewet.EnhancedWNTR.network.model
 from wntrfr.utils.ordered_set import OrderedSet
 from rewet import Damage
 from rewet.timeline import Timeline
 from rewet.Sim.Simulation import Hydraulic_Simulation
-import rewet.EnhancedWNTR.network.model
 from rewet.EnhancedWNTR.sim.results import SimulationResults
 from wntrfr.network.model import LinkStatus
 
@@ -43,7 +43,6 @@ class StochasticModel():
             self.simulation_mode='PDD'
         self._linear_result           = registry.result
         self.registry                 = registry 
-        #self.wp                      = WNTRPlus(restoration._registry)
         self.restoration              = restoration
         self._min_correction_time     = 900
         self.simulation_time          = 0
