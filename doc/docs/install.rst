@@ -49,7 +49,7 @@ For installing from a local repo **(NOT in devloper mode)**, type the following 
 	  
          python3 -m pip install .
 
-if you want to to install rewet in the **devloper mode**, type the following in your desired python enviroment:\
+if you want to to install REWET in the **devloper mode**, type the following in your desired python enviroment:\
 
 .. tabs::
 
@@ -60,8 +60,8 @@ if you want to to install rewet in the **devloper mode**, type the following in 
          python -m pip install -e .
    
    .. tab:: Linux
-      
-	  .. code-block:: bash
+   
+      .. code-block:: bash
 	  
          python3 -m pip install -e .
 
@@ -72,8 +72,8 @@ if you want to to install rewet in the **devloper mode**, type the following in 
          python3 -m pip install -e .
 
 .. note::
-    In devloper mode, the package source dile sare not copied into python site packages directory; 
-    thus, any cxhanges in the python codes is applied when running rewet.
+    In devloper mode, the package source file are not copied into python site packages directory; 
+    thus, any cxhanges in the python codes is applied when running REWET.
 
 3. Test Installation
 ********************
@@ -87,9 +87,10 @@ if you want to to install rewet in the **devloper mode**, type the following in 
          python -m rewet.test.DefaultSettings
    
    .. tab:: Linux
+   
       .. code-block:: bash
 	  
-         python3 -m rewet.test.DefaultSettings
+         python3 -m pip install -e .
 
    .. tab:: MacOS
       .. code-block:: bash
