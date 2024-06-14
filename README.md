@@ -2,6 +2,10 @@
 
 REstoration of Water after Event Tool (REWET) is a tool for simulating the functionality of water distribution networks after natural hazard events. It is designed to support any network with state-of-the-art hydraulic simulation capabilities and damage modeling.
 
+# Documentation
+
+REWET's `documentation<https://snaeimi.github.io/REWET>` is being devloped and is accessible. Meanwhile, please refer to the `PhD Dissertation<https://udspace.udel.edu/items/c0977c19-7138-4220-aa30-b4de91af084b>`.
+
 ## Installation
 
 The current release of REWET (V0.2.0-Alpha.1) supports Windows and MacOS. The repository version also supports Linux AMD64. In the next version (V0.2.0-Alpha.2), Linux support will be added to the release.
@@ -39,7 +43,7 @@ python -m pip install -e .
 After installing REWET, you can use it in several ways. To run REWET, import and run it in any code:
 
 ```python
-from rewet import Starter
+from rewet.initial import Starter
 start = Starter()
 start.run()
 ```
@@ -55,7 +59,7 @@ Running the code above will execute the example. However, you may want to run yo
 After saving the file, we will pass the file path to the run function (the JSON file extension must be .json or REWET will not recognize it as a JSON file):
 
 ```python
-from rewet import Starter
+from rewet.initial import Starter
 start = Starter()
 start.run("input.json")
 ```
