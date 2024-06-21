@@ -10,10 +10,12 @@ The following compromises the content of the documentation.
 
 .. toctree::
    :maxdepth: 2
-   :glob:
    :caption: Contents:
    
-   docs/*
+   docs/install.rst
+   docs/WorkflowDescription.rst
+   docs/Restoration_Plan_Config_File.rst
+   docs/Future.rst
 
 
 
