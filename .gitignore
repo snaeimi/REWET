@@ -1,6 +1,4 @@
 
-Nafiseh Damage Data/
-RunFiles/
 MPI_results/
 MPI_results - Copy/
 javab/
@@ -24,9 +22,10 @@ Demand Polygons/
 !Net3-pipe-damage.xlsx
 !Net3-PumpDamage.xlsx
 *.inp
+*.bin
+*.rpt
 !Net3.inp
 *.docx
-*.bin
 *.net
 *.bak
 *.mat
