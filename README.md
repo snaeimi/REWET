@@ -1,3 +1,5 @@
+[![Build Status](https://app.travis-ci.com/snaeimi/REWET.svg?token=91urGyEqZhmpDJMxDzye&branch=main)](https://app.travis-ci.com/snaeimi/REWET)
+
 # REWET
 
 REstoration of Water after Event Tool (REWET) is a tool for simulating the functionality of water distribution networks after natural hazard events. It is designed to support any network with state-of-the-art hydraulic simulation capabilities and damage modeling.
