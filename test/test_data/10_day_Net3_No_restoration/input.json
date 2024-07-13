@@ -1,0 +1,7 @@
+{
+	"last_sequence_termination": false,
+	"node_demand_temination": false,
+	"Restoration_on": false,
+	"pipe_damage_file_list": "test/test_data/10_day_Net3_No_restoration/test_list.xlsx",
+	"pipe_damage_file_directory": "test/test_data/10_day_Net3_No_restoration/Damages"
+}

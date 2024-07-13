@@ -21,6 +21,9 @@ Demand Polygons/
 !Net3-node-damage.xlsx
 !Net3-pipe-damage.xlsx
 !Net3-PumpDamage.xlsx
+!test_*.xlsx
+!test_*.res
+!test_*.pkl
 *.inp
 *.bin
 *.rpt
