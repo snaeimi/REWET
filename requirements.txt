@@ -1,7 +1,7 @@
 geopandas
 openpyxl
 networkx
-numpy
+numpy<2
 pandas
 scipy
 shapely
