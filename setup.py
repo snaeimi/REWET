@@ -14,7 +14,7 @@ AUTHOR = 'Sina Naeimi'
 MAINTAINER_EMAIL = 'snaeimi@udel.edu'
 LICENSE = 'Revised BSD'
 URL = 'https://github.com/snaeimi/WNTR'
-DEPENDENCIES = ['numpy=1.25.2', 'scipy', 'networkx', 'pandas', 'matplotlib', 'setuptools', 'wntrfr==1.1.0.1.2', "sphinx", "openpyxl"]
+DEPENDENCIES = ['numpy>=1.21', 'scipy', 'networkx', 'pandas', 'matplotlib', 'setuptools', 'wntrfr==1.1.0.1.2', "sphinx", "openpyxl"]
 
 # use README file as the long description
 file_dir = os.path.abspath(os.path.dirname(__file__))
