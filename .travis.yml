@@ -14,4 +14,4 @@ install: pip3 install --upgrade pip  # all three OSes agree about 'pip3'
 script:
   - pip3 install -e .
   - cd test
-  - python python3 simple_test.py || python simple_test.py
+  - python3 simple_test.py || python simple_test.py
