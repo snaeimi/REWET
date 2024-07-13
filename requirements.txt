@@ -1,0 +1,7 @@
+nheri-simcenter==0.9.15
+geopandas
+networkx
+numpy
+pandas
+scipy
+shapely
