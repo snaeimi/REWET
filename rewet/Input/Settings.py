@@ -212,8 +212,8 @@ class Settings():
         for key in path_keys.keys():
             _path = self.__getitem__(key)
             _path = resolve_path(_path)
+            _path = str(_path)
             self.__setitem__(key, _path)
-            _path = print(self.__getitem__(key))
 
     def initializeScenarioSettings(self, scenario_index):
         if self.process['Parameter_override'] == False:
