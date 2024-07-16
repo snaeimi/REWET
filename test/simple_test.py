@@ -10,6 +10,7 @@ import rewet
 from rewet.initial import Starter
 from pathlib import Path
 import pandas as pd
+from rewet import API
 
 
 class TestHydaulic(unittest.TestCase):
@@ -19,14 +20,14 @@ class TestHydaulic(unittest.TestCase):
         start.run()
 
     def test_10day_net3_normal(self):
+        print("\n++++++++++++++++"
+              "test_10day_net3_normal"
+              )
         start = Starter()
         start.run("./test_data/10_day_Net3_No_restoration/input.json")
 
-        baseline_res_path = Path(
-            "./test_data/10_day_Net3_No_restoration/test_baseline.res")
+        baseline_result = self.get_baseline_result()
 
-        with open(baseline_res_path, "rb") as f:
-            baseline_result = pickle.load(f)
 
         result_dierctory = start.registry.settings["result_directory"]
         result_dierctory = Path(result_dierctory)
@@ -37,6 +38,50 @@ class TestHydaulic(unittest.TestCase):
             tbt_result = pickle.load(f)
 
         self.check_two_result_value(baseline_result, tbt_result)
+
+    def test_10_day_API_normal(self):
+        print("\n++++++++++++++++"
+              "test_10_day_API_normal"
+              )
+        s = API(None)
+        status = s.initiate(debug=True)
+        self.assertEqual(status, 1)
+
+        status = s.run_hydraulic_simulation(10*24*3600, update_wn=True)
+        self.assertEqual(status, 1)
+
+        status, tbt_result = s.get_hydraulic_result()
+        self.assertEqual(status, 1)
+
+        baseline_result = self.get_baseline_result()
+        self.check_two_result_value(baseline_result, tbt_result)
+
+        # test if another initialization + running for teh second time produce
+        # the same resutls
+        s = API(None)
+        status = s.initiate(debug=True)
+        self.assertEqual(status, 1)
+
+        status = s.run_hydraulic_simulation(5*24*3600, update_wn=True)
+        self.assertEqual(status, 1)
+
+        status = s.run_hydraulic_simulation(5*24*3600, update_wn=True)
+        self.assertEqual(status, 1)
+
+        status, tbt_result = s.get_hydraulic_result()
+        self.assertEqual(status, 1)
+
+        baseline_result = self.get_baseline_result()
+        self.check_two_result_value(baseline_result, tbt_result)
+
+    def get_baseline_result(self):
+        baseline_res_path = Path(
+            "./test_data/10_day_Net3_No_restoration/test_baseline.res")
+
+        with open(baseline_res_path, "rb") as f:
+            baseline_result = pickle.load(f)
+
+        return baseline_result
 
     def check_two_result_value(self, res1, res2):
 
@@ -60,6 +105,7 @@ class TestHydaulic(unittest.TestCase):
 
 
         for att in common_atts:
+            print(att)
             self.check_two_times(subres1[att], subres2[att])
 
             if (isinstance(subres1[att], pd.core.frame.DataFrame) and
@@ -73,7 +119,6 @@ class TestHydaulic(unittest.TestCase):
 
                 time_list = subres1[att].index.to_list()
                 for time in time_list:
-                    print(att)
                     values_1 = subres1[att].loc[time]
                     values_2 = subres2[att].loc[time]
 
