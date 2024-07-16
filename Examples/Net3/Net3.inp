@@ -287,8 +287,8 @@ system changes over time.
 
 [CONTROLS]
 ;Lake source operates only part of the day
-Link 10 OPEN AT TIME 1
-Link 10 CLOSED AT TIME 15
+Pump 10 Open AT CLOCKTIME 01:00:00 AM
+Pump 10 Closed AT CLOCKTIME 03:00:00 PM
 
 ;Pump 335 controlled by level in Tank 1
 ;When pump is closed, bypass pipe is opened
