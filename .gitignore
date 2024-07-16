@@ -1,8 +1,6 @@
 
 MPI_results/
 MPI_results - Copy/
-javab/
-out/
 __pycache__
 Demand Polygons/
 *.cpg
@@ -35,7 +33,4 @@ Demand Polygons/
 *.csv
 *.pkl
 /rewet.egg-info
-run.py
-!exampe_config.txt
-!Net3DA.txt
-!Net3RA.txt
+
