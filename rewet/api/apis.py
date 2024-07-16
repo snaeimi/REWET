@@ -82,7 +82,8 @@ class API():
             self.mpi_rank = mpi_rank
 
             # initialize the only damage scenario
-            # TODO: intialize can accept the number of scn in the function
+            # TODO: intialize can accept the number of scn in the function -->
+            # not really, because regitery is realzied per scn.
             self.settings.initializeScenarioSettings(0)
 
             # TODO: Change the name of the keys. they do not represent the
@@ -222,6 +223,7 @@ class API():
         # project_file_path = Path(res_dir_path) / "project.prj"
         # project_file_path = Input_IO.resolve_path(project_file_path)
 
+
         if project_file_path == None:
             project_object = self.project
             rewet_result = Result(project_object, iObject=True)
@@ -244,6 +246,14 @@ class API():
             self.status = REWET_STATUS(1)
 
         return self.status, r
+
+    def save_result(self):
+        scn_name = self.registry.scenario_name
+        r = self.registry.result
+        Input_IO.save_single(self.settings,
+                             r,
+                             scn_name,
+                             self.registry)
 
     def run_restoration_simulation():
         pass

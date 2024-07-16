@@ -104,6 +104,7 @@ class Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
             #print(result_directory)
             #print(scenario_registry_file_name)
             registry_file_data_addr = os.path.join(result_directory, scenario_registry_file_name)
+
             if not os.path.exists(registry_file_data_addr):
                 self.scn_name_list_that_result_file_not_found.append(scn_name)
 
