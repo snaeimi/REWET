@@ -1,3 +1,4 @@
+import logging
 import os
 import math
 import pandas as pd
@@ -7,8 +8,9 @@ from rewet.EnhancedWNTR.sim.results import SimulationResults
 from rewet.Input.Input_IO           import resolve_path
 import wntrfr
 
+logger = logging.getLogger(__name__)
 
-class Hydraulic_Simulation():
+class HydraulicSimulation():
     def __init__(self, wn, settings, current_stop_time, worker_rank, prev_isolated_junctions, prev_isolated_links):
         self.wn                    = wn
         self.nne_flow_criteria     = settings.process['nne_flow_limit']
@@ -117,19 +119,19 @@ class Hydraulic_Simulation():
         
     def performSimulation(self, next_event_time, iModified):
         current_stop_time = self.current_stop_time
-        minimum_pressure  = self.minimum_pressure
-        required_pressure = self.required_pressure
+        #minimum_pressure  = self.minimum_pressure
+        #required_pressure = self.required_pressure
         temp_file_dest    = self.temp_directory
         sim = EpanetSimulator(self.wn)
         #self.s=sim
         self._prev_isolated_junctions, self._prev_isolated_links = sim._get_isolated_junctions_and_links(self._prev_isolated_junctions, self._prev_isolated_links)
         self._prev_isolated_junctions = self.isolateReservoirs(self._prev_isolated_junctions)
         self._prev_isolated_junctions = self.isolateTanks(self._prev_isolated_junctions)
-        print('***********')
-        print(len(self._prev_isolated_junctions))
-        print(len(self._prev_isolated_links))
-        print('-----------')
-        sim.manipulateTimeOrder(current_stop_time, next_event_time) #, change_time_step=True, min_correction_time_step=self._min_correction_time)
+
+        logger.info(f"The number of isolated junctions is {len(self._prev_isolated_junctions)}")
+        logger.info(f"The number of isolated links is {len(self._prev_isolated_links)}")
+
+        sim.manipulateTimeOrder(current_stop_time, next_event_time)
         rr, i_run_successful = sim.run_sim(file_prefix = temp_file_dest, start_time = current_stop_time,iModified=iModified)
         return rr, i_run_successful
     
@@ -330,9 +332,9 @@ class Hydraulic_Simulation():
             tanks_min_heads = pd.Series(tanks_min_heads, not_isolated_tanks)
             tanks_max_heads = pd.Series(tanks_max_heads, not_isolated_tanks)
             
-            print(current_stop_time)
-            print(time_step)
-            print(end_time)
+            #print(current_stop_time)
+            #print(time_step)
+            #print(end_time)
             for time_step_iter in range(current_stop_time+time_step, end_time+1, time_step):
                 rr.node['head'].loc[time_step_iter]     = rr.node['head'].loc[current_stop_time]
                 rr.node['demand'].loc[time_step_iter]   = rr.node['demand'].loc[current_stop_time]

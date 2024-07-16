@@ -12,7 +12,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 EVENT_TYPE=['dmg','rpr','rst'] #event types are defined here
-class Timeline():
+
+class TimeRegister():
     
 # =============================================================================
 # This classs has many functions that can make a lot of exceptions.

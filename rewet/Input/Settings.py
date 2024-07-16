@@ -8,6 +8,11 @@ from rewet.Input.Input_IO import resolve_path
 list_default_headers = ['Scenario Name', 'Pipe Damage', 'Nodal Damage',
                         'Pump Damage', 'Tank Damage', 'Probability']
 
+PROCESS_PATH_LIKE_KEYS = {"result_directory":1,"temp_directory": 1,"WN_INP":0,
+                  "pipe_damage_file_list": 0, "pipe_damage_file_directory": 0,
+                  }
+SCENARIO_PATH_LIKE_KEYS = {"Restortion_config_file": 0}
+
 acceptable_override_list = ["POINTS"]
 
 class base():
@@ -131,6 +136,7 @@ class Settings():
         self.process   = Process_Settings()
         self.scenario  = Scenario_Settings()
         self.overrides = {}
+        self.resolve_settings_path(PROCESS_PATH_LIKE_KEYS)
 
     def __setitem__(self, key, data):
         if key in self.process.settings:
@@ -187,6 +193,9 @@ class Settings():
 
             self[key] = val
 
+        self.resolve_settings_path(PROCESS_PATH_LIKE_KEYS)
+        self.resolve_settings_path(SCENARIO_PATH_LIKE_KEYS)
+
     def importProject(self, project_addr):
         with open(project_addr, 'rb') as f:
             project = pickle.load(f)
@@ -196,13 +205,22 @@ class Settings():
             #print(k + ": " + repr(new_value) + " --> " + repr(old_value) + "\n"+"-----" + repr(type(new_value)) )
         self.process  = project.project_settings.process
         self.scenario = project.project_settings.scenario
+        self.resolve_settings_path(PROCESS_PATH_LIKE_KEYS)
+        self.resolve_settings_path(SCENARIO_PATH_LIKE_KEYS)
+
+    def resolve_settings_path(self, path_keys):
+        for key in path_keys.keys():
+            _path = self.__getitem__(key)
+            _path = resolve_path(_path)
+            self.__setitem__(key, _path)
+            _path = print(self.__getitem__(key))
 
     def initializeScenarioSettings(self, scenario_index):
         if self.process['Parameter_override'] == False:
             return
 
         damage_file_list = resolve_path(self['pipe_damage_file_list'])
-        list_file      = pd.read_excel(damage_file_list )
+        list_file      = pd.read_excel(damage_file_list)
         columns        =  list_file.columns
         parametrs_list = columns.drop(list_default_headers)
 
@@ -283,7 +301,8 @@ class Settings():
 # =============================================================================
                 else:
                     raise ValueError("Unknown overrise key")
-
+        self.resolve_settings_path(PROCESS_PATH_LIKE_KEYS)
+        self.resolve_settings_path(SCENARIO_PATH_LIKE_KEYS)
 
     def getOverridePointsList(self, points_list_str, scenario_name):
         point_list = []

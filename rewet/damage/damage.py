@@ -34,9 +34,9 @@ class Damage:
         self.scenario_set     = scenario_set 
         self.pipe_leak        = pd.Series(dtype="O")
         self.pipe_break       = pd.Series(dtype="O")
-        self.pipe_all_damages = None
-        self.tank_damage      = pd.Series(dtype="O")
-        self.node_damage      = pd.Series(dtype="O")
+        #self.pipe_all_damages = None
+        #self.tank_damage      = pd.Series(dtype="O")
+        #self.node_damage      = pd.Series(dtype="O")
         #self._earthquake      = pd.Series(dtype="O")
         self._registry        = registry
         self.default_time     = 4
@@ -47,7 +47,7 @@ class Damage:
         self.is_timely_sorted = False
         
         self._pipe_last_ratio = pd.Series(dtype='float64')
-        self.damaged_pumps    = pd.Series(dtype='float64')
+        #self.damaged_pumps    = pd.Series(dtype='float64')
         self.nodal_equavalant_diameter = None
         
         #self._nodal_damage_method = None
@@ -94,24 +94,26 @@ class Damage:
     
     def readPumpDamage(self, file_name):
         pump_list = pd.read_csv(file_name)
-        self.damaged_pumps = pump_list['Pump_ID']
+        self._registry.input_pump_damages = pump_list['Pump_ID']
         
-    def readNodalDamage(self, file_address):
-        temp = pd.read_csv(file_address)
-        for ind, val in temp.iterrows():
-            temp_data = {}
-            temp_data['node_name']           = str(val['NodeID'])
-            temp_data['node_RR']             = val['RR']
-            temp_data['node_Pre_EQ_Demand']  = val['Pre_EQ_Demand']  * 6.30901964/100000#*0.5 
-            temp_data['node_Post_EQ_Demand'] = val['Post_EQ_Demand'] * 6.30901964/100000#*0.5 # * 6.30901964/100000*(1+0.01*val['setNumDamages'])
-            temp_data['node_Pipe_Length']    = val['PipeLength']
-            temp_data['Number_of_damages']   = val['setNumDamages']
-            temp_data['node_Customer']       = val['#Customer']
-            temp_data['node_LargeUser']      = val['LargeUser']
-            
-            self.node_damage = self.node_damage.append(pd.Series(data=[temp_data]))
-        
-        self.node_damage.reset_index(drop=True, inplace=True)
+# =============================================================================
+#     def readNodalDamage(self, file_address):
+#         temp = pd.read_csv(file_address)
+#         for ind, val in temp.iterrows():
+#             temp_data = {}
+#             temp_data['node_name']           = str(val['NodeID'])
+#             temp_data['node_RR']             = val['RR']
+#             temp_data['node_Pre_EQ_Demand']  = val['Pre_EQ_Demand']  * 6.30901964/100000#*0.5 
+#             temp_data['node_Post_EQ_Demand'] = val['Post_EQ_Demand'] * 6.30901964/100000#*0.5 # * 6.30901964/100000*(1+0.01*val['setNumDamages'])
+#             temp_data['node_Pipe_Length']    = val['PipeLength']
+#             temp_data['Number_of_damages']   = val['setNumDamages']
+#             temp_data['node_Customer']       = val['#Customer']
+#             temp_data['node_LargeUser']      = val['LargeUser']
+#             
+#             self.node_damage = self.node_damage.append(pd.Series(data=[temp_data]))
+#         
+#         self.node_damage.reset_index(drop=True, inplace=True)
+# =============================================================================
     
     def setNodalDamageModelParameter(self, damage_param):
         self._registry.nodal_equavalant_diameter = damage_param
@@ -252,11 +254,11 @@ class Damage:
 
         """
         
-        if self.node_damage.empty:
+        if self._registry.input_node_damages.empty:
             print("no node damage at all")
             return
         
-        curren_time_node_damage = self.node_damage[current_time]
+        curren_time_node_damage = self._registry.input_node_damages[current_time]
         
         if type(curren_time_node_damage) == dict:
             curren_time_node_damage = pd.Series([curren_time_node_damage], index=[current_time])
@@ -502,7 +504,7 @@ class Damage:
         #res = pd.Series()
         temp1 = []
         temp2 = []
-        for ind, val in self.node_damage.items():
+        for ind, val in self._registry.input_node_damages.items():
             pipes_length = val['node_Pipe_Length']
             pipes_RR = val['node_RR']
             temp1.append(val['node_name'])
@@ -513,10 +515,10 @@ class Damage:
     def getPipeDamageListAt(self, time):
         damaged_pipe_name_list = []
         
-        if self.pipe_all_damages.empty:
+        if self._registry.input_pipe_damages.empty:
             return damaged_pipe_name_list
         
-        current_time_pipe_damages = self.pipe_all_damages[time]
+        current_time_pipe_damages = self._registry.input_pipe_damages[time]
         if type(current_time_pipe_damages) == pd.core.series.Series:
             current_time_pipe_damages = current_time_pipe_damages.to_list()
         else:
@@ -543,11 +545,11 @@ class Damage:
         last_pipe_id = None
         same_pipe_damage_cnt = None
         
-        if self.pipe_all_damages.empty:
+        if self._registry.input_pipe_damages.empty:
             print("No Pipe damages at all")
             return
         
-        current_time_pipe_damages = self.pipe_all_damages[current_time]
+        current_time_pipe_damages = self._registry.input_pipe_damages[current_time]
         if type(current_time_pipe_damages) == dict:
             current_time_pipe_damages = pd.Series([current_time_pipe_damages], index=[current_time])
         elif type(current_time_pipe_damages) == pd.Series:
@@ -663,11 +665,11 @@ class Damage:
         #return WaterNetwork
 
     def applyTankDamages(self, WaterNetwork, current_time):
-        if self.tank_damage.empty:
+        if self._registry.input_tank_damages.empty:
             print('No Tank Damage at all')
             return
         
-        current_time_tank_damage = self.tank_damage[current_time]
+        current_time_tank_damage = self._registry.input_tank_damages["Tank_ID"][current_time]
         if type(current_time_tank_damage) != str:
             if current_time_tank_damage.empty:
                 print('No Tank Damage at time '+str(current_time))
@@ -713,12 +715,12 @@ class Damage:
                     raise
             
     def applyPumpDamages(self, WaterNetwork, current_time):
-        #print(type(self.damaged_pumps))
-        if self.damaged_pumps.empty:
+        #print(type(self._registry.input_pump_damages))
+        if self._registry.input_pump_damages.empty:
             print("No pump damage at all")
             return
         
-        pump_damage_at_time = self.damaged_pumps[current_time]
+        pump_damage_at_time = self._registry.input_pump_damages["Pump_ID"][current_time]
         if type(pump_damage_at_time) != str:
             if pump_damage_at_time.empty:
                 print('No Pump Damage at time '+str(current_time))
@@ -834,10 +836,10 @@ class Damage:
             Distict time for all kind of damages
 
         """
-        pipe_damage_unique_time = self.pipe_all_damages.index.unique().tolist()
-        node_damage_unique_time = self.node_damage.index.unique().tolist()
-        tank_damage_unique_time = self.tank_damage.index.unique().tolist()
-        pump_damage_unique_time = self.damaged_pumps.index.unique().tolist()
+        pipe_damage_unique_time = self._registry.input_pipe_damages.index.unique().tolist()
+        node_damage_unique_time = self._registry.input_node_damages.index.unique().tolist()
+        tank_damage_unique_time = self._registry.input_tank_damages.index.unique().tolist()
+        pump_damage_unique_time = self._registry.input_pump_damages.index.unique().tolist()
         
         all_damages_time = []
         all_damages_time.extend(pipe_damage_unique_time)

@@ -40,7 +40,8 @@ class Restoration():
         self.entity                    = {}
         self.entity_rule               = {}
         self.group                     = {}
-        self.pump_restoration          = pd.DataFrame()
+        self.pump_restoration          = registry.input_pump_damages # pd.DataFrame()
+        self.tank_restoration          = registry.input_tank_damages
         self._damage                   = damage
         #self.temp =[]
         

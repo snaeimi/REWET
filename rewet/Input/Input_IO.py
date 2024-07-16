@@ -169,6 +169,30 @@ def read_pump_damage_seperate_json_file(directory, pump_file_name):
 
     return pd.Series(index = pump_time, data = pump_damage)
 
+##################### Genereal reading file #####################
+def read_damage_files(
+        damage_file_directory,
+        pipe_damage_file_name,
+        node_damage_file_name,
+        pump_damage_file_name, 
+        tank_damage_file_name, 
+        damage_input_method):
+    
+    if damage_input_method == 'pickle':
+        pipe_damages = read_pipe_damage_seperate_pickle_file(damage_file_directory, pipe_damage_file_name)
+        node_damages = read_node_damage_seperate_pickle_file(damage_file_directory, node_damage_file_name)
+        tank_damages = read_tank_damage_seperate_pickle_file(damage_file_directory, tank_damage_file_name)
+        pump_damages = read_pump_damage_seperate_pickle_file(damage_file_directory, pump_damage_file_name)
+    elif damage_input_method == 'excel':
+        pipe_damages = read_pipe_damage_seperate_EXCEL_file(damage_file_directory, pipe_damage_file_name)
+        node_damages = read_node_damage_seperate_EXCEL_file(damage_file_directory, node_damage_file_name)
+        tank_damages = read_tank_damage_seperate_EXCEL_file(damage_file_directory, tank_damage_file_name)
+        pump_damages = read_pump_damage_seperate_EXCEL_file(damage_file_directory, pump_damage_file_name)
+    else:
+        raise ValueError(f"Unknown value for {damage_input_method}")
+    
+    return pipe_damages, node_damages, pump_damages, tank_damages
+    
 
 ##################### Read files From Pickle #####################
 def read_pipe_damage_seperate_pickle_file(directory, all_damages_file_name):
