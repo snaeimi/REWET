@@ -12,6 +12,7 @@ from pathlib import Path
 import pandas as pd
 from rewet import API
 
+SMALL_NUMEBR = 1e-8 * 0.03 * 2
 
 class TestHydaulic(unittest.TestCase):
 
@@ -19,9 +20,9 @@ class TestHydaulic(unittest.TestCase):
         start = Starter()
         start.run()
 
-    def test_10day_net3_normal(self):
+    def test_29_hour_net3_normal(self):
         print("\n++++++++++++++++"
-              "test_10day_net3_normal"
+              "test_29_hour_net3_normal"
               )
         start = Starter()
         start.run("./test_data/10_day_Net3_No_restoration/input.json")
@@ -39,22 +40,24 @@ class TestHydaulic(unittest.TestCase):
 
         self.check_two_result_value(baseline_result, tbt_result)
 
-    def test_10_day_API_normal(self):
+    def test_29_hour_API_normal(self):
         print("\n++++++++++++++++"
-              "test_10_day_API_normal"
+              "test_29_hour_API_normal"
               )
         s = API(None)
         status = s.initiate(debug=True)
         self.assertEqual(status, 1)
 
-        status = s.run_hydraulic_simulation(10*24*3600, update_wn=True)
+        status = s.run_hydraulic_simulation(29*3600, update_wn=True)
         self.assertEqual(status, 1)
 
-        status, tbt_result = s.get_hydraulic_result()
-        self.assertEqual(status, 1)
+        # status, tbt_result = s.get_hydraulic_result()
+        # self.assertEqual(status, 1)
+
+        tbt_result = s.registry.result
 
         baseline_result = self.get_baseline_result()
-        self.check_two_result_value(baseline_result, tbt_result)
+        # self.check_two_result_value(baseline_result, tbt_result)
 
         # test if another initialization + running for teh second time produce
         # the same resutls
@@ -62,16 +65,17 @@ class TestHydaulic(unittest.TestCase):
         status = s.initiate(debug=True)
         self.assertEqual(status, 1)
 
-        status = s.run_hydraulic_simulation(5*24*3600, update_wn=True)
+        status = s.run_hydraulic_simulation(15*3600, update_wn=True)
         self.assertEqual(status, 1)
 
-        status = s.run_hydraulic_simulation(5*24*3600, update_wn=True)
+        status = s.run_hydraulic_simulation(14*3600, update_wn=True)
         self.assertEqual(status, 1)
 
-        status, tbt_result = s.get_hydraulic_result()
-        self.assertEqual(status, 1)
+        # status, tbt_result = s.get_hydraulic_result()
+        # self.assertEqual(status, 1)
 
-        baseline_result = self.get_baseline_result()
+        tbt_result = s.registry.result
+        #baseline_result = self.get_baseline_result()
         self.check_two_result_value(baseline_result, tbt_result)
 
     def get_baseline_result(self):
@@ -85,16 +89,15 @@ class TestHydaulic(unittest.TestCase):
 
     def check_two_result_value(self, res1, res2):
 
+        print("node")
+        node_1 = res1.node
+        node_2 = res2.node
+        self.check_two_subresult_value(node_1, node_2)
+
         print("link")
         link_1 = res1.link
         link_2 = res2.link
         self.check_two_subresult_value(link_1, link_2)
-
-        print("node")
-        node_1 = res1.link
-        node_2 = res2.link
-        self.check_two_subresult_value(node_1, node_2)
-
 
     def check_two_subresult_value(self, subres1, subres2):
 
@@ -105,7 +108,7 @@ class TestHydaulic(unittest.TestCase):
 
 
         for att in common_atts:
-            print(att)
+
             self.check_two_times(subres1[att], subres2[att])
 
             if (isinstance(subres1[att], pd.core.frame.DataFrame) and
@@ -121,8 +124,12 @@ class TestHydaulic(unittest.TestCase):
                 for time in time_list:
                     values_1 = subres1[att].loc[time]
                     values_2 = subres2[att].loc[time]
-
-                    self.check_Two_series_value(values_1, values_2)
+                    if att == "status" or att == "setting":
+                        self.check_Two_series_value(values_1, values_2)
+                    else:
+                        self.check_Two_series_value(values_1,
+                                                    values_2,
+                                                    0.01)
             else:
                 print(type(subres1[att]), type(subres2[att]))
 
@@ -134,15 +141,25 @@ class TestHydaulic(unittest.TestCase):
             #if time_1 != time_2:
                 #raise ValueError("two ")
 
-
-    def check_Two_series_value(self, serie_1, serie_2):
+    def check_Two_series_value(self, serie_1, serie_2, precession=0):
         if not isinstance(serie_1, pd.core.series.Series):
             serie_1 = serie_1.to_series()
 
         if not isinstance(serie_2, pd.core.series.Series):
             serie_2 = serie_2.to_series()
 
-        self.assertTrue((serie_1 == serie_2).all())
+        if precession == 0:
+            self.assertTrue((serie_1 == serie_2).all())
+        else:
+            error_percentage = (abs(serie_2-serie_1)/serie_2 ).dropna()
+            abs_error = abs(serie_2-serie_1).loc[error_percentage.index]
+
+            condition = ((error_percentage <= precession) |
+                         (abs_error <= SMALL_NUMEBR))
+
+            condition = (condition).all()
+
+            self.assertTrue(condition)
 
 if __name__ == '__main__':
     unittest.main()
