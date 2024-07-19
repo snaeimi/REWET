@@ -40,12 +40,12 @@ class Process_Settings(base):
         self.settings['result_directory'             ] = "Examples/Net3/Result"
         self.settings['temp_directory'               ] = "Examples/Net3/RunFiles"
         self.settings['save_time_step'               ] = True
-        self.settings['last_sequence_termination'    ] = True  #sina needs to be applied in GUI
-        self.settings['node_demand_temination'       ] = False #sina needs to be applied in GUI
-        self.settings['node_demand_termination_time' ] = 3 * 3600 #sina needs to be applied in GUI
-        self.settings['node_demand_termination_ratio'] = 0.95 #sina needs to be applied in GUI
-        self.settings['record_restoration_agent_logs'] = True #sina needs to be applied in GUI
-        self.settings['record_damage_table_logs'     ] = True #sina needs to be applied in GUI
+        self.settings['last_sequence_termination'    ] = True  # TODO: GUI
+        self.settings['node_demand_temination'       ] = False # TODO: GUI
+        self.settings['node_demand_termination_time' ] = 3 * 3600 # TODO: GUI
+        self.settings['node_demand_termination_ratio'] = 0.95 # TODO: GUI
+        self.settings['record_restoration_agent_logs'] = True # TODO: remove
+        self.settings['record_damage_table_logs'     ] = True # TODO: remove
 
 
         """
@@ -53,9 +53,9 @@ class Process_Settings(base):
         """
         self.settings['WN_INP'             ] = "Examples/Net3/net3.inp"
         self.settings['demand_ratio'       ] = 1
-        self.settings['solver'             ] = 'ModifiedEPANETV2.2' # sina needs to be implemented
+        self.settings['solver'             ] = 'ModifiedEPANETV2.2' # TODO: GUI
         #self.settings['hydraulic_time_step'] = 3600
-        self.settings['solver_type'        ] = 'ModifiedEPANETV2.2'
+        self.settings['solver_type'        ] = 'ModifiedEPANETV2.2' # TODO: remove
 
         """
         Damage settings
@@ -79,7 +79,7 @@ class Process_Settings(base):
         self.settings['maximun_worker_idle_time'  ] = 60
         self.settings['number_of_proccessor'      ] = 1
 
-        self.settings['dmg_rst_data_save'         ] = True
+        self.settings['dmg_rst_data_save'         ] = True # TODO: remove
         self.settings['Parameter_override'        ] = True #'starter/settings.xlsx' #this is for settings sensitivity analysis
         self.settings['mpi_resume'                ] = True #ignores the scenarios that are done
         self.settings['ignore_empty_damage'       ] = False
@@ -108,7 +108,7 @@ class Scenario_Settings(base):
         """
         Damage settings
         """
-        self.settings['Pipe_damage_input_method'   ] = 'excel' #excel or pickle
+        self.settings['Pipe_damage_input_method'   ] = 'excel' #excel or pickle # TODO: This is a process settings
         self.settings['pipe_damage_model'          ] = {"CI":{"alpha":-0.0038, "beta":0.1096, "gamma":0.0196, "a":2, "b":1 }, "DI":{"alpha":-0.0079, "beta":0.0805, "gamma":0.0411, "a":2, "b":1 }, "STL":{"alpha":-0.009, "beta":0.0808, "gamma":0.0472, "a":2, "b":1 }, "CON":{"alpha":-0.0083, "beta":0.0738, "gamma":0.0431, "a":2, "b":1 }, "RS":{"alpha":-0.0088, "beta":0.0886, "gamma":0.0459, "a":2, "b":1 } } # sina needs to be implemented
         self.settings['default_pipe_damage_model'  ] = {"alpha":-0.0038, "beta":0.1096, "gamma":0.0196, "a":2, "b":1 }
         self.settings['node_damage_model'          ] = {'x':0.9012,'a':0.0036, 'aa':1, 'b':0, 'bb':0, 'c':-0.877, 'cc':1, 'd':0, 'dd':0, 'e':0.0248, 'ee1':1, 'ee2':1, 'f':0, 'ff1':0, 'ff2':0, "damage_node_model": "equal_diameter_emitter"} # sina needs to be implemented
@@ -127,8 +127,8 @@ class Scenario_Settings(base):
         self.settings['crew_out_of_zone_travel'         ] = False # sina needs to be implemented in the code
         self.settings['crew_travel_speed'               ] = 16.66666  # unit: ft/s approximately 18 km/h. The unit is [coordinate unit] per seconds. # sina needs to be implemented in the code
 
-        self.settings['equavalant_damage_diameter'  ] = 1
-        self.settings['pipe_damage_diameter_factor' ] = 1
+        self.settings['equavalant_damage_diameter'  ] = 1 # TODO: remove?
+        self.settings['pipe_damage_diameter_factor' ] = 1 # TODO: remove?
 
 
 class Settings():
