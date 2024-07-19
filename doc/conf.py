@@ -27,7 +27,7 @@ author = 'Sina Naeimi'
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['myst_parser', 'sphinx_tabs.tabs']
+extensions = ['myst_parser', 'sphinx_tabs.tabs', 'sphinx.ext.autosectionlabel']
 source_suffix = {
     '.rst': 'restructuredtext',
 }
@@ -60,3 +60,7 @@ html_theme = 'sphinx_rtd_theme'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 html_logo = "REWET_logo.jpg"
+
+html_css_files = [
+    'css/custom.css',
+]

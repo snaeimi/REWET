@@ -3,8 +3,13 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to REWET's documentation!
+Welcome to REWET's Documentation
 #################################
+
+REstoration of Water after Event Tool (REWET) is a tool for simulating the functionality of water distribution networks after natural hazard events. It is designed to support any network with state-of-the-art hydraulic simulation capabilities and damage modeling.
+
+Table of Content
+****************
 
 The following compromises the content of the documentation.
 
@@ -13,9 +18,11 @@ The following compromises the content of the documentation.
    :caption: Contents:
    
    docs/install.rst
+   docs/inputs.rst
    docs/WorkflowDescription.rst
    docs/Restoration_Plan_Config_File.rst
    docs/Future.rst
+   docs/cite.rst
 
 
 

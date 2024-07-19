@@ -3,6 +3,7 @@ MPI_results/
 MPI_results - Copy/
 __pycache__
 Demand Polygons/
+_build
 *.cpg
 *.dbf
 *.prj
