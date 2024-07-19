@@ -21,7 +21,7 @@ class TestHydaulic(unittest.TestCase):
         start.run()
 
     def test_29_hour_net3_normal(self):
-        print("\n++++++++++++++++"
+        print("\n++++++++++++++++\n"
               "test_29_hour_net3_normal"
               )
         start = Starter()
@@ -41,7 +41,7 @@ class TestHydaulic(unittest.TestCase):
         self.check_two_result_value(baseline_result, tbt_result)
 
     def test_29_hour_API_normal(self):
-        print("\n++++++++++++++++"
+        print("\n++++++++++++++++\n"
               "test_29_hour_API_normal"
               )
         s = API(None)
