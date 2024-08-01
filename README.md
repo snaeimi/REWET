@@ -74,11 +74,12 @@ For any potential collaboration, please contact the author.
 
 ## Citing
 
-For citation, please contact the author.
+When you use REWET, please cite REWET as follows:
+
+Sina Naeimi, Rachel A. Davidson. Forthcoming. "REWET: A Tool to Model System Functioning and Restoration of Damaged Water Supply Systems." *ASCE Journal of Infrastructure Systems*. 10.1061/JITSE4/ISENG-2427
 
 ## License
-
-**REWET** is licensed under the MIT License. See the [LICENSE file](https://raw.githubusercontent.com/snaeimi/REWET/main/LICENSE) for more details.
+TBD
 
 * **WNTR License:** is distributed under the MIT License. Please refer to the WNTR [license file](https://github.com/USEPA/WNTR/blob/main/LICENSE.md) for more information.
 * **EPANET License:** EPANET is distributed under the Public Domain. Please refer to the EPANET [license file](https://raw.githubusercontent.com/USEPA/EPANET2.2/master/SRC_engines/LICENSE) for more information.
