@@ -7,3 +7,4 @@ scipy
 shapely
 matplotlib
 wntrfr==1.1.0.1.2
+sphinx

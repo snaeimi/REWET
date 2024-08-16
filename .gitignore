@@ -34,4 +34,7 @@ _build
 *.csv
 *.pkl
 /rewet.egg-info
+/dist
+/build
+/doc/_build
 

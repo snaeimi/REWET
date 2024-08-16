@@ -10,7 +10,7 @@ REWET's [documentation](https://snaeimi.github.io/REWET) is being devloped and i
 
 ## Installation
 
-The current release of REWET (V0.2.0-Alpha.1) supports Windows and MacOS. The repository version also supports Linux AMD64. In the next version (V0.2.0-Alpha.2), Linux support will be added to the release.
+The current release of REWET (V0.2.0-Alpha.1) supports Windows, Linux, and MacOS(Excluding M1, M2 and M3 CPUS). The repository version also supports Linux AMD64.
 
 ### 1. Dependencies and Virtual Environment
 
@@ -28,7 +28,6 @@ After activating the virtual environment, use GIT to clone REWET's repository an
 ```bash
 git clone https://github.com/snaeimi/REWET.git
 cd REWET
-
 ```
 Alternatively, download the code and unzip the file from the project GitHub and change the current directory to the decompressed directory.
 
@@ -66,7 +65,7 @@ start = Starter()
 start.run("input.json")
 ```
 
-## Contributing
+## Contributtiom
 
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
@@ -79,23 +78,33 @@ When you use REWET, please cite REWET as follows:
 Sina Naeimi, Rachel A. Davidson. Forthcoming. "REWET: A Tool to Model System Functioning and Restoration of Damaged Water Supply Systems." *ASCE Journal of Infrastructure Systems*. 10.1061/JITSE4/ISENG-2427
 
 ## License
-TBD
+REWET is released under the MIT license. See [LICENSE](https://github.com/snaeimi/REWET/blob/main/LICENSE) for more details.
 
 * **WNTR License:** is distributed under the MIT License. Please refer to the WNTR [license file](https://github.com/USEPA/WNTR/blob/main/LICENSE.md) for more information.
 * **EPANET License:** EPANET is distributed under the Public Domain. Please refer to the EPANET [license file](https://raw.githubusercontent.com/USEPA/EPANET2.2/master/SRC_engines/LICENSE) for more information.
+
+# News
+
+REWET has been adapted in NHERI SimCenter's **R2DTool V4.2 [[1]](#1)**.
 
 ## ACKNOWLEDGMENTS
 
 This project was funded by National Science Foundation Award No. CMMI-1735483. The developer also extends gratitude to the Los Angeles Department of Water and Power (LADWP) for providing the input and water network, which served as the testbed for the development of REWET. REWET was produced as part of a Doctoral Dissertation at the University of Delaware, supervised by Dr. Rachel Davidson, Department of Civil and Environmental Engineering, University of Delaware.
 
 This project uses the following tools:
-* **Water Network Tool for Resilience (WNTR) [[1]](#1)** developed by the U.S. Environmental Protection Agency. WNTR is a Python package designed for analyzing the resilience of water distribution networks. For more information about WNTR, visit the official WNTR [documentation](https://usepa.github.io/WNTR/).
-* **EPANET [[2]](#2)** Developed by the U.S. Environmental Protection Agency, EPANET is a software application used throughout the world to model water distribution piping systems. For more information about EPANET, visit the official EPANET [documentation](https://www.epa.gov/water-research/epanet)
+* **Water Network Tool for Resilience (WNTR) [[2]](#2)** developed by the U.S. Environmental Protection Agency. WNTR is a Python package designed for analyzing the resilience of water distribution networks. For more information about WNTR, visit the official WNTR [documentation](https://usepa.github.io/WNTR/).
+* **EPANET [[3]](#3)** Developed by the U.S. Environmental Protection Agency, EPANET is a software application used throughout the world to model water distribution piping systems. For more information about EPANET, visit the official EPANET [documentation](https://www.epa.gov/water-research/epanet)
 
-
+![image](doc/_static/UD_NSF_Logo.jpg)
 ## References
 <a id="1">[1]</a>
-Klise, K.A., Hart, D.B., Bynum, M., Hogge, J., Haxton, T., Murray, R., Burkhardt, J. (2020). Water Network Tool for Resilience (WNTR) User Manual: Version 0.2.3. U.S. EPA Office of Research and Development, Washington, DC, EPA/600/R-20/185, 82p.
+Frank McKenna, Stevan Gavrilovic, Jinyan Zhao, Kuanshi Zhong, Adam Zsarnoczay, Barbaros Cetiner, Sang-ri Yi, Aakash Bangalore Satish, Sina Naeimi, & Pedro Arduino. (2024). NHERI-SimCenter/R2DTool: Version 4.2.0 (v4.2.0). Zenodo. https://doi.org/10.5281/zenodo.11175489
 
 <a id="2">[2]</a>
+Klise, K.A., Hart, D.B., Bynum, M., Hogge, J., Haxton, T., Murray, R., Burkhardt, J. (2020). Water Network Tool for Resilience (WNTR) User Manual: Version 0.2.3. U.S. EPA Office of Research and Development, Washington, DC, EPA/600/R-20/185, 82p.
+
+<a id="3">[3]</a>
 Rossman, L., H. Woo, M. Tryby, F. Shang, R. Janke, AND T. Haxton. EPANET 2.2 User Manual. U.S. Environmental Protection Agency, Washington, DC, EPA/600/R-20/133, 2020.
+
+
+

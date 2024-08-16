@@ -42,7 +42,7 @@ class API():
         API class object.
 
         """
-        self.status = REWET_STATUS(1)
+        self.status = REWET_STATUS(0)
         self.input_file = input_file
         self.starter = Starter()
         self.settings = Settings()
@@ -53,6 +53,14 @@ class API():
         self._if_init = False
         self.wn = WaterNetworkModel()
         self.project = None
+
+    def apply_damage(self, current_stop_time, damage_scale=1):
+        # TODO: add this possiblity into the REWET code first
+
+        self.damage.applyPipeDamages(self.wn, current_stop_time, damage_scale)
+        self.damage.applyNodalDamage(self.wn, current_stop_time, damage_scale)
+        self.damage.applyPumpDamages(self.wn, current_stop_time, damage_scale)
+        self.damage.applyTankDamages(self.wn, current_stop_time, damage_scale)
 
     def initiate(self, current_time=None, mpi_rank=None, debug=False):
         """
@@ -156,7 +164,7 @@ class API():
             if self.iDebug is True:
                 raise err
         else:
-            self.status = REWET_STATUS(1)
+            self.status = REWET_STATUS(0)
 
         return self.status
 
@@ -173,6 +181,7 @@ class API():
         else:
             # there is no rank in API, since API is not
             # Get the next time break time from the user input
+
             next_break_time = self.current_time + time_step_length
             # Turn implicit Leaks (WNTR style leaks) into explicit leaks (pipe and reservoir)
             self.wn.implicitLeakToExplicitReservoir(self.registry)
@@ -191,7 +200,6 @@ class API():
             # kept inside the the Hydarulic_Simulation class
             self._prev_isolated_junctions = hyd_sim._prev_isolated_junctions
             self._prev_isolated_links = hyd_sim._prev_isolated_links
-
         if not i_run_successful:
             self.status = REWET_STATUS(200)
         else:
@@ -213,7 +221,7 @@ class API():
             # Reset the added explicit leak mdoels
             self.wn.resetExplicitLeak()
 
-        self.status = REWET_STATUS(1)
+        self.status = REWET_STATUS(0)
 
         return self.status
 
@@ -243,7 +251,7 @@ class API():
             if self.iDebug is True:
                 raise err
         else:
-            self.status = REWET_STATUS(1)
+            self.status = REWET_STATUS(0)
 
         return self.status, r
 
@@ -254,6 +262,20 @@ class API():
                              r,
                              scn_name,
                              self.registry)
+
+    def get_satisfied_demand_ratio(self):
+        self.result = Result(self.project,
+                             ignore_not_found=False,
+                             to_neglect_file=None,
+                             node_col='',
+                             iObject=True)
+
+        delivered_demand_ratio = self.result.getDeliveredDemandRatio(
+                                        scn_name=self.registry.scenario_name)
+
+        return delivered_demand_ratio
+
+
 
     def run_restoration_simulation():
         pass

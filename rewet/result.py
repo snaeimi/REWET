@@ -23,7 +23,7 @@ from rewet.Output.Result_Time import Result_Time
 from rewet.Project import Project as MainProject
 
 class Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
-    def __init__(self, in_project, result_directory=None, ignore_not_found=False, to_neglect_file=None, node_col='', result_file_dir = None, iObject=False):
+    def __init__(self, in_project, result_directory=None, ignore_not_found=False, to_neglect_file=None, node_col='', iObject=False): #result_file_dir = None, iObject=False):
 
         if iObject==False:
             self.readPorjectFile(in_project)
@@ -31,8 +31,8 @@ class Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
             self.project = copy.deepcopy(in_project)
 
 
-        if result_file_dir != None:
-            self.project.project_settings.process.settings['result_directory'] = result_file_dir
+        #if result_file_dir != None:
+            #self.project.project_settings.process.settings['result_directory'] = result_file_dir
             #self.project.scenario_list = io.read_damage_list(self.project.project_settings.process['pipe_damage_file_list'   ], self.project.project_settings.process['pipe_damage_file_directory'])
         #print(self.project.scenario_list)
         self.project.scenario_list = self.project.scenario_list.set_index('Scenario Name')
