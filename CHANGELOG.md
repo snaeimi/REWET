@@ -1,5 +1,15 @@
 ## Version History
 
+### 0.2.0-beta.3
+- Modified Example 1
+- Added one image to documents
+- Modified Manifest to include the shared libraries in the PyPi release
+
+### 0.2.0-beta.2
+- Transfered examples to the REWET main source code
+- resolved a minor bug
+- Added Manifest
+
 ### 0.2.0-beta.1
 - Fixed typos in documentation
 - Improved error handling in data processing module
