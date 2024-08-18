@@ -168,7 +168,7 @@ class Settings():
                 return True
 
         return False
-    
+
     def importJsonSettings(self, json_file_path):
         """read a settinsg json file and import the data
 

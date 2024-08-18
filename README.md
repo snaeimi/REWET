@@ -19,11 +19,21 @@ To install the package, first install the dependencies. Using a virtual environm
 > [!NOTE]
 > We leave creating and activating a virtual environment to the users. The links provided above are sufficient for learning how to do so.
 
-### 2. Install
+### 2. Install REWET
 
-#### 2.1 Download the Code
+For installing REWET, please make sure you have Python installed on your machine. The latest version of the Pyhton that we tested REWET with is 3.9.13. However, you may be able to run REWET with higher version too. We just did not test it! Also, the oldest version of Python that REWET works with is 3.6. Based n your needs, you can choose one of the following methods.
 
-After activating the virtual environment, use GIT to clone REWET's repository and change the current directory to the cloned repository:
+#### 2.1 PyPi
+
+After activating the virtual environment, you can easily install REWET using PyPi. To so so, open the comman prompt/terminal in your machine and type the following:
+
+```bash
+pip3 install rewet
+```
+
+#### 2.2 Download the Repository
+
+ You can also use GIT to clone REWET's repository and change the current directory to the cloned repository:
 
 ```bash
 git clone https://github.com/snaeimi/REWET.git
@@ -31,13 +41,23 @@ cd REWET
 ```
 Alternatively, download the code and unzip the file from the project GitHub and change the current directory to the decompressed directory.
 
-### 2.2 Install from Local
+##### 2.2.1 Install as Users
+
+Being in REWET's directory, type:
+
+```bash
+python -m pip install
+```
+
+##### 2.2.2 Install as Developers
 
 Being in REWET's directory, type:
 
 ```bash
 python -m pip install -e .
 ```
+
+When you install REWET as developer (i.e., using "-e ."), the package is not coppied to where Python usually keeps its packages. This helps you to modify and use the code as you go.
 
 ## Usage
 
@@ -71,11 +91,11 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 
 For any potential collaboration, please contact the author.
 
-## Citing
+## Citation
 
 When you use REWET, please cite REWET as follows:
 
-Sina Naeimi, Rachel A. Davidson. Forthcoming. "REWET: A Tool to Model System Functioning and Restoration of Damaged Water Supply Systems." *ASCE Journal of Infrastructure Systems*. 10.1061/JITSE4/ISENG-2427
+Sina Naeimi, Rachel A. Davidson. Forthcoming. "REWET: A Tool to Model System Function and Restoration of Damaged Water Supply Systems." [Forthcomming] *ASCE Journal of Infrastructure Systems*. 10.1061/JITSE4/ISENG-2427
 
 ## License
 REWET is released under the MIT license. See [LICENSE](https://github.com/snaeimi/REWET/blob/main/LICENSE) for more details.

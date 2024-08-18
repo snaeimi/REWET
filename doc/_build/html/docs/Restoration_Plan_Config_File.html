@@ -4,7 +4,8 @@
 <html class="writer-html5" lang="English" >
 <head>
   <meta charset="utf-8" />
-  
+  <meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <title>Restoration Plan &mdash; REWET  documentation</title>
@@ -103,12 +104,22 @@
 <li class="toctree-l2"><a class="reference internal" href="#files">Files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#sequences">Sequences</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#damage-groups">Damage Groups</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#conditon">Conditon</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#condition">Condition</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#crews">Crews</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#zone-group">Zone (Group)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#points">POINTS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#priorities">PRIORITIES</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#jobs">JOBS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#define">DEFINE</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#method">Method</a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="Future.html">Future Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cite.html">How To Cite</a></li>
 </ul>
 
             
@@ -176,42 +187,42 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="restoration-plan">
+  <section id="restoration-plan">
 <h1>Restoration Plan<a class="headerlink" href="#restoration-plan" title="Permalink to this heading">¶</a></h1>
 <p>The restoration plan may be defined using sectiosn and directives. Sections includes:</p>
 <ul class="simple">
-<li><p><strong>[Files]</strong> Files that are in tabulaetd data in it are storedin it.</p></li>
-<li><p><strong>[Sequences]</strong> Defiens sequence of <cite>Actions</cite> that must be done for a damage of an element type, so that damage type is cosnidered restored.</p></li>
-<li><p><strong>[Damaege_Group]</strong> Defiens damages groups made from elements and tehir damage types.</p></li>
-<li><p><strong>[Crews]</strong> Crew data is defiend in this section.</p></li>
-<li><p><strong>[POINTS]</strong> geographical point groups can be created in thsi sections.</p></li>
-<li><p><strong>[PRIORITIES]</strong> restration pririties are defined here.</p></li>
-<li><p><strong>[JOBS]</strong> Jobs definition are made in this section.</p></li>
-<li><p><strong>[DEFINE]</strong> Job Effect definition is defined here.</p></li>
-<li><p><strong>[Group]</strong> Groups are defien in thsi section.</p></li>
+<li><p><strong>[Files]</strong> Files that are in tabulated data are stored in this section.</p></li>
+<li><p><strong>[Sequences]</strong> Defines a sequence of <cite>Actions</cite> that must be done for a damage of an element type so that the damage type is considered restored.</p></li>
+<li><p><strong>[Damage_Group]</strong> Defines damage groups made from elements and their damage types.</p></li>
+<li><p><strong>[Crews]</strong> Crew data is defined in this section.</p></li>
+<li><p><strong>[Zone]</strong> Zones are defined in this section.</p></li>
+<li><p><strong>[POINTS]</strong> Geographical point groups can be created in this section.</p></li>
+<li><p><strong>[PRIORITIES]</strong> Restoration priorities are defined here.</p></li>
+<li><p><strong>[JOBS]</strong> Job definitions are made in this section.</p></li>
+<li><p><strong>[DEFINE]</strong> Job Effect definitions are defined here.</p></li>
 </ul>
-<div class="section" id="files">
+<section id="files">
 <h2>Files<a class="headerlink" href="#files" title="Permalink to this heading">¶</a></h2>
-<p>Files are usedin other sections. Each file is defiend by its name and path. The structure of teh files are as follows
+<p>Files are used in other sections. Each file is defined by its name and path. The structure of the files is as follows:
 .. code-block:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">File</span> <span class="n">handle</span><span class="o">&gt;</span> <span class="o">&lt;</span><span class="n">File</span> <span class="n">path</span><span class="o">&gt;</span>
 </pre></div>
 </div>
-<p>in which <cite>&lt;file handle&gt;</cite> is the handle used in other sections and the <cite>&lt;file path&gt;</cite> is the relational or absolute path
-of the file. The relative path is relative to teh restoration plan config file.</p>
-</div>
-<div class="section" id="sequences">
+<p>In which <cite>&lt;file handle&gt;</cite> is the handle used in other sections, and the <cite>&lt;file path&gt;</cite> is the relative or absolute path
+of the file. The relative path is relative to the restoration plan config file.</p>
+</section>
+<section id="sequences">
 <h2>Sequences<a class="headerlink" href="#sequences" title="Permalink to this heading">¶</a></h2>
-<p>Each element is water distribution network (e.g., pipe, node, tanks, and pump) needs to have a series of <cite>Action</cite> so that
-teh damage location is considerd restored. Each <cite>Action</cite> is a arbitary Action which later used in defining the restioration
+<p>Each element in the water distribution network (e.g., pipe, node, tanks, and pump) needs to have a series of <cite>Actions</cite> so that
+the damage location is considered restored. Each <cite>Action</cite> is an arbitrary action, which is later used in defining the restoration
 <cite>Priority</cite>.</p>
-<p>The format of the Sequence is as follows::</p>
+<p>The format of the Sequence is as follows:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">Element</span> <span class="n">Type</span><span class="o">&gt;</span> <span class="o">&lt;</span><span class="n">Action</span> <span class="mi">1</span><span class="o">&gt;</span> <span class="o">...</span> <span class="o">&lt;</span><span class="n">Action</span> <span class="n">n</span><span class="o">&gt;</span>
 </pre></div>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>ELement types include:</p>
+<p>Element types include:</p>
 <ul class="simple">
 <li><p><cite>PIPE</cite>,</p></li>
 <li><p><cite>TANK</cite>,</p></li>
@@ -220,40 +231,40 @@ teh damage location is considerd restored. Each <cite>Action</cite> is a arbitar
 </ul>
 <p>Please note that the element types are used in capital form.</p>
 </div>
-<p>An Example of a sequnce list of actions is as follows::</p>
+<p>An example of a sequence list of actions is as follows:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">PIPE</span>   <span class="n">drain</span>   <span class="n">repair</span>   <span class="n">repressurize</span>
 </pre></div>
 </div>
-<p>On this exampel you can define drain, repair and repressurize according to your network's and utilities capacity,
-requirements and starndard operation proceddures.</p>
-</div>
-<div class="section" id="damage-groups">
+<p>For this example, you can define drain, repair, and repressurize according to your network's and utilities' capacity,
+requirements, and standard operating procedures.</p>
+</section>
+<section id="damage-groups">
 <h2>Damage Groups<a class="headerlink" href="#damage-groups" title="Permalink to this heading">¶</a></h2>
-<p>teh user may create oen or more <cite>damage groups</cite>. A damage group is a group damage location of the same <cite>element type</cite> with
-or without other attribute of the element the damage happens on. For instance, a damage group can be damage locations that
-happen on a pipe (i.e., <cite>element type==PIPE</cite>) in which pipe has a diameter equal or bigger than 0.5 m (i.e., diameter&gt;=0.5).
-The user can create such damage groups according to their network's and utilities capacity, requirements and
-starndard operation proceddures. Such damage groups are later used on <cite>Priorities</cite> definition alonside <cite>Actions</cite>.</p>
-<p>The structure format of the damage groups are as follows::</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">Damaeg</span> <span class="n">Group</span> <span class="n">Name</span><span class="o">&gt;</span>   <span class="o">&lt;</span><span class="n">Element</span> <span class="n">Type</span><span class="o">&gt;</span>   <span class="o">&lt;</span><span class="n">Attribute</span><span class="o">&gt;</span>   <span class="o">&lt;</span><span class="n">CONDITION</span> <span class="mi">1</span><span class="o">&gt;</span>
+<p>The user may create one or more <cite>damage groups</cite>. A damage group is a group of damage locations of the same <cite>element type</cite> with
+or without other attributes of the element where the damage occurs. For instance, a damage group can be damage locations that
+occur on a pipe (i.e., <cite>element type==PIPE</cite>) in which the pipe has a diameter equal to or greater than 0.5 m (i.e., diameter&gt;=0.5).
+The user can create such damage groups according to their network's and utilities' capacity, requirements, and
+standard operating procedures. Such damage groups are later used in <cite>Priorities</cite> definition alongside <cite>Actions</cite>.</p>
+<p>The structure format of the damage groups is as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">Damage</span> <span class="n">Group</span> <span class="n">Name</span><span class="o">&gt;</span>   <span class="o">&lt;</span><span class="n">Element</span> <span class="n">Type</span><span class="o">&gt;</span>   <span class="o">&lt;</span><span class="n">Attribute</span><span class="o">&gt;</span>   <span class="o">&lt;</span><span class="n">CONDITION</span> <span class="mi">1</span><span class="o">&gt;</span>
                             <span class="o">.</span>
                             <span class="o">.</span>
                             <span class="o">.</span>
-<span class="o">&lt;</span><span class="n">Damaeg</span> <span class="n">Group</span> <span class="n">Name</span><span class="o">&gt;</span>   <span class="o">&lt;</span><span class="n">Element</span> <span class="n">Type</span><span class="o">&gt;</span>   <span class="o">&lt;</span><span class="n">Attribute</span><span class="o">&gt;</span>   <span class="o">&lt;</span><span class="n">CONDITION</span> <span class="n">N</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">Damage</span> <span class="n">Group</span> <span class="n">Name</span><span class="o">&gt;</span>   <span class="o">&lt;</span><span class="n">Element</span> <span class="n">Type</span><span class="o">&gt;</span>   <span class="o">&lt;</span><span class="n">Attribute</span><span class="o">&gt;</span>   <span class="o">&lt;</span><span class="n">CONDITION</span> <span class="n">N</span><span class="o">&gt;</span>
 </pre></div>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>each line of adde condition connotes logical <cite>AND</cite>.</p>
+<p>Each line of added condition connotes logical <cite>AND</cite>.</p>
 </div>
-<div class="section" id="conditon">
-<h3>Conditon<a class="headerlink" href="#conditon" title="Permalink to this heading">¶</a></h3>
-<p>In REWET a condition is created with three values each sepearetd with one colon (i.e., &quot;<cite>:</cite>&quot;). The values are follows::</p>
+<section id="condition">
+<h3>Condition<a class="headerlink" href="#condition" title="Permalink to this heading">¶</a></h3>
+<p>In REWET, a condition is created with three values each separated by a colon (i.e., &quot;<cite>:</cite>&quot;). The values are as follows:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">Attribute</span><span class="o">&gt;</span><span class="p">:</span><span class="o">&lt;</span><span class="n">Condition</span><span class="o">&gt;</span><span class="p">:</span><span class="o">&lt;</span><span class="n">Condition</span> <span class="n">Value</span><span class="o">&gt;</span>
 </pre></div>
 </div>
-<p>Attributes are as in the following table:</p>
-<table class="colwidths-auto docutils align-center" id="id1">
+<p>Attributes are as listed in the following table:</p>
+<table class="docutils align-center" id="id1">
 <caption><span class="caption-text">Attributes in Damage Group</span><a class="headerlink" href="#id1" title="Permalink to this table">¶</a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Element Type</p></th>
@@ -267,9 +278,9 @@ starndard operation proceddures. Such damage groups are later used on <cite>Prio
 <p>FILE</p>
 <p>NOT_IN_FILE</p>
 </td>
-<td><p>Diameter of teh pipe</p>
-<p>Names of the element specified in ths file.</p>
-<p>Names of the element not specified in the file.</p>
+<td><p>Diameter of the pipe</p>
+<p>Names of the elements specified in this file.</p>
+<p>Names of the elements not specified in the file.</p>
 </td>
 </tr>
 <tr class="row-odd"><td><p>NODE</p></td>
@@ -277,30 +288,30 @@ starndard operation proceddures. Such damage groups are later used on <cite>Prio
 <p>FILE</p>
 <p>NOT_IN_FILE</p>
 </td>
-<td><p>Numebr of damages</p>
-<p>Names of the element specified in ths file.</p>
-<p>Names of the element not specified in the file.</p>
+<td><p>Number of damages</p>
+<p>Names of the elements specified in this file.</p>
+<p>Names of the elements not specified in the file.</p>
 </td>
 </tr>
 <tr class="row-even"><td><p>TANK</p></td>
 <td><p>FILE</p>
 <p>NOT_IN_FILE</p>
 </td>
-<td><p>Names of the element specified in ths file.</p>
-<p>Names of the element not specified in the file.</p>
+<td><p>Names of the elements specified in this file.</p>
+<p>Names of the elements not specified in the file.</p>
 </td>
 </tr>
 <tr class="row-odd"><td><p>PUMP</p></td>
 <td><p>FILE</p>
 <p>NOT_IN_FILE</p>
 </td>
-<td><p>Names of the element specified in ths file.</p>
-<p>Names of the element not specified in the file.</p>
+<td><p>Names of the elements specified in this file.</p>
+<p>Names of the elements not specified in the file.</p>
 </td>
 </tr>
 </tbody>
 </table>
-<p>Applicable Conditons are:
+<p>Applicable Conditions are:
 * EQ: equal,
 * BT: bigger than,
 * LT: less than,
@@ -308,15 +319,214 @@ starndard operation proceddures. Such damage groups are later used on <cite>Prio
 * LE: less than or equal to,</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>When File and NOT_IN_FILE are teh attributes, teh conditions can only be EQ, NE amnd teh values can be a file handle.</p>
+<p>When File and NOT_IN_FILE are the attributes, the conditions can only be EQ or NE, and the values can be a file handle.</p>
 </div>
-<p>For the excamples above the Conditon will be::</p>
+<p>For the examples above, the Condition will be:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">a_name</span>   <span class="n">PIPE</span>   <span class="n">DIAMETER</span><span class="p">:</span><span class="n">BE</span><span class="p">:</span><span class="mf">0.5</span>
 </pre></div>
 </div>
+</section>
+</section>
+<section id="crews">
+<h2>Crews<a class="headerlink" href="#crews" title="Permalink to this heading">¶</a></h2>
+<p>Crews are defined as the number of crews for each shift and their base location. Because this data is tabular, you define
+such data in files in a tabular format and then just use the file handle after the crew's name. The format of defining crews is:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">Crew</span> <span class="n">Name</span><span class="o">&gt;</span>   <span class="n">File</span>   <span class="o">&lt;</span><span class="n">File</span> <span class="n">Handle</span><span class="o">&gt;</span>   <span class="o">&lt;</span><span class="n">Zone</span> <span class="n">Name</span><span class="p">:</span><span class="n">Column</span> <span class="n">Identifier</span><span class="o">&gt;</span>
+</pre></div>
 </div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><em>Zone Name</em> is optional. If in the Zone section, we define zones for elements, then we have to define zones for crews
+too. Otherwise, crews will never be assigned to those elements (or some elements), and those elements will never be restored.</p>
 </div>
+<p>The column identifier is the Zone-Name column's identifier in the crew tabular data file.</p>
+<p>In the file represented by &lt;File Handle&gt;, the following information must be given:</p>
+<table class="docutils align-center" id="id2">
+<caption><span class="caption-text">Attributes in Damage Group</span><a class="headerlink" href="#id2" title="Permalink to this table">¶</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Home-X-Coord</p></th>
+<th class="head"><p>Home-Y-Coord</p></th>
+<th class="head"><p>Number</p></th>
+<th class="head"><p>Shift</p></th>
+<th class="head"><p>Zone-Name column identifier</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>&lt;X&gt;</p></td>
+<td><p>&lt;Y&gt;</p></td>
+<td><p>&lt;N&gt;</p></td>
+<td><p>Shift Name</p></td>
+<td><p>&lt;Zone-Name&gt;</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The table above is a comma-delimited table. The columns and data are separated by commas.</p>
 </div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><em>Zone Name</em> is optional. If in the Zone section, we define zones for elements, then we have to define zones for crews
+too. Otherwise, crews will never be assigned to those elements (or some elements), and those elements will never be restored.</p>
+</div>
+<p>There can be multiple crews of the same type in one file (i.e., different numbers and different shifts). If the
+crews are grouped into zones, then the user may provide &lt;Zone-Name&gt;.</p>
+</section>
+<section id="zone-group">
+<h2>Zone (Group)<a class="headerlink" href="#zone-group" title="Permalink to this heading">¶</a></h2>
+<p>When you want to assign the crews to a group of elements (most likely based on their geographical location),
+you can do so using the Zone (AKA grouping) feature. In this way, each zone (aka group) is defined in one line as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">ZONE</span> <span class="n">Name</span><span class="o">&gt;</span>   <span class="o">&lt;</span><span class="n">Element</span> <span class="n">Type</span><span class="o">&gt;</span>   <span class="n">FILE</span>   <span class="o">&lt;</span><span class="n">File</span> <span class="n">Handle</span><span class="o">&gt;</span>   <span class="o">&lt;</span><span class="n">ELEMENT</span> <span class="n">Column</span> <span class="n">Identifier</span><span class="o">&gt;</span>   <span class="o">&lt;</span><span class="n">Zone</span><span class="o">-</span><span class="n">Name</span> <span class="n">Column</span> <span class="n">Identifier</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>When you define a zone, you give a name to the zone, the element type that the zone is related to, and after
+FILE, you give the file handle of the file that contains the zone data. The two last arguments are the elements' and
+zone-name column identifiers in the file that is represented by the file handle.</p>
+</section>
+<section id="points">
+<h2>POINTS<a class="headerlink" href="#points" title="Permalink to this heading">¶</a></h2>
+<p>You can define groups of geographical points in this section. The format of defining points is as follows::</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">Point</span><span class="o">-</span><span class="n">Group</span> <span class="n">Name</span><span class="o">&gt;</span>   <span class="o">&lt;</span><span class="n">X</span> <span class="n">Coordinate</span><span class="o">&gt;</span><span class="p">:</span><span class="o">&lt;</span><span class="n">Y</span> <span class="n">Coordinate</span><span class="o">&gt;</span>   <span class="o">...</span>   <span class="o">&lt;</span><span class="n">X</span> <span class="n">Coordinate</span><span class="o">&gt;</span><span class="p">:</span><span class="o">&lt;</span><span class="n">Y</span> <span class="n">Coordinate</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>In the above format, the X and Y coordinates are separated by a colon (i.e., <cite>:</cite>). Each point's coordinates are separated by a space.</p>
+<p>You can use the point group in priorities as a <strong>secondary priority</strong>. Such points can be representative of (but not limited to)
+focal points, water sources, important establishments, etc.</p>
+</section>
+<section id="priorities">
+<h2>PRIORITIES<a class="headerlink" href="#priorities" title="Permalink to this heading">¶</a></h2>
+<p>Priorities are defined in this section. Each priority is defined by a name, a damage group, a sequence, and a crew.
+There are two sorts of priorities: <cite>Primary</cite> and <cite>Secondary</cite>. The <em>Primary</em> priorities are the main priorities showing a job,
+which is a combination of <em>Actions</em> that is happening on a damage location belonging to a <em>Damage Group</em>. The <em>Secondary</em>, however,
+defines which damage location should be worked on within the <em>Primary</em> priority. A priority is a list of primary and secondary
+priorities.</p>
+<p>The format of defining priorities is as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">Crew</span><span class="o">&gt;</span>   <span class="o">&lt;</span><span class="n">ACTION</span><span class="o">&gt;</span><span class="p">:</span><span class="o">&lt;</span><span class="n">Damage</span> <span class="n">Group</span><span class="o">&gt;</span>   <span class="o">...</span>   <span class="o">&lt;</span><span class="n">ACTION</span><span class="o">&gt;</span><span class="p">:</span><span class="o">&lt;</span><span class="n">Damage</span> <span class="n">Group</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">CREW</span><span class="o">&gt;</span>   <span class="o">&lt;</span><span class="n">SECONDARY</span> <span class="n">PRIORITY</span><span class="o">&gt;</span>      <span class="o">...</span>   <span class="o">&lt;</span><span class="n">SECONDARY</span> <span class="n">PRIORITY</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The Secondary priorities are either a point group name that is defined before or one of the built-in secondary priorities.
+The built-in secondary priorities are:</p>
+<ul class="simple">
+<li><p><strong>HYD_SIG</strong>: The hydraulic significance of the element.</p></li>
+<li><p><cite>Shortest Distance</cite> [FUTURE],</p></li>
+<li><p><cite>Minimum Damages</cite> [FUTURE],</p></li>
+<li><p><cite>Largest Diameter</cite> [FUTURE],</p></li>
+<li><p><cite>Smallest Diameter</cite> [FUTURE], and</p></li>
+<li><p><cite>Crew Base</cite> [FUTURE].</p></li>
+</ul>
+</div>
+<p>For instance, if a point group has been defined before as ‘P_Group’, then the following is an example of such a priority definition:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Crew_A</span>    <span class="n">REPAIR</span><span class="p">:</span><span class="n">all_critical_pipes</span>
+<span class="n">Crew_A</span>    <span class="n">P_Group</span>
+
+ <span class="n">Restoration</span> <span class="n">Crew</span> <span class="n">A</span>  <span class="n">REPAIR</span><span class="p">:</span><span class="n">al</span>
+</pre></div>
+</div>
+</section>
+<section id="jobs">
+<h2>JOBS<a class="headerlink" href="#jobs" title="Permalink to this heading">¶</a></h2>
+<p>Jobs are defined in this section. Each job is specified by a crew name, the job (defined as a primary priority), the time it takes, and its effect on the system once the job is completed. The format for defining jobs is as follows::</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">CREW</span><span class="o">&gt;</span>   <span class="o">&lt;</span><span class="n">ACTION</span><span class="o">&gt;</span><span class="p">:</span><span class="o">&lt;</span><span class="n">DAMAGE</span> <span class="n">GROUP</span><span class="o">&gt;</span> <span class="n">FIX</span><span class="p">:</span><span class="o">&lt;</span><span class="n">TIME</span><span class="o">&gt;</span>   <span class="o">&lt;</span><span class="n">EFFECT</span> <span class="n">NAME</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Currently, all time values defined in REWET are a fixed time in seconds. Thus, the text &quot;FIX&quot; must always be used in this manner.</p>
+</div>
+<p>The effect name is defined in the <cite>DEFINE</cite> section, which is essentially a list of <em>Basic Effects</em>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><em>INSPECT</em> is a <em>Basic Effect</em>. However, you can use <em>INSPECT</em> instead of EFFECTS. In this way, you will not have to define an EFFECT solely for <em>INSPECT</em>. Nevertheless, you can do that as well. The purpose of this exemption is to make it easier for the user to use <em>INSPECT</em> when the result of the job is only <em>INSPECT</em>.</p>
+</div>
+</section>
+<section id="define">
+<h2>DEFINE<a class="headerlink" href="#define" title="Permalink to this heading">¶</a></h2>
+<p>In this section, you define the effects of the jobs. An EFFECT can consist of one or more effects. The format for defining effects is as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">Effect</span> <span class="n">Name</span><span class="o">&gt;</span>        <span class="o">&lt;</span><span class="n">Method</span> <span class="n">no</span><span class="o">.&gt;</span>  <span class="o">&lt;</span><span class="n">Basic</span> <span class="n">Effect</span> <span class="mi">1</span><span class="o">&gt;</span> <span class="o">...</span> <span class="o">&lt;</span><span class="n">Basic</span> <span class="n">Effect</span> <span class="n">n</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>Basic Effects are as follows:</p>
+<table class="docutils align-center" id="id3">
+<caption><span class="caption-text">Attributes in Damage Group</span><a class="headerlink" href="#id3" title="Permalink to this table">¶</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Basic Effect</p></th>
+<th class="head"><p>Definition</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>INSPECT</p></td>
+<td><p>Keeps the crew busy for the job duration but has no effect on the network. It can be used for any task where this applies. When applied to a demand node, it records the flow to determine if it should be isolated.</p></td>
+</tr>
+<tr class="row-odd"><td><p>STOP_LEAK</p></td>
+<td><p>Removes extra pipe and reservoir that were added to represent the leak and closes the downstream pipe. This prevents water from flowing out of the pipe through a leak but does not allow it to continue downstream to its original destination either.</p></td>
+</tr>
+<tr class="row-even"><td><p>COMPLETE_BYPASS</p></td>
+<td><p>Bypasses multiple damage locations by adding a new pipe from one end of a pipe segment to the other. The user may specify the diameter and pipe friction for the new pipe to reflect the nature of the bypass (by default, values associated with the original pipe are used). Alternatively, the user may specify a fraction of the diameter of the original pipe instead of explicitly specifying the bypass pipe.</p></td>
+</tr>
+<tr class="row-odd"><td><p>LOCAL_BYPASS</p></td>
+<td><p>Similar to a complete pipe bypass, but for a single damage location.</p></td>
+</tr>
+<tr class="row-even"><td><p>ADD_RESERVOIR</p></td>
+<td><p>Represents a connection to a supplemental water source. Adds a reservoir to both sides of a pipe damage location, each with a check valve allowing water to flow only from the reservoirs to the pipe. The user may specify the height of each reservoir relative to the node it is attached to (default is zero), and/or include a pump to reflect the nature of the water source.</p></td>
+</tr>
+<tr class="row-odd"><td><p>ISOLATE_NODE</p></td>
+<td><p>Closes the extra pipe that was added to represent damage to a demand node. Represents the isolation of demand nodes to stop water loss if there is excessive demand node damage at the time of inspection, where “excessive” is based on a user-specified ratio of post-damage to pre-event damage (default is three).</p></td>
+</tr>
+<tr class="row-even"><td><p>REPAIR</p></td>
+<td><p>Returns the element to its original state.</p></td>
+</tr>
+<tr class="row-odd"><td><p>SKIP</p></td>
+<td><p>No job is assigned, and the action in the sequence of the elements will be skipped. This basic effect is used after the conditional basic effect to instruct REWET that the job is assigned only if certain conditions hold.</p></td>
+</tr>
+</tbody>
+</table>
+<section id="method">
+<h3>Method<a class="headerlink" href="#method" title="Permalink to this heading">¶</a></h3>
+<p>There can be multiple effects in different methods. REWET checks each method in the order defined in the effect definition, and if the method can be applied, the the method is run. Effect-method number starts from 1.  in the job definition. REWET uses a probability-based method. Let's explain it using an example. For example, if you want to repair pipes based on their material (materials M1 and M2), and for Pipe M1 you only want to inspect because you cannot repair it, while for M2, you want to first inspect and then stop the leak, you can do the following:</p>
+<p>You know the names of all pipes in the input file and their materials, so you create a small CSV file with the element ID (pipe names) and the method applicable to each pipe: 1 for M1 and 2 for M2. Since there is only one method for each material, you define the probability as 1 for each of those methods. The CSV file will look something like this:</p>
+<blockquote>
+<div><p>Pipe-Name,Method,Probability
+Pipe-1,1,1
+Pipe-2,2,1
+Pipe-3,2,1
+Pipe-4,1,1
+Pipe-5,2,1</p>
+</div></blockquote>
+<p>Then, in the [DEFINE] section, you specify that for a specific &lt;effect name&gt;, the method information is provided in the file. The format of the definition is as follows:</p>
+<blockquote>
+<div><p>&lt;Effect Name&gt;       FILE  &lt;FILE HANDLE&gt;   ELEMENT_NAME:&lt;Element-ID Column Identifier&gt;   METHOD_NAME:&lt;Method Column Identifier&gt; METHOD_PROBABILITY:&lt;Probability Column Identifier&gt;</p>
+</div></blockquote>
+<p>For our example, assuming the CSV file is defined with a handle called method_file, the definition will be as follows::</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Pipe_job</span>   <span class="n">FILE</span>   <span class="n">method_file</span>   <span class="n">ELEMENT_NAME</span><span class="p">:</span><span class="n">Pipe</span><span class="o">-</span><span class="n">Name</span>   <span class="n">METHOD_NAME</span><span class="p">:</span><span class="n">Method</span>   <span class="n">METHOD_PROBABILITY</span><span class="p">:</span><span class="n">Probability</span>
+</pre></div>
+</div>
+<p>Then, of course, you have to define the effect in the [DEFINE] section. The definition will be as follows:</p>
+<blockquote>
+<div><p>Pipe_job 1 INSPECT
+Pipe_job 2 INSPECT STOP_LEAK</p>
+</div></blockquote>
+<p>Now, let's make the example a little more complicated. Let's say that for M2, half of the time you cannot stop the leak. In this case, you let REWET know that there is a 50% chance for selecting the method for M2 only. To do this, you add a line for all M2 pipes (i.e., Pipe-2, Pipe-3, and Pipe-5) in the method file. The file will look like this::</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Pipe</span><span class="o">-</span><span class="n">Name</span><span class="p">,</span><span class="n">Method</span><span class="p">,</span><span class="n">Probability</span>
+<span class="n">Pipe</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="n">Pipe</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mf">0.5</span>
+<span class="n">Pipe</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mf">0.5</span>
+<span class="n">Pipe</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mf">0.5</span>
+<span class="n">Pipe</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mf">0.5</span>
+<span class="n">Pipe</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span>
+<span class="n">Pipe</span><span class="o">-</span><span class="mi">5</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mf">0.5</span>
+<span class="n">Pipe</span><span class="o">-</span><span class="mi">5</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mf">0.5</span>
+</pre></div>
+</div>
+<p>Now, what if each method is going to take a different amount of time? In this case, you can override the time value that you defined for the job, even based on the element ID value (for example, longer pipes may take longer time). To do this, you can define the override command as follows::</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">Effect</span> <span class="n">Name</span><span class="o">&gt;</span>       <span class="n">FILE</span>  <span class="o">&lt;</span><span class="n">FILE</span> <span class="n">HANDLE</span><span class="o">&gt;</span>   <span class="n">ELEMENT_NAME</span><span class="p">:</span><span class="o">&lt;</span><span class="n">Element</span><span class="o">-</span><span class="n">ID</span> <span class="n">Column</span> <span class="n">Identifier</span><span class="o">&gt;</span>   <span class="n">METHOD_NAME</span><span class="p">:</span><span class="o">&lt;</span><span class="n">Method</span> <span class="n">Column</span> <span class="n">Identifier</span><span class="o">&gt;</span> <span class="n">METHOD_PROBABILITY</span><span class="p">:</span><span class="o">&lt;</span><span class="n">Probability</span> <span class="n">Column</span> <span class="n">Identifier</span><span class="o">&gt;</span>   <span class="n">FIXED_TIME_OVERWRITE</span><span class="p">:</span><span class="o">&lt;</span><span class="n">Time</span><span class="o">-</span><span class="n">override</span> <span class="n">column</span> <span class="n">identifier</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
 
 
            </div>
