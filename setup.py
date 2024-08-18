@@ -11,7 +11,7 @@ MAINTAINER_EMAIL = 'snaeimi@udel.edu'
 LICENSE = 'MIT'
 URL = 'https://github.com/snaeimi/WNTR'
 DEPENDENCIES = [
-    'numpy>=1.21', 'scipy', 'networkx', 'pandas', 'matplotlib',
+    'numpy>=1.21', 'scipy', 'networkx', 'pandas<2.0.0', 'matplotlib',
     'setuptools', 'wntrfr==1.1.0.1.2', 'sphinx', 'openpyxl'
 ]
 

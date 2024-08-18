@@ -1,5 +1,9 @@
 ## Version History
 
+### 0.2.0-beta.4
+- Modified requirements
+
+
 ### 0.2.0-beta.3
 - Modified Example 1
 - Added one image to documents

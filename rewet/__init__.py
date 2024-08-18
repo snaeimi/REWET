@@ -10,6 +10,6 @@ from rewet import EnhancedWNTR
 from rewet.result import Result
 from rewet.api.apis import API
 
-__version__ = '0.2.0-beta.3'
+__version__ = '0.2.0-beta.4'
 
 
