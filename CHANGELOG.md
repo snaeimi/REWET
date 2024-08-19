@@ -1,6 +1,10 @@
 ## Version History
 
 ### 0.2.0-beta.4
+- Removed some bugs in results
+- Project.prj file is always created even when other kind of inputs are provided.
+
+### 0.2.0-beta.4
 - Modified requirements
 
 

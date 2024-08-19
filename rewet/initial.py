@@ -101,8 +101,8 @@ class Starter():
 
         damage_list = io.read_damage_list(settings.process['pipe_damage_file_list'], settings.process['pipe_damage_file_directory'])
         settings.process.settings['list'] = damage_list
-        if type(project_file) == type(None):
-            Project.createProjectFile(settings, damage_list, "project.prj")
+        #if type(project_file) == type(None):
+        Project.createProjectFile(settings, damage_list, "project.prj")
         #raise
         if settings.process['number_of_proccessor']==1: #Single mode
             #get damage list as Pandas Dataframe

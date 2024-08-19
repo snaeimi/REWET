@@ -25,7 +25,12 @@ class Crew_Report():
         reg = self.registry[scn_name]
         #crew_type  = self.getCrewForTime(scn_name, time)
         crew_table = reg.restoration_log_book.crew_history[time]
+        crew_found = False
         typed_crew_table = crew_table[crew_table['type']==crew_type_name]
+
+        if typed_crew_table.empty:
+            raise ValueError(
+                f"The crew type is was not found: {crew_type_name}")
 
         if type(crew_zone) != type(None):
             if type(crew_zone) == str:
@@ -103,7 +108,7 @@ class Crew_Report():
             elif not_on_working==True:
                 available_number_time = available_number_time[available_number_time['ready']==True]
             else:
-                raise ValueError("Unnown not on shift" + repr(not_on_working))
+                raise ValueError("Unknown not on shift" + repr(not_on_working))
             crew_number.loc[time] = len(available_number_time)
 
         return total_number, crew_number

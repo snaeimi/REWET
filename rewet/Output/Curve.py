@@ -68,7 +68,7 @@ class Curve():
         res              = self.data[scn_name]
         reg              = self.registry[scn_name]
         time_list        = res.node['demand'].index
-        pump_damage      = reg.damage.damaged_pumps
+        pump_damage      = reg.input_pump_damages
         pump_damage_time = pump_damage.index
 
         time_action_done = {}
@@ -79,10 +79,11 @@ class Curve():
         return pd.Series(time_action_done)
 
     def getTankStatus(self, scn_name):
+        res = self.data[scn_name]
         self.loadScneariodata(scn_name)
         reg = self.registry[scn_name]
-        time_list = reg.time_list
-        tank_damage = reg.damage.tamk_damage
+        time_list = res.node['demand'].index
+        tank_damage = reg.input_tank_damages
         tank_damage_time = tank_damage.index
 
         time_action_done = {}
@@ -253,20 +254,26 @@ class Curve():
     def getBSCIndexPopulation_4(self, scn_name, bsc="DL", iPopulation=False, ratio= False, consider_leak=False, leak_ratio=1):
         if bsc == "DL":
             return self.getDLIndexPopulation_4(scn_name,
-                                          iPopulation=iPopulation,
-                                          ratio= ratio,
-                                          consider_leak=consider_leak,
-                                          leak_ratio=leak_ratio)
+                                               iPopulation=iPopulation,
+                                               ratio= ratio,
+                                               consider_leak=consider_leak,
+                                               leak_ratio=leak_ratio)
         elif bsc == "QN":
             return self.getQNIndexPopulation_4(scn_name,
-                                          iPopulation=iPopulation,
-                                          ratio=ratio,
-                                          consider_leak=consider_leak,
-                                          leak_ratio=leak_ratio)
+                                               iPopulation=iPopulation,
+                                               ratio=ratio,
+                                               consider_leak=consider_leak,
+                                               leak_ratio=leak_ratio)
         else:
             raise ValueError(f"BSC input is not recognizable: {bsc}")
 
-    def getDLIndexPopulation_4(self, scn_name , iPopulation="No",ratio= False, consider_leak=False, leak_ratio=1):
+    def getDLIndexPopulation_4(self,
+                               scn_name,
+                               iPopulation="No",
+                               ratio= False,
+                               consider_leak=False,
+                               leak_ratio=1):
+
         if type(leak_ratio) != float:
             leak_ratio = float(leak_ratio)
 
@@ -305,7 +312,7 @@ class Curve():
                     leak_data.append(leak_more_than_criteria)
         leak_data = pd.DataFrame(leak_data).transpose()
 
-        s = refined_result > demands * 0.1
+        s = refined_result > demands * 0.01
         for name in s:
             if name in leak_data.columns:
                 leak_data_name = leak_data[name]

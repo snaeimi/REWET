@@ -16,8 +16,17 @@ def resolve_path(the_path):
     except:
         failed = True
 
+    # This is here for teh assumption that assuming that the path
+    # is regarding the REWET's source folder (for instance the path
+    # is pointing to the examples).
     if failed:
         resolved_path = (Path(__file__)/".."/".."/the_path).resolve()
+
+        # this is here to give the orginal path back if the path after
+        # assuming that the path is regarding the REWET's source folder was
+        # wrong.
+        if resolved_path.exists() == False:
+            return the_path.resolve()
 
     return resolved_path
 

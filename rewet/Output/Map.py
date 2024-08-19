@@ -143,7 +143,12 @@ class Map():
         print(tt)
         return s
 
-    def getOutageTimeGeoPandas_4(self, scn_name, LOS='DL' , iConsider_leak=False, leak_ratio=0, consistency_time_window=7200):
+    def getOutageTimeGeoPandas_4(self,
+                                 scn_name,
+                                 LOS='DL',
+                                 iConsider_leak=False,
+                                 leak_ratio=0,
+                                 consistency_time_window=0):
         #print(repr(LOS) + "   " + repr(iConsider_leak)+"  "+ repr(leak_ratio)+"   "+repr(consistency_time_window  ) )
         self.loadScneariodata(scn_name)
         res         = self.data[scn_name]
@@ -224,17 +229,28 @@ class Map():
 
         return geopandas_df
 
-    def getOutageTimeGeoPandas_5(self, scn_name, bsc='DL' , iConsider_leak=False, leak_ratio=0, consistency_time_window=7200, sum_time=False):
+    def getOutageTimeGeoPandas_5(self,
+                                 scn_name,
+                                 bsc='DL',
+                                 iConsider_leak=False,
+                                 leak_ratio=0,
+                                 consistency_time_window=7200,
+                                 sum_time=False,
+                                 ignore_time=0):
+
         self.loadScneariodata(scn_name)
+
         res                = self.data[scn_name]
-        map_res            = pd.Series(data=0 , index=self.demand_node_name_list, dtype=np.int64)
+        map_res            = pd.Series(data=0,
+                                       index=self.demand_node_name_list,
+                                       dtype=np.int64)
 
         required_demand    = self.getRequiredDemandForAllNodesandtime(scn_name)
         delivered_demand   = res.node['demand'][self.demand_node_name_list]
-        common_nodes_leak  = list (set( res.node['leak'].columns ).intersection( set(  self.demand_node_name_list  ) ))
+        common_nodes_leak  = list(set(res.node['leak'].columns).intersection(set(self.demand_node_name_list)))
         leak_res           = res.node['leak'][common_nodes_leak]
 
-        common_nodes_demand = list( set(delivered_demand.columns).intersection(set(self.demand_node_name_list) ) )
+        common_nodes_demand = list(set(delivered_demand.columns).intersection(set(self.demand_node_name_list)))
         delivered_demand    = delivered_demand[common_nodes_demand]
         required_demand     = required_demand[common_nodes_demand]
 
@@ -253,7 +269,7 @@ class Map():
 
         if iConsider_leak :
             #return leak_res, required_demand
-            leak_res_non_available_time_list =  set(required_demand[leak_res.columns].index) - set(leak_res.index)
+            leak_res_non_available_time_list = set(required_demand[leak_res.columns].index) - set(leak_res.index)
             if len(leak_res_non_available_time_list) > 0:
                 leak_res_non_available_time_list = list(leak_res_non_available_time_list)
                 temp_data = pd.DataFrame([[0 for i in leak_res.columns] for j in range( len(leak_res_non_available_time_list) ) ], index= leak_res_non_available_time_list, columns=leak_res.columns)
@@ -286,7 +302,7 @@ class Map():
         else:
             window_bsc_not_met = bsc_res_not_met_bool
 
-        pre_incident = (window_bsc_not_met.loc[:3600*3]).any()
+        pre_incident = (window_bsc_not_met.loc[:ignore_time]).any()
         non_incident = pre_incident[pre_incident==False].index
 
         not_met_node_name_list = window_bsc_not_met.any()

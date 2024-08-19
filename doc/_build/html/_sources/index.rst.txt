@@ -21,6 +21,7 @@ The following compromises the content of the documentation.
    docs/inputs.rst
    docs/WorkflowDescription.rst
    docs/Restoration_Plan_Config_File.rst
+   docs/examples.rst
    docs/Future.rst
    docs/cite.rst
 

@@ -210,11 +210,11 @@ The format of defining priorities is as follows::
     The built-in secondary priorities are:
 	
     * **HYD_SIG**: The hydraulic significance of the element.	
-    * `Shortest Distance` [FUTURE],
-    * `Minimum Damages` [FUTURE],
-    * `Largest Diameter` [FUTURE],
-    * `Smallest Diameter` [FUTURE], and
-    * `Crew Base` [FUTURE].
+    * **Shortest Distance** [FUTURE],
+    * **Minimum Damages** [FUTURE],
+    * **Largest Diameter** [FUTURE],
+    * **Smallest Diameter** [FUTURE], and
+    * **Crew Base** [FUTURE].
 	
 For instance, if a point group has been defined before as ‘P_Group’, then the following is an example of such a priority definition:
 
