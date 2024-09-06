@@ -3,4 +3,8 @@ include LICENSE.md
 include rewet/EnhancedWNTR/epanet/Darwin/*
 include rewet/EnhancedWNTR/epanet/Linux/*
 include rewet/EnhancedWNTR/epanet/Windows/*
-include rewet/examples/*
+include rewet/examples/Net3/*
+include rewet/examples/Net3/Crew_Data/*
+include rewet/examples/Net3/Damages/*
+include rewet/examples/Net3/Result/*
+include rewet/examples/Net3/RunFiles/*
