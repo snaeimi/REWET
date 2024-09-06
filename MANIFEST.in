@@ -3,3 +3,4 @@ include LICENSE.md
 include rewet/EnhancedWNTR/epanet/Darwin/*
 include rewet/EnhancedWNTR/epanet/Linux/*
 include rewet/EnhancedWNTR/epanet/Windows/*
+include rewet/examples/*

@@ -13,7 +13,7 @@ For installing REWET, the easiest way is to install using PyPi.
 
 .. code-block:: bash
 
-    pypi install rewet
+    pip3 install rewet
 
 2. Local Install 
 ****************

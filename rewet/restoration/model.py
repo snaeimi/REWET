@@ -21,6 +21,9 @@ logger = logging.getLogger(__name__)
 
 class Restoration():
     def __init__(self, conifg_file_name, registry, damage):
+        if registry.settings["Restoration_on"] is False:
+            return
+
         self.ELEMENTS                  = ['PIPE', 'DISTNODE', 'GNODE', 'TANK','PUMP', 'RESERVOIR']
         self._CONDITIONS               = ['EQ','BG','LT','BG-EQ','LT-EQ','NOTEQ']
         self.reserved_priority_names   = ["CLOSEST", "MOSTLEAKATCHECK", "HYDSIG", "HYDSIGLASTFLOW"]

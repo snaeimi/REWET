@@ -37,8 +37,8 @@ class Process_Settings(base):
         self.settings['minimum_simulation_time'      ] = (10 + 24 * 2) * 3600 #seconds
         self.settings['simulation_time_step'         ] = 3600 #seconds
         self.settings['number_of_damages'            ] = 'single' #single or multiple. If single, indicate single damage files. If multiple, indicate "pipe_damage_file_list"
-        self.settings['result_directory'             ] = "Examples/Net3/Result"
-        self.settings['temp_directory'               ] = "Examples/Net3/RunFiles"
+        self.settings['result_directory'             ] = "examples/Net3/Result"
+        self.settings['temp_directory'               ] = "examples/Net3/RunFiles"
         self.settings['save_time_step'               ] = True
         self.settings['last_sequence_termination'    ] = True  # TODO: GUI
         self.settings['node_demand_temination'       ] = False # TODO: GUI
@@ -51,7 +51,7 @@ class Process_Settings(base):
         """
         Hydraulic settings
         """
-        self.settings['WN_INP'             ] = "Examples/Net3/net3.inp"
+        self.settings['WN_INP'             ] = "examples/Net3/net3.inp"
         self.settings['demand_ratio'       ] = 1
         self.settings['solver'             ] = 'ModifiedEPANETV2.2' # TODO: GUI
         #self.settings['hydraulic_time_step'] = 3600
@@ -60,8 +60,8 @@ class Process_Settings(base):
         """
         Damage settings
         """
-        self.settings['pipe_damage_file_list'     ] = "Examples/Net3/list.xlsx"
-        self.settings['pipe_damage_file_directory'] = "Examples/Net3/Damages"
+        self.settings['pipe_damage_file_list'     ] = "examples/Net3/list.xlsx"
+        self.settings['pipe_damage_file_directory'] = "examples/Net3/Damages"
         self.settings['pump_damage_relative_time' ] = True #needs to be implemented in the code
         self.settings['tank_damage_relative_time' ] = True #needs to be implemented in teh code
 
@@ -117,7 +117,7 @@ class Scenario_Settings(base):
         Restoration settings
         """
         self.settings['Restoraion_policy_type'          ] = "script" # sina needs to be implemented in the code
-        self.settings['Restortion_config_file'          ] = "Examples/Net3/config.txt"
+        self.settings['Restortion_config_file'          ] = "examples/Net3/config.txt"
         self.settings['pipe_damage_discovery_model'     ] = {'method': 'leak_based', 'leak_amount': 0.025, 'leak_time': 3600*12} # sina needs to be implemented
         self.settings['node_damage_discovery_model'     ] = {'method': 'leak_based', 'leak_amount': 0.001, 'leak_time': 3600*12} # sina needs to be implemented
         self.settings['pump_damage_discovery_model'     ] = {'method': 'time_based', 'time_discovery_ratio': pd.Series([1], index = [3600*n for n in [0]])} # sina needs to be implemented

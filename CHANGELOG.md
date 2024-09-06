@@ -1,6 +1,10 @@
 ## Version History
 
-### 0.2.0-beta.4
+### 0.2.0-beta.6
+- added a check for Restoration. Restoration is not constructed if "restoration_on" is off
+- added examples in MANIFEST.in file so it is included in the PyPi. 
+
+### 0.2.0-beta.5
 - Removed some bugs in results
 - Project.prj file is always created even when other kind of inputs are provided.
 

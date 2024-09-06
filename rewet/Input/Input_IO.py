@@ -8,7 +8,10 @@ def resolve_path(the_path):
     the_path = Path(the_path)
 
     failed = False
+
     try:
+        resolved_path = the_path.resolve()
+
         resolved_path = the_path.resolve()
 
         if resolved_path.exists() == False:
