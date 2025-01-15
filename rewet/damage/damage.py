@@ -10,7 +10,7 @@ import pandas as pd
 from scipy.stats import lognorm
 import logging
 import pickle
-import random
+# import random
 import numpy as np
 from wntrfr.network.model import LinkStatus
 from rewet.EnhancedWNTR.morph.link import split_pipe, break_pipe
@@ -421,7 +421,7 @@ class Damage:
 
     def getEmitterCdAndElevation(self, real_node_name, wn, number_of_damages, sum_of_length, mp, q):
         mp = mp*1.4223 # this is because our CURRENT relationship is base on psi
-        rr = number_of_damages/sum_of_length*1000
+        #rr = number_of_damages/sum_of_length*1000
         nd = self.getNd(mp, number_of_damages, sum_of_length)
         #equavalant_pipe_diameter = ( ((nd-1)*q)**2 /(0.125*9.81*3.14**2 * mp/1.4223) )**(1/4) * 1
 
@@ -431,7 +431,7 @@ class Damage:
             print(nd2)
 
 
-        node  = wn.get_node(real_node_name)
+        #node  = wn.get_node(real_node_name)
         #new_elavation = node.elevation
 
         nd = nd -1
@@ -807,7 +807,7 @@ class Damage:
             distance_to_pipes = wntr_eq.distance_to_epicenter(wn, element_type=wntrfr.network.Pipe)
             pga = wntr_eq.pga_attenuation_model(distance_to_pipes)
             pgv = wntr_eq.pgv_attenuation_model(distance_to_pipes)
-            repair_rate = wntr_eq.repair_rate_model(pgv)
+            #repair_rate = wntr_eq.repair_rate_model(pgv)
             fc = wntrfr.scenario.FragilityCurve()
             fc.add_state('leak' , 1 , {'Default': lognorm(0.5 , scale=0.2)})
             fc.add_state('break' , 2 , {'Default': lognorm(0.5, scale=0.5)})

@@ -221,7 +221,7 @@ class API():
             # Reset the added explicit leak mdoels
             self.wn.resetExplicitLeak()
 
-        self.status = REWET_STATUS(0)
+            self.status = REWET_STATUS(0)
 
         return self.status
 

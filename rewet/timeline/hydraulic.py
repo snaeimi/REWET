@@ -8,6 +8,7 @@ import logging
 from rewet.hydraulic.Simulation import HydraulicSimulation
 
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.WARNING)
 
 def run_hydraulics_EPANET(wn,
                    settings,
@@ -16,7 +17,7 @@ def run_hydraulics_EPANET(wn,
                    prev_isolated_junctions,
                    prev_isolated_links,
                    linear_result):
-    
+
     worker_rank = None
     hyd_sim = HydraulicSimulation(wn,
                                   settings,
@@ -24,11 +25,11 @@ def run_hydraulics_EPANET(wn,
                                   worker_rank,
                                   prev_isolated_junctions,
                                   prev_isolated_links)
-    
+
     #self.hyd_temp     = hyd_sim
     duration         = wn.options.time.duration
     report_time_step = wn.options.time.report_timestep
-    
+
     try: # Run with modified EPANET V2.2
         logger.info("Performing method 1")
         rr, i_run_successful = hyd_sim.performSimulation(next_event_time,
@@ -74,7 +75,7 @@ def run_hydraulics_EPANET(wn,
                                                 wn.options.time.report_timestep = report_time_step
                                                 rr, i_run_successful = hyd_sim.estimateWithoutRun(linear_result,
                                                                                                   next_event_time)
-                                            except Exception as epa_err_6:        
+                                            except Exception as epa_err_6:
                                                 logger.info("ERROR in rank="+repr(worker_rank)+" and time="+repr(cur_time))
                                                 raise epa_err_6
                                         else:
@@ -90,4 +91,3 @@ def run_hydraulics_EPANET(wn,
     prev_isolated_junctions = hyd_sim._prev_isolated_junctions
     prev_isolated_links     = hyd_sim._prev_isolated_links
     logger.info('***** Finish Running at time '+ repr(cur_time)+'  '+repr(i_run_successful)+' *****')
-    

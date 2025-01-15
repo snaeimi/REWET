@@ -171,7 +171,7 @@ class Registry():
             #raise ValueError('There is one agent: '+temp['cur_agent_name'].iloc[0]+' assigned to long job: '+damaged_node_name+','+action+','+entity)
 
         temp=pd.Series(index=['Node_name','Action','Entity','Time', 'cur_agent_name'], data=[damaged_node_name,action, entity, job_gross_time, agent_name])
-        self._long_task_data=data.append(temp, ignore_index=True)
+        self._long_task_data = pd.concat([self._long_task_data, temp.to_frame().T], ignore_index=True)
 
 
 
@@ -281,7 +281,8 @@ class Registry():
         latest_index = len(self._record_registry)-1
 
         temp = pd.Series(data=[damaged_node_name, function_name, latest_index], index=['node_name', 'function','record_index'])
-        self._restoration_table = self._restoration_table.append(temp, ignore_index=True)
+        # self._restoration_table = self._restoration_table.append(temp, ignore_index=True)
+        self._restoration_table = pd.concat([self._restoration_table, temp], ignore_index=True)
 
     def addNodalDamage(self, nodal_damage, new_pipe_name_list):
         if self.settings['Virtual_node'] ==True:

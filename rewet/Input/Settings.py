@@ -36,7 +36,7 @@ class Process_Settings(base):
         self.settings['RUN_TIME'                     ] = (5 + 24 * 1) * 3600 #seconds
         self.settings['minimum_simulation_time'      ] = (10 + 24 * 2) * 3600 #seconds
         self.settings['simulation_time_step'         ] = 3600 #seconds
-        self.settings['number_of_damages'            ] = 'single' #single or multiple. If single, indicate single damage files. If multiple, indicate "pipe_damage_file_list"
+        self.settings['number_of_damages'            ] = 'multiple' #single or multiple. If single, indicate single damage files. If multiple, indicate "pipe_damage_file_list"
         self.settings['result_directory'             ] = "examples/Net3/Result"
         self.settings['temp_directory'               ] = "examples/Net3/RunFiles"
         self.settings['save_time_step'               ] = True

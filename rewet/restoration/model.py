@@ -1200,10 +1200,10 @@ class Restoration():
         if not self.tank_restoration.empty:
             self.tank_restoration['Restore_time'] = self.tank_restoration['Restore_time'] + stop_time
 
-        for ind, row, in self.pump_restoration.iterrows():
+        for ind, row, in self.pump_restoration.items():
             self._addHardEvent(row['Restore_time'], 'pump')
 
-        for ind, row, in self.tank_restoration.iterrows():
+        for ind, row, in self.tank_restoration.items():
             self._addHardEvent(row['Restore_time'], 'tank')
 
         self.restoration_start_time = stop_time + delay

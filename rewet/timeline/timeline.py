@@ -19,7 +19,8 @@ from rewet.EnhancedWNTR.sim.results import SimulationResults
 from wntrfr.network.model import LinkStatus
 
 
-logger = logging.getLogger("REWET")
+logger = logging.getLogger(__name__)
+logger.setLevel(50)
 
 class Timeline():
     def __init__(self, water_network, damage_model , registry,  simulation_end_time, restoration, mode='PDD', i_restoration=True):
@@ -50,6 +51,8 @@ class Timeline():
         self._prev_isolated_junctions = OrderedSet()
         self._prev_isolated_links     = OrderedSet()
         self.first_leak_flag          = True
+
+
 
     def runLinearScenario(self, damage, settings, worker_rank=None):
         """
@@ -96,7 +99,9 @@ class Timeline():
                 self.registry.if_first_event_occured = True
                 logger.debug('\t DAMAGE EVENT')
 
-                if len(self.restoration.getHydSigPipeList() ) > 0:
+                if (self.iRestoration==True and
+                    len(self.restoration.getHydSigPipeList() ) > 0):
+                    # end of condition
                     last_demand_node_pressure = None
                     pipe_list = damage.getPipeDamageListAt(current_stop_time)
                     for pipe_name in pipe_list:
@@ -172,8 +177,8 @@ class Timeline():
 # =============================================================================
 #           This is for updatng the pipe damage log
             if settings["record_damage_table_logs"] == True:
-                self.restoration._registry.updatePipeDamageTableTimeSeries(current_stop_time)
-                self.restoration._registry.updateNodeDamageTableTimeSeries(current_stop_time)
+                self.registry.updatePipeDamageTableTimeSeries(current_stop_time)
+                self.registry.updateNodeDamageTableTimeSeries(current_stop_time)
 # =============================================================================
 #           runing hydraulic simulation
 
@@ -202,7 +207,9 @@ class Timeline():
                 logger.info("Performing method 1")
                 rr, i_run_successful = hyd_sim.performSimulation(next_event_time,
                                                                  True)
+
             except Exception as epa_err_1:
+
                 if epa_err_1.args[0] == 'EPANET Error 110':
                     logger.info("Method 1 failed. Performing method 2")
                     try: # Remove Non-Demand Node by Python-Side iterative algorythm with closing

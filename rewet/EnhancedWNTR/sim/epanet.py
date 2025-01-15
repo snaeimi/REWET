@@ -60,13 +60,13 @@ class EpanetSimulator(EpanetSimulator):
     def __init__(self, wn):
 
         super(EpanetSimulator, self).__init__(wn)
-        
+
         #Sina added this for time manipulate function
-        
+
         self._initial_hydraulic_timestep = wn.options.time.hydraulic_timestep
         self._initial_report_timestep = wn.options.time.hydraulic_timestep
-        
-        
+
+
         #Sina added this for isolation init
         long_size = get_long_size()
         if long_size == 4:
@@ -80,9 +80,9 @@ class EpanetSimulator(EpanetSimulator):
         self._node_id_to_name = OrderedDict()
         self._initialize_name_id_maps()
         #sina end
-        
-    
-    def manipulateTimeOrder(self, begin_time, end_time, change_time_step=False, min_correction_time_step=None):        
+
+
+    def manipulateTimeOrder(self, begin_time, end_time, change_time_step=False, min_correction_time_step=None):
         time_dif = end_time - begin_time
         min_step_time = min_correction_time_step
         self._wn.options.time.duration        = time_dif
@@ -102,7 +102,7 @@ class EpanetSimulator(EpanetSimulator):
             iFinished = False
             i=1
             logger.debug("time_dif= " + repr(time_dif))
-            
+
             time_step_list = list(range(min_step_time, time_step, min_step_time))
             time_step_list.append(time_step)
             while i <= len(time_step_list):
@@ -116,8 +116,8 @@ class EpanetSimulator(EpanetSimulator):
             if iFinished==False:
                 raise RuntimeError("no timestep is found")
             self._wn.options.time.report_timestep = new_time_step
-   
-    def run_sim(self, file_prefix='temp', save_hyd=False, use_hyd=False, hydfile=None, 
+
+    def run_sim(self, file_prefix='temp', save_hyd=False, use_hyd=False, hydfile=None,
                 version=2.2, convergence_error=False, start_time=None, iModified=True):
         """
         Run the EPANET simulator.
@@ -163,9 +163,10 @@ class EpanetSimulator(EpanetSimulator):
                 enData.ENusehydfile(hydfile)
                 logger.debug('Loaded hydraulics')
             else:
-                
+
                 try:
                     enData.ENsolveH()
+
                 except Exception as err:
                     enData.ENclose()
                     if err.args[0] == 'EPANET Error 110':
@@ -178,12 +179,16 @@ class EpanetSimulator(EpanetSimulator):
                     else:
                         raise err
                 else:
-                    run_successful = True
+                    if enData.errcode < 100:
+                        run_successful = True
+                    else:
+                        run_successful = False
+
                 logger.debug('Solved hydraulics')
             if save_hyd:
                 enData.ENsavehydfile(hydfile)
                 logger.debug('Saved hydraulics')
-            
+
             try:
                 enData.ENsolveQ()
                 logger.debug('Solved quality')
@@ -195,33 +200,33 @@ class EpanetSimulator(EpanetSimulator):
             enData.ENclose()
             logger.debug('Completed run')
             result_data = self.reader.read(outfile)
-            
+
             self._updateResultStartTime(result_data, start_time)
-            
+
             report_data = Report_Reading(rptfile)
-            
+
             result_data.maximum_trial_time = []
-            
+
             for time in report_data.maximum_trial_time:
                 result_data.maximum_trial_time.append(time + start_time)
             if run_successful:
                 break
 
         return result_data, run_successful
-    
+
     def _updateResultStartTime(self, result_data, start_time):
         for res_type, res in result_data.link.items():
             #result_data.link[res_type].index = res
             res.index = res.index + start_time
-        
+
         for res_type, res in result_data.node.items():
             #result_data.link[res_type].index = res
             res.index = res.index + start_time
-    
+
     def _get_isolated_junctions_and_links(self, prev_isolated_junctions, prev_isolated_links):
         self._prev_isolated_junctions=prev_isolated_junctions
         self._prev_isolated_links=prev_isolated_links
-        
+
         self._initialize_internal_graph()
         logger_level = logger.getEffectiveLevel()
 
@@ -266,7 +271,7 @@ class EpanetSimulator(EpanetSimulator):
         self._prev_isolated_junctions = isolated_junctions
         self._prev_isolated_links = isolated_links
         return isolated_junctions, isolated_links
-    
+
     def _initialize_internal_graph(self):
         n_links = OrderedDict()
         rows = []
@@ -354,7 +359,7 @@ class EpanetSimulator(EpanetSimulator):
                 continue
             node_id = self._node_name_to_id[node_name]
             self._source_ids.append(node_id)
-            
+
         for node_name, node in self._wn.reservoirs():
             connected_link_name_list = self._wn.get_links_for_node(node_name) #this is to exclude the reservoirs that are for leak only
             out_going_link_list_name = [link_name for link_name in connected_link_name_list if self._wn.get_link(link_name).link_type != 'Pipe']
@@ -366,7 +371,7 @@ class EpanetSimulator(EpanetSimulator):
             node_id = self._node_name_to_id[node_name]
             self._source_ids.append(node_id)
         self._source_ids = np.array(self._source_ids, dtype=self._int_dtype)
-        
+
     def _update_internal_graph(self):
         data = self._internal_graph.data
         ndx_map = self._map_link_to_internal_graph_data_ndx
@@ -392,7 +397,7 @@ class EpanetSimulator(EpanetSimulator):
                     ndx1, ndx2 = ndx_map[link]
                     data[ndx1] = 1
                     data[ndx2] = 1
-    
+
     def _initialize_name_id_maps(self):
         n = 0
         for link_name, link in self._wn.links():
@@ -404,7 +409,7 @@ class EpanetSimulator(EpanetSimulator):
             self._node_name_to_id[node_name] = n
             self._node_id_to_name[n] = node_name
             n += 1
-            
+
     def now_temp(self, rr, isolated_link_list, alread_closed_pipes, _prev_isolated_junctions, already_done_nodes):
         check_nodes = [node_name for node_name in self._wn.junction_name_list if node_name not in _prev_isolated_junctions and node_name not in already_done_nodes]
         junctions_pressure = (rr.node['pressure'][check_nodes]).iloc[-1]
@@ -412,12 +417,12 @@ class EpanetSimulator(EpanetSimulator):
         negative_junctions_pressure  = negative_junctions_pressure.sort_values(ascending = False)
         negative_junctions_name_list = negative_junctions_pressure.index.to_list()
         print('size= ' + repr(len(negative_junctions_name_list)) )
-        
+
         pipes_to_be_closed = []
         closed_pipes = []
         #closed_nodes = []
         ifinish = False
-        
+
         if len(negative_junctions_name_list) > 0:
             i = 0
             c = 0
@@ -432,12 +437,12 @@ class EpanetSimulator(EpanetSimulator):
                 #get_checked_pipe_bool = self.check_pipes_sin(self, pipe_linked_to_node)
                 checked_pipe_list = [checked_pipe for checked_pipe in pipe_linked_to_node if self._wn.get_link(checked_pipe).link_type == 'Pipe' and checked_pipe not in isolated_link_list and self._wn.get_link(checked_pipe).cv == False and self._wn.get_link(checked_pipe).initial_status == 1 and self._wn.get_link(checked_pipe).start_node.node_type == 'Junction' and self._wn.get_link(checked_pipe).end_node.node_type == 'Junction' and checked_pipe not in alread_closed_pipes]
                 pipes_to_be_closed.extend(checked_pipe_list)
-                    
+
                 flag = False
                 for pipe_name in pipes_to_be_closed:
                     #pipe = self.wn.get_link(pipe_name)
                     flow = rr.link['flowrate'][pipe_name].iloc[-1]
-                    
+
                     if abs(flow) > 0.01:
                         flag = True
                         #pipe.initial_status = LinkStatus(0)
@@ -447,39 +452,39 @@ class EpanetSimulator(EpanetSimulator):
                     c = c + 1
                 i = i + 1
         else:
-            ifinish = True 
+            ifinish = True
         return closed_pipes, already_done_nodes, ifinish
-    
+
     def alterPipeKmNNN(self, rr, isolated_link_list, _prev_isolated_junctions, flow_criteria, negative_pressure_limit):
         #t1 = time.time()
-        
+
         closed_pipes={}
-        
+
         check_nodes = [node_name for node_name in self._wn.junction_name_list if node_name not in _prev_isolated_junctions] #not isolated junctions
         junctions_pressure = (rr.node['pressure'][check_nodes]).iloc[-1] #latest pressure result for not-isolated junctions
         negative_junctions_pressure = (junctions_pressure[(junctions_pressure < negative_pressure_limit)]) #not-isolated junctions that have pressure less than specified amount
-        
+
         negative_junctions_pressure  = negative_junctions_pressure.sort_values(ascending = False)
         negative_junctions_name_list = negative_junctions_pressure.index.to_list()
-        
+
         last_flow_row = rr.link['flowrate'].iloc[-1]
-        
+
         pipe_found = False
         while pipe_found == False:
             if len(negative_junctions_name_list) == 0:
                 ifinish = True
                 return closed_pipes, ifinish
-            
+
             pipe_name_list = []
             pipe_name_list_temp = self._wn.get_links_for_node(negative_junctions_name_list[-1]) #new: the most negative
             pipe_name_list.extend(pipe_name_list_temp)
-        
+
             pipe_name_list = set(pipe_name_list) - set(isolated_link_list)
             pipe_name_list = [pipe_name for pipe_name in pipe_name_list if pipe_name in self._wn.pipe_name_list]
             most_recent_flow_for_pipes     = last_flow_row[pipe_name_list]
             abs_most_recent_flow_for_pipes = most_recent_flow_for_pipes.abs()
             abs_most_recent_flow_for_pipes = abs_most_recent_flow_for_pipes[abs_most_recent_flow_for_pipes >= flow_criteria]
-        
+
             if len(abs_most_recent_flow_for_pipes) == 0:
                 negative_junctions_pressure.drop(negative_junctions_name_list[-1], inplace=True)
                 negative_junctions_name_list = negative_junctions_pressure.index.to_list()
@@ -501,34 +506,34 @@ class EpanetSimulator(EpanetSimulator):
         pipe.minor_loss = new_C
         closed_pipes[biggest_flow_pipe_name] = already_C
 
-   
+
         #t2 = time.time()
         #print(t2-t1)
         #print('size closed: '+repr(len(closed_pipes)) )
         return closed_pipes, ifinish
-                
-            
+
+
             #if pipe.cv == True:
                 #continue
             #if pipe._is_isolated == True:
                 #continue
             #node_A = pipe.start_node
             #node_B = pipe.end_node
-            
+
             #if node_A.node_type != "Junction" or node_B.node_type != "Junction":
                 #continue
-            
+
             #if node_A.name in already_nodes or node_B.name in already_nodes:
                 #continue
-            
+
             #if pipe.initial_status != 1:
                 #continue
-            
-            #for 
+
+            #for
             #flow = rr.link['flowrate']
-            
+
             #i_possitive_rate = True
-            
+
             #if flow > 0.01:
                 #i_possitive_rate = True
                 #chosen_node = node_A
@@ -537,37 +542,37 @@ class EpanetSimulator(EpanetSimulator):
                 #chosen_node = node_B
             #else:
                 #continue
-            
+
     #def check_pipes_sin(self, pipe_list):
         #for pipe_name in pipe_list:
     def closePipeNNN(self, rr, isolated_link_list, _prev_isolated_junctions, flow_criteria, negative_pressure_limit):
         closed_pipes={}
-        
+
         check_nodes = [node_name for node_name in self._wn.junction_name_list if node_name not in _prev_isolated_junctions] #not isolated junctions
         junctions_pressure = (rr.node['pressure'][check_nodes]).iloc[-1] #latest pressure result for not-isolated junctions
         negative_junctions_pressure = (junctions_pressure[(junctions_pressure < negative_pressure_limit)]) #not-isolated junctions that have pressure less than specified amount
-        
+
         negative_junctions_pressure  = negative_junctions_pressure.sort_values(ascending = False)
         negative_junctions_name_list = negative_junctions_pressure.index.to_list()
-        
+
         last_flow_row = rr.link['flowrate'].iloc[-1]
-        
+
         pipe_found = False
         while pipe_found == False:
             if len(negative_junctions_name_list) == 0:
                 ifinish = True
                 return closed_pipes, ifinish
-            
+
             pipe_name_list = []
             pipe_name_list_temp = self._wn.get_links_for_node(negative_junctions_name_list[-1]) #new: the most negative
             pipe_name_list.extend(pipe_name_list_temp)
-        
+
             pipe_name_list = set(pipe_name_list) - set(isolated_link_list)
             pipe_name_list = [pipe_name for pipe_name in pipe_name_list if pipe_name in self._wn.pipe_name_list]
             most_recent_flow_for_pipes     = last_flow_row[pipe_name_list]
             abs_most_recent_flow_for_pipes = most_recent_flow_for_pipes.abs()
             abs_most_recent_flow_for_pipes = abs_most_recent_flow_for_pipes[abs_most_recent_flow_for_pipes >= flow_criteria]
-        
+
             if len(abs_most_recent_flow_for_pipes) == 0:
                 negative_junctions_pressure.drop(negative_junctions_name_list[-1], inplace=True)
                 negative_junctions_name_list = negative_junctions_pressure.index.to_list()
@@ -578,7 +583,7 @@ class EpanetSimulator(EpanetSimulator):
         biggest_flow_pipe_name         = abs_most_recent_flow_for_pipes.index[0]
         biggest_flow_pipe_abs_flow     = abs_most_recent_flow_for_pipes.iloc[0]
         pipe = self._wn.get_link(biggest_flow_pipe_name)
-        
+
         already_C = pipe.minor_loss
         initial_status      = pipe.initial_status
         closed_pipes[biggest_flow_pipe_name] = initial_status
@@ -586,29 +591,29 @@ class EpanetSimulator(EpanetSimulator):
 
 
         return closed_pipes, ifinish
-                
-            
+
+
             #if pipe.cv == True:
                 #continue
             #if pipe._is_isolated == True:
                 #continue
             #node_A = pipe.start_node
             #node_B = pipe.end_node
-            
+
             #if node_A.node_type != "Junction" or node_B.node_type != "Junction":
                 #continue
-            
+
             #if node_A.name in already_nodes or node_B.name in already_nodes:
                 #continue
-            
+
             #if pipe.initial_status != 1:
                 #continue
-            
-            #for 
+
+            #for
             #flow = rr.link['flowrate']
-            
+
             #i_possitive_rate = True
-            
+
             #if flow > 0.01:
                 #i_possitive_rate = True
                 #chosen_node = node_A
@@ -617,7 +622,6 @@ class EpanetSimulator(EpanetSimulator):
                 #chosen_node = node_B
             #else:
                 #continue
-            
+
     #def check_pipes_sin(self, pipe_list):
         #for pipe_name in pipe_list:
-            

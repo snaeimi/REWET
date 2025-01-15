@@ -9,6 +9,7 @@ import os
 import pickle
 import time
 import logging
+import warnings
 import pandas as pd
 
 from rewet                            import Timeline
@@ -96,48 +97,51 @@ class Starter():
         None.
 
         """
-        settings = Settings()
-        self.read_input_file(settings, project_file)
 
-        damage_list = io.read_damage_list(settings.process['pipe_damage_file_list'], settings.process['pipe_damage_file_directory'])
-        settings.process.settings['list'] = damage_list
-        #if type(project_file) == type(None):
-        Project.createProjectFile(settings, damage_list, "project.prj")
-        #raise
-        if settings.process['number_of_proccessor']==1: #Single mode
-            #get damage list as Pandas Dataframe
-            if settings.process['number_of_damages'] == 'multiple':
-                damage_list_size = len(damage_list)
-                for i in range(0, damage_list_size):
+        with warnings.catch_warnings():
+            warnings.simplefilter(action='ignore', category=FutureWarning)
+            settings = Settings()
+            self.read_input_file(settings, project_file)
+
+            damage_list = io.read_damage_list(settings.process['pipe_damage_file_list'], settings.process['pipe_damage_file_directory'])
+            settings.process.settings['list'] = damage_list
+            #if type(project_file) == type(None):
+            Project.createProjectFile(settings, damage_list, "project.prj")
+            #raise
+            if settings.process['number_of_proccessor']==1: #Single mode
+                #get damage list as Pandas Dataframe
+                if settings.process['number_of_damages'] == 'multiple':
+                    damage_list_size = len(damage_list)
+                    for i in range(0, damage_list_size):
+                        if api == False:
+                            self.RunLocally(damage_list, settings, i)
+                        #print(i, flush=True)
+                        #settings.initializeScenarioSettings(i) #initialize scenario-specific settings for each list/usefule for sensitivity analysis
+                        #scenario_name    = damage_list.loc[i, 'Scenario Name']
+                        #pipe_damage_name = damage_list.loc[i, 'Pipe Damage']
+                        #tank_damage_name = damage_list.loc[i, 'Tank Damage']
+                        #self.run_local_single(pipe_damage_name, scenario_name, settings, nodal_damage_file_name = damage_list.loc[i,'Nodal Damage'], pump_damage_file_name = damage_list.loc[i,'Pump Damage'], tank_damage_file_name = tank_damage_name)
+
+                elif settings.process['number_of_damages'] == 'single':
                     if api == False:
-                        self.RunLocally(damage_list, settings, i)
-                    #print(i, flush=True)
-                    #settings.initializeScenarioSettings(i) #initialize scenario-specific settings for each list/usefule for sensitivity analysis
-                    #scenario_name    = damage_list.loc[i, 'Scenario Name']
-                    #pipe_damage_name = damage_list.loc[i, 'Pipe Damage']
-                    #tank_damage_name = damage_list.loc[i, 'Tank Damage']
-                    #self.run_local_single(pipe_damage_name, scenario_name, settings, nodal_damage_file_name = damage_list.loc[i,'Nodal Damage'], pump_damage_file_name = damage_list.loc[i,'Pump Damage'], tank_damage_file_name = tank_damage_name)
+                        self.RunLocally(damage_list, settings, 0)
+                    #t1 = time.time()
+                    #settings.initializeScenarioSettings(0) #initialize scenario-specific settings for the first line of damage list
+                    #scenario_name = damage_list.loc[0, 'Scenario Name']
+                    #pipe_damage_name = damage_list.loc[0, 'Pipe Damage']
+                    #tank_damage_name = damage_list.loc[0, 'Tank Damage']
+                    #self.run_local_single(pipe_damage_name, scenario_name, settings, nodal_damage_file_name = damage_list.loc[0,'Nodal Damage'], pump_damage_file_name = damage_list.loc[0,'Pump Damage'], tank_damage_file_name = tank_damage_name)
+                    #t2 = time.time()
+                    #print('Time of Single run is: ' + repr((t2-t1)/3600) + '(hr)')
+                else:
+                    raise ValueError(f"Unknown value for settings['number_of_damages']: {settings['number_of_damages']}")
 
-            elif settings.process['number_of_damages'] == 'single':
-                if api == False:
-                    self.RunLocally(damage_list, settings, 0)
-                #t1 = time.time()
-                #settings.initializeScenarioSettings(0) #initialize scenario-specific settings for the first line of damage list
-                #scenario_name = damage_list.loc[0, 'Scenario Name']
-                #pipe_damage_name = damage_list.loc[0, 'Pipe Damage']
-                #tank_damage_name = damage_list.loc[0, 'Tank Damage']
-                #self.run_local_single(pipe_damage_name, scenario_name, settings, nodal_damage_file_name = damage_list.loc[0,'Nodal Damage'], pump_damage_file_name = damage_list.loc[0,'Pump Damage'], tank_damage_file_name = tank_damage_name)
-                #t2 = time.time()
-                #print('Time of Single run is: ' + repr((t2-t1)/3600) + '(hr)')
+            elif settings.process['number_of_proccessor']>1:
+                if api == True:
+                    raise ValueError("API cannot be laoded while using MPI for multiprocessing.")
+                self.run_mpi(settings)
             else:
-                raise ValueError(f"Unknown value for settings['number_of_damages']: {settings['number_of_damages']}")
-
-        elif settings.process['number_of_proccessor']>1:
-            if api == True:
-                raise ValueError("API cannot be laoded while using MPI for multiprocessing.")
-            self.run_mpi(settings)
-        else:
-            raise ValueError('Number of proccessor must be equal to or more than 1')
+                raise ValueError('Number of proccessor must be equal to or more than 1')
 
 
     def run_local_single(self, file_name, scenario_name, settings, worker_rank=None, nodal_damage_file_name=None, pump_damage_file_name=None, tank_damage_file_name=None):
