@@ -330,7 +330,7 @@ class InpFile(wntrfr.epanet.InpFile):
                  'mloss': pipe.minor_loss,
                  'status': str(pipe.initial_status),
                  'com': ';'}
-            if pipe.cv:
+            if pipe.check_valve:
                 E['status'] = 'CV'
             f.write(_PIPE_ENTRY.format(**E).encode('ascii'))
         f.write('\n'.encode('ascii'))

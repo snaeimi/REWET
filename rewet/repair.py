@@ -356,7 +356,7 @@ class Repair():
         current_number_of_damages = damage_data['current_number_of_damage']
         if factor ==1:
             pipe = wn.get_link(pipe_name)
-            pipe.cv = False
+            pipe.check_valve = False
             pipe.initial_status = LinkStatus(0)
             history['EXPLICIT_PIPE_CLOSED_FROM_CV'] = pipe_name
         else:

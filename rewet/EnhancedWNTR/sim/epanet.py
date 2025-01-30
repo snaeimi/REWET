@@ -263,14 +263,104 @@ class EpanetSimulator(EpanetSimulator):
                 link._is_isolated = True
                 isolated_links.add(l)
 
+        node_indicator = np.ones(self._wn.num_nodes, dtype=self._int_dtype)
+        check_for_isolated_junctions(self._source_ids, node_indicator, self._internal_graph.indptr,
+                                     self._internal_graph.indices, self._internal_graph.data,
+                                     self._number_of_connections)
+
+
+
         if logger_level <= logging.DEBUG:
             if len(isolated_junctions) > 0 or len(isolated_links) > 0:
                 raise ValueError('isolated junctions: {0}'.format(isolated_junctions))
                 logger.debug('isolated links: {0}'.format(isolated_links))
+        
+        self._initialize_internal_graph()
+        
+        while True:
+            check_node_name_list = []
+            not_isolate_junctions = (set(self._wn.junction_name_list) -
+                                     isolated_junctions)
+            
+            for node_id in self._node_id_to_name.keys():
+                node_name = self._node_id_to_name[node_id]
+                if (self._number_of_connections[node_id] <= 1 and
+                    node_name in not_isolate_junctions and
+                    self._wn.get_node(node_name).demand_timeseries_list[0].base_value == 0 
+                    ):
+                    
+                    check_node_name_list.append(node_name)
+            
+            if len(check_node_name_list) == 0:
+                break
+            else:
+                print(len(check_node_name_list))
+                i = 0
+                for node_name in check_node_name_list:
+                    if i % 10 == 0:
+                        print(f"\t{i}")
+                    i += 1
+                    self._remove_zero_flow_elements(node_name,
+                                                    isolated_junctions,
+                                                    isolated_links)
+                    
+                    
+                    
+                    # other_node, self._isolate_link_with_node(node_id)
 
         self._prev_isolated_junctions = isolated_junctions
         self._prev_isolated_links = isolated_links
         return isolated_junctions, isolated_links
+    
+    def _remove_zero_flow_elements(self,
+                                   cur_node_name,
+                                   isolated_junctions,
+                                   isolated_links):
+            
+        if_continue = True
+        while if_continue:
+        
+            node = self._wn.get_node(cur_node_name)
+            if node.demand_timeseries_list[0].base_value > 0:
+                if_continue = False
+                break
+            
+            node._is_isolated = True
+            isolated_junctions.add(cur_node_name)
+            
+            connected_link_list = self._wn.get_links_for_node(cur_node_name)
+            
+            if len(connected_link_list) == 0:
+                raise
+            
+            # the_link = None
+            other_node = None
+            for con_link_name in connected_link_list:
+                con_link = self._wn.get_link(con_link_name)
+                if con_link._is_isolated == False:
+                    # con_link_name
+                    con_link._is_isolated = True
+                    isolated_links.add(con_link_name)
+                    other_node = {con_link.start_node_name, con_link.end_node_name} - {cur_node_name}
+                    other_node = list(other_node)[0]
+                    #else:
+                        # msg = (f"Unexpected value: {cur_node_name}, {len(connected_link_list)}")
+                        # raise RuntimeError(msg)
+        
+            other_node_valid_links = []    
+            for link_name in self._wn.get_links_for_node(other_node):
+                link = self._wn.get_link(link_name)
+                if link._is_isolated == True:
+                    continue
+                
+                other_node_valid_links.append(link_name)
+            
+            if len(other_node_valid_links) > 1:
+                if_continue = False
+            elif len(other_node_valid_links) == 0:
+                if_continue = False
+                # msg = ("Unexpected behavior")
+                # raise RuntimeError(msg)
 
     def _initialize_internal_graph(self):
         n_links = OrderedDict()
@@ -291,12 +381,17 @@ class EpanetSimulator(EpanetSimulator):
             cols.append(to_node_id)
             rows.append(to_node_id)
             cols.append(from_node_id)
+            if link_name == "L72378":
+                pass
             if link.initial_status == wntrfr.network.LinkStatus.Closed:
                 vals.append(0)
                 vals.append(0)
-                #sina remove comment amrks
+                #sina remove comment marks
+            elif link._is_isolated == True:
+                vals.append(0)
+                vals.append(0)
             elif link.link_type == 'Pipe':
-                if link.cv:
+                if link.check_valve:
                     vals.append(1)
                     vals.append(0)
                 else:
@@ -305,6 +400,9 @@ class EpanetSimulator(EpanetSimulator):
             elif link.link_type == 'Valve':
                 if link.valve_type == 'PRV' or link.valve_type == 'PSV' or link.valve_type == 'FCV':
                     vals.append(1)
+                    vals.append(0)
+                elif link.initial_setting > 100000000:
+                    vals.append(0)
                     vals.append(0)
                 else:
                     vals.append(1)
@@ -361,15 +459,17 @@ class EpanetSimulator(EpanetSimulator):
             self._source_ids.append(node_id)
 
         for node_name, node in self._wn.reservoirs():
-            connected_link_name_list = self._wn.get_links_for_node(node_name) #this is to exclude the reservoirs that are for leak only
+            connected_link_name_list = self._wn.get_links_for_node(node_name) # this is to exclude the reservoirs that are for leak only
             out_going_link_list_name = [link_name for link_name in connected_link_name_list if self._wn.get_link(link_name).link_type != 'Pipe']
             out_going_pipe_list_name = [self._wn.get_link(pipe_name) for pipe_name in connected_link_name_list if self._wn.get_link(pipe_name).link_type == 'Pipe']
-            out_going_pipe_list_name = [link.name for link in out_going_pipe_list_name if ( (link.cv == False and link.initial_status != LinkStatus.Closed) or (link.cv == True and link.end_node_name !=  node_name))]
+            out_going_pipe_list_name = [link.name for link in out_going_pipe_list_name if ( (link.check_valve == False and link.initial_status != LinkStatus.Closed) or (link.check_valve == True and link.end_node_name !=  node_name))]
             out_going_link_list_name.extend(out_going_pipe_list_name)
             if len(out_going_link_list_name) < 1:
                 continue
             node_id = self._node_name_to_id[node_name]
             self._source_ids.append(node_id)
+            if node_name == "L72270_breakB_1_nn":
+                pass
         self._source_ids = np.array(self._source_ids, dtype=self._int_dtype)
 
     def _update_internal_graph(self):
@@ -435,7 +535,7 @@ class EpanetSimulator(EpanetSimulator):
                 #for node_name in negative_junctions_name_list:
                 pipe_linked_to_node = self._wn.get_links_for_node(node_name)
                 #get_checked_pipe_bool = self.check_pipes_sin(self, pipe_linked_to_node)
-                checked_pipe_list = [checked_pipe for checked_pipe in pipe_linked_to_node if self._wn.get_link(checked_pipe).link_type == 'Pipe' and checked_pipe not in isolated_link_list and self._wn.get_link(checked_pipe).cv == False and self._wn.get_link(checked_pipe).initial_status == 1 and self._wn.get_link(checked_pipe).start_node.node_type == 'Junction' and self._wn.get_link(checked_pipe).end_node.node_type == 'Junction' and checked_pipe not in alread_closed_pipes]
+                checked_pipe_list = [checked_pipe for checked_pipe in pipe_linked_to_node if self._wn.get_link(checked_pipe).link_type == 'Pipe' and checked_pipe not in isolated_link_list and self._wn.get_link(checked_pipe).check_valve == False and self._wn.get_link(checked_pipe).initial_status == 1 and self._wn.get_link(checked_pipe).start_node.node_type == 'Junction' and self._wn.get_link(checked_pipe).end_node.node_type == 'Junction' and checked_pipe not in alread_closed_pipes]
                 pipes_to_be_closed.extend(checked_pipe_list)
 
                 flag = False

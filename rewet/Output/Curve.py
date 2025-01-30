@@ -219,12 +219,13 @@ class Curve():
         not_available_nodes = wanted_nodes - available_nodes
         available_nodes     = wanted_nodes - not_available_nodes
 
-        leak_from_pipe      = res.node['demand'][available_nodes]
+        leak_from_pipe      = res.node['demand'][list(available_nodes)]
 
         leak = leak_from_pipe < -0.1
         if leak.any().any():
             raise ValueError("There is negative leak")
-
+        
+        return leak_from_pipe
         return leak_from_pipe.sum(axis=1)
 
     def getSystemServiceabilityIndexCurve(self, scn_name, iPopulation="No"):
@@ -242,7 +243,7 @@ class Curve():
 
         s=sat_node_demands.sum(axis=1)/s4.sum(axis=1)
 
-        for time_index, val in s.iteritems():
+        for time_index, val in s.items():
             if val < 0:
                 val = 0
             elif val > 1:
@@ -290,9 +291,11 @@ class Curve():
         total_pop = pop.sum()
 
         result = []
-        refined_result = res.node['demand'][self.demand_node_name_list]
+        shared_demand_nodes = set(self.demand_node_name_list).intersection(res.node['demand'].columns.tolist())
+        shared_demand_nodes = list(shared_demand_nodes)
+        refined_result = res.node['demand'][shared_demand_nodes]
         demands = self.getRequiredDemandForAllNodesandtime(scn_name)
-        demands = demands[self.demand_node_name_list]
+        demands = demands[shared_demand_nodes]
 
         union_ = set(res.node['leak'].columns).union(set(self.demand_node_name_list)) -(set(res.node['leak'].columns)  - set(self.demand_node_name_list)) - (set(self.demand_node_name_list) - set(res.node['leak'].columns))
         union_ = list(union_)
@@ -346,11 +349,16 @@ class Curve():
             pop = self._population_data
 
         result = []
+        
+        shared_demand_nodes = set(self.demand_node_name_list).intersection(res.node['demand'].columns.tolist())
+        shared_demand_nodes = list(shared_demand_nodes)
+        
         union_ = set(res.node['leak'].columns).union(set(self.demand_node_name_list)) -(set(res.node['leak'].columns)  - set(self.demand_node_name_list)) - (set(self.demand_node_name_list) - set(res.node['leak'].columns))
         union_ = list(union_)
-        refined_result = res.node['demand'][self.demand_node_name_list]
+        
+        refined_result = res.node['demand'][shared_demand_nodes]
         demands = self.getRequiredDemandForAllNodesandtime(scn_name)
-        demands        = demands[self.demand_node_name_list]
+        demands        = demands[shared_demand_nodes]
 
         leak_res    = res.node['leak'][union_]
         leak_data = []

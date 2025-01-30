@@ -1223,9 +1223,13 @@ class Registry():
         active_pipe_damages  = self.active_pipe_damages
 
         temp_active = active_pipe_damages.copy()
+        to_be_removed = []
         for virtual_demand_node in temp_active:
             if virtual_demand_node in isolated_nodes or active_pipe_damages[virtual_demand_node] in isolated_nodes:
-                temp_active.pop(virtual_demand_node)
+                to_be_removed.append(virtual_demand_node)
+        
+        for k in to_be_removed:
+            temp_active.pop(k)
 
         virtual_demand_nodes = list(temp_active.keys() )
         real_demand_nodes    = list(temp_active.values() )

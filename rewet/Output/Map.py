@@ -42,7 +42,7 @@ class Map():
         return joined_map
 
     def createGeopandasPointDataFrameForNodes(self):
-        s = gpd.GeoDataFrame(index=self.demand_node_name_list)
+        
         point_list      = []
         point_name_list = []
 
@@ -50,7 +50,10 @@ class Map():
             coord = self.wn.get_node(name).coordinates
             point_list.append(shapely.geometry.Point(coord[0],coord[1]))
             point_name_list.append(name)
-        s.geometry = point_list
+        
+        s = gpd.GeoDataFrame(index=self.demand_node_name_list,
+                             geometry=point_list)
+        
         return s
 
     def getDLQNExceedenceProbabilityMap(self, data_frame, ihour , param):
@@ -142,6 +145,40 @@ class Map():
         #props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
         print(tt)
         return s
+    
+    def getDeliveredDemandMap(self,
+                              scn_name,
+                              time=None,
+                              decimals=0):
+        self.loadScneariodata(scn_name)
+        
+        res         = self.data[scn_name]
+        map_res     = pd.Series(data=0 , index=self.demand_node_name_list, dtype=np.float64)
+
+        demands     = self.getRequiredDemandForAllNodesandtime(scn_name)
+        
+        shared_nodes = set(self.demand_node_name_list).intersection(res.node['demand'].columns)
+        shared_nodes = list(shared_nodes)
+        
+        refined_res = res.node['demand'][shared_nodes]
+        
+        demands = demands[self.demand_node_name_list]
+        
+        if time is None:
+            demands = demands.iloc[0]
+        else:
+            demands = demands.loc[time]
+        
+        map_res.loc[shared_nodes] = demands[shared_nodes]
+        
+        map_res = map_res / demands[self.demand_node_name_list] * 100
+        
+        map_res = np.round(map_res, decimals=decimals)
+        
+        geopandas_df = self.createGeopandasPointDataFrameForNodes()
+        geopandas_df.loc[map_res.index.to_list(), 'Delivered %'] = map_res.to_list()
+
+        return geopandas_df
 
     def getOutageTimeGeoPandas_4(self,
                                  scn_name,
