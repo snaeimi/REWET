@@ -1,5 +1,13 @@
 ## Version History
 
+### 0.2.0-beta.14
+- Minor bug fixes
+
+
+### 0.2.0-beta.13
+- Adding Enhanced removal of disconnected elements.
+- minor bug fixes
+
 ### 0.2.0-beta.12
 - Bug fixe regarding rror handling
 - Now EPANET warning is not treated as error

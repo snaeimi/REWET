@@ -446,7 +446,7 @@ class EpanetSimulator(EpanetSimulator):
                     link = self._wn.get_link(link_name)
                     if link.start_node_name == to_node_name or link.end_node_name == to_node_name:
                         tmp_list.append(link)
-                        if link.initial_status != wntrfr.network.LinkStatus.closed:
+                        if link.initial_status != wntrfr.network.LinkStatus.Closed:
                             ndx1, ndx2 = ndx_map[link]
                             self._internal_graph.data[ndx1] = 1
                             self._internal_graph.data[ndx2] = 1
@@ -478,7 +478,7 @@ class EpanetSimulator(EpanetSimulator):
         for mgr in [self._presolve_controls, self._rules, self._postsolve_controls]:
             for obj, attr in mgr.get_changes():
                 if 'status' == attr:
-                    if obj.status == wntrfr.network.LinkStatus.closed:
+                    if obj.status == wntrfr.network.LinkStatus.Closed:
                         ndx1, ndx2 = ndx_map[obj]
                         data[ndx1] = 0
                         data[ndx2] = 0
@@ -493,7 +493,7 @@ class EpanetSimulator(EpanetSimulator):
             data[ndx1] = 0
             data[ndx2] = 0
             for link in link_list:
-                if link.status != wntrfr.network.LinkStatus.closed:
+                if link.status != wntrfr.network.LinkStatus.Closed:
                     ndx1, ndx2 = ndx_map[link]
                     data[ndx1] = 1
                     data[ndx2] = 1
