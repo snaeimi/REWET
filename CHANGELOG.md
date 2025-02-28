@@ -1,5 +1,8 @@
 ## Version History
 
+### 0.2.0-beta.15
+- Minor bug fix (Curve.py getDeliveredDemandRatio)
+
 ### 0.2.0-beta.14
 - Minor bug fixes
 

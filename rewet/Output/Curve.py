@@ -443,10 +443,12 @@ class Curve():
                             dtype=np.int64)
 
         required_demand = self.getRequiredDemandForAllNodesandtime(scn_name)
-        delivered_demand = res.node['demand'][self.demand_node_name_list]
-
+        delivered_demand = res.node['demand']
         common_nodes_demand = list( set(delivered_demand.columns).intersection(
             set(self.demand_node_name_list)))
+        
+        left_overs = list(set(self.demand_node_name_list) - set(common_nodes_demand))
+        
 
         delivered_demand    = delivered_demand[common_nodes_demand]
         required_demand     = required_demand[common_nodes_demand]
@@ -455,5 +457,6 @@ class Curve():
         delivered_demand.sort_index(inplace=True)
 
         delivered_demand_ratio = delivered_demand / required_demand
+        delivered_demand_ratio.loc[:, left_overs] = 0.0
 
         return delivered_demand_ratio
