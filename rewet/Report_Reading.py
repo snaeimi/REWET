@@ -18,7 +18,7 @@ def parseTimeStamp(time_stamp):
     minute = int(minute)
     second = int(second)
     
-    return (hour, minute, minute)
+    return (hour, minute, second)
 
 class Report_Reading():
     def __init__(self, file_addr):

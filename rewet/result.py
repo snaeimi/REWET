@@ -12,18 +12,27 @@ import os
 import pickle
 from collections import OrderedDict
 import copy
-#import Report_Reading
+# import Report_Reading
 from rewet.Output.Map import Map
 from rewet.Output.Map import Helper
 from rewet.Output.Raw_Data import Raw_Data
 from rewet.Output.Curve import Curve
 from rewet.Output.Crew_Report import Crew_Report
 from rewet.Output.Result_Time import Result_Time
-#import rewet.Input.Input_IO as io
+# import rewet.Input.Input_IO as io
 from rewet.Project import Project as MainProject
 
+
 class Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
-    def __init__(self, in_project, result_directory=None, ignore_not_found=False, to_neglect_file=None, node_col='', iObject=False): #result_file_dir = None, iObject=False):
+    
+    def __init__(self,
+                 in_project,
+                 result_directory=None,
+                 ignore_not_found=False,
+                 to_neglect_file=None,
+                 node_col='',
+                 iObject=False
+                 ): #result_file_dir = None, iObject=False):
 
         if iObject==False:
             self.readPorjectFile(in_project)
@@ -62,10 +71,10 @@ class Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
         self.scn_name_list_that_result_file_not_found = []
         self.wn = wntrfr.network.WaterNetworkModel(self.project.project_settings.process['WN_INP']    )
 
-        self.result_directory            = self.project.project_settings.process['result_directory']
-
         if not isinstance(result_directory, type(None) ):
             self.result_directory = result_directory
+        
+        self.result_directory            = self.project.project_settings.process['result_directory']
 
         to_neglect=[];
         if to_neglect_file != None and False: #sina hereeeee bug dadi amedane
@@ -221,18 +230,22 @@ class Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
                 ATTENTION: We need probability for any prbablistic result
             '''
             print(str(scn_name) +" loaded")
-
-    def remove_maximum_trials(self, data):
+    
+    @staticmethod
+    def remove_maximum_trials(data):
+        print("Removing invalid data.")
 
         all_time_list = data.maximum_trial_time
         result_time_list = data.node['demand'].index.to_list()
         result_time_max_trailed_list = [ time for time in result_time_list if time in all_time_list]
-
+        time_steps_removed = set()
+        
         for att in data.node:
             all_time_list = data.maximum_trial_time
             result_time_list = data.node[att].index.to_list()
             result_time_max_trailed_list = list( set(result_time_list).intersection(set(all_time_list) ) )
             result_time_max_trailed_list.sort()
+            time_steps_removed.update(set(result_time_max_trailed_list))
             if len(result_time_max_trailed_list) > 0:
                 #print(result_time_max_trailed_list)
                 att_data = data.node[att]
@@ -243,13 +256,16 @@ class Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
             all_time_list = data.maximum_trial_time
             result_time_list = data.link[att].index.to_list()
             result_time_max_trailed_list = [ time for time in result_time_list if time in all_time_list]
+            time_steps_removed.update(set(result_time_max_trailed_list))
             att_data = data.link[att]
             att_data.drop(result_time_max_trailed_list, inplace=True)
             data.link[att] = att_data
 
         flow_balance = data.node['demand'].sum(axis=1)
-
-        time_to_drop = flow_balance[abs(flow_balance) >= 0.01 ].index
+        
+        # TODO (SINA): This is obsolete. Thus, I Chanegd 0.02 10 which is a
+        # big number (i.e., never happens)
+        time_to_drop = flow_balance[abs(flow_balance) >= 1000 ].index
 
         #result_time_list = data.node['demand'].index.to_list()
         # = [ time for time in result_time_list if time in all_time_list]
@@ -274,6 +290,14 @@ class Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
                 att_data = data.link[att]
                 att_data.drop(result_time_max_trailed_list, inplace=True)
                 data.link[att] = att_data
+        
+        to_show = ""
+        time_steps_removed = list(time_steps_removed)
+        time_steps_removed.sort()
+        for time_step in time_steps_removed:
+            to_show += f"\t {time_step}"
+        
+        print(f".... removed: {to_show}.")
 
     def remove_maximum_trials_demand_flow(self, data):
         flow_balance = data.node['demand'].sum(axis=1)
@@ -331,17 +355,35 @@ class Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
         undamaged_wn      = self.wn
         time_index        = self.data[scn_name].node['demand'].index
         #req_node_demand   = pd.DataFrame(index=time_index.unique())
+        demand_node_name_list = self.demand_node_name_list
+        #req_node_demand = req_node_demand.transpose()
+        
+        req_node_demand = Result._getRequiredDemandForAllNodesandtime(
+            undamaged_wn,
+            demand_node_name_list,
+            time_index,
+            demand_ratio
+            )
+        
+        self._RequiredDemandForAllNodesandtime[scn_name] = req_node_demand.filter(self.demand_node_name_list)
+        return self._RequiredDemandForAllNodesandtime[scn_name]
+
+        
+    def _getRequiredDemandForAllNodesandtime(undamaged_wn,
+                                            demand_node_name_list,
+                                            time_index,
+                                            demand_ratio,
+                                            ):
+        
+        _size = len(demand_node_name_list)
         default_pattern   = undamaged_wn.options.hydraulic.pattern
         node_pattern_list = pd.Series(index=undamaged_wn.junction_name_list, dtype=str)
-        _size=len(self.demand_node_name_list)
-        i=0
-        #req_node_demand = req_node_demand.transpose()
-
         all_base_demand = []
         all_node_name_list = []
-
+        
+        i=0
         while i < _size:
-            node_name = self.demand_node_name_list[i]
+            node_name = demand_node_name_list[i]
             #print(i)
             i+=1
             node = undamaged_wn.get_node(node_name)
@@ -402,10 +444,8 @@ class Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
 
         #req_node_demand = pd.DataFrame(index=time_index, columns=all_node_name_list, data=all_base_demand)
         #req_node_demand = req_node_demand.transpose()
-        self._RequiredDemandForAllNodesandtime[scn_name] = req_node_demand.filter(self.demand_node_name_list)
-        return self._RequiredDemandForAllNodesandtime[scn_name]
-        self._RequiredDemandForAllNodesandtime[scn_name] = req_node_demand.filter(self.demand_node_name_list)
-        return self._RequiredDemandForAllNodesandtime[scn_name]
+        
+        return req_node_demand
 
 
     def AS_getDLIndexPopulation(self, iPopulation="No", ratio=False, consider_leak=False, leak_ratio=0.75):
@@ -488,8 +528,8 @@ class Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
         table_temp = []
 
         for i in np.arange(data_size):
-            scn_name     = data_frame.columns[i]
-            prob         = self.scenario_prob[scn_name]
+            scn_name = data_frame.columns[i]
+            prob = self.scenario_prob[scn_name]
             cur_scn_data = data_frame[scn_name]
             dmg_index_list = []
 
@@ -510,6 +550,7 @@ class Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
                         temp_dmg_index = 'mean_dmg_'+day_time
                         temp_res.update({temp_dmg_index:value})
                         dmg_index_list.append(temp_dmg_index)
+            
             elif result_type == 'min':
                 dmg_min_res = cur_scn_data.min()
                 if type(dmg_min_res) != pd.core.series.Series:
@@ -521,6 +562,7 @@ class Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
                         temp_dmg_index = 'min_dmg_'+day_time
                         temp_res.update({temp_dmg_index:value})
                         dmg_index_list.append(temp_dmg_index)
+            
             elif result_type == 'max':
                 dmg_max_res = cur_scn_data.min()
                 if type(dmg_max_res) != pd.core.series.Series:
@@ -532,6 +574,7 @@ class Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
                         temp_dmg_index = 'max_dmg_'+day_time
                         temp_res.update({temp_dmg_index:value})
                         dmg_index_list.append(temp_dmg_index)
+            
             else:
                 raise ValueError("Unknown group method: "+repr(result_type))
 
@@ -540,15 +583,18 @@ class Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
             table_temp.append(loop_res)
 
         table = pd.DataFrame.from_dict(table_temp).set_index('index')
-        res    = pd.DataFrame(index=[i for i in range(0, len(table.index))],
-                                  dtype=np.float64)
+        res = pd.DataFrame(
+            index=[i for i in range(0, len(table.index))],
+            dtype=np.float64
+            )
+        
         for dmg_name in dmg_index_list:
             select_columns = ['prob']
             select_columns.extend([dmg_name])
             loop_table = table[select_columns]
-            loop_table.sort_values(dmg_name, inplace = True)
+            loop_table.sort_values(dmg_name, ascending = False, inplace = True)
 
-            ep_mat = Helper.EPHelper(loop_table['prob'].to_numpy())
+            ep_mat = Helper.EPHelper(loop_table['prob'].to_numpy(), old=False)
             res[dmg_name] = loop_table[dmg_name].to_numpy()
             res[dmg_name+'_EP'] = ep_mat
 
@@ -567,6 +613,47 @@ class Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
             res_day.append(str(day_iter)+'-'+str(day_iter+1))
 
         return pd.DataFrame(res_data, index = res_day).transpose()
+    
+    def get_scn_demand_satisfaction_ratio(self,
+                                          scn_name,
+                                          detailed=False,
+                                          demand_node_list=None
+                                          ):
+        self.loadScneariodata(scn_name)
+        result = self.data[scn_name]
+        demand_result = result.node["demand"]
+        
+        available_node_list = demand_result.columns.tolist()
+        available_node_list = set(available_node_list)
+        
+        demand_nodes = self.getRequiredDemandForAllNodesandtime(scn_name)
+        
+        if demand_node_list is not None:
+            demand_nodes = demand_nodes.loc[:, demand_node_list]
+        
+        sat_demands = pd.DataFrame(columns=demand_nodes.columns,
+                                   index=demand_result.index,
+                                   dtype="float64")
+        
+        demand_nodes = demand_nodes.loc[demand_result.index, :]
+        
+        sat_demands.fillna(0)
+        
+        available_node_list = available_node_list.intersection(demand_nodes.columns.tolist())
+        available_node_list = list(available_node_list)
+        
+        sat_demands[available_node_list] = demand_result[
+            available_node_list
+            ]
+        
+        if detailed:
+            sat_demands_ratio = sat_demands_ratio = sat_demands / demand_nodes
+        else:
+            sat_demands_ratio = (
+                sat_demands.sum(axis=1) / demand_nodes.sum(axis=1)
+                )
+        
+        return sat_demands_ratio
 
 
 

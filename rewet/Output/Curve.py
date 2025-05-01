@@ -229,6 +229,7 @@ class Curve():
         return leak_from_pipe.sum(axis=1)
 
     def getSystemServiceabilityIndexCurve(self, scn_name, iPopulation="No"):
+        self.loadScneariodata(scn_name)
         s4 = self.getRequiredDemandForAllNodesandtime(scn_name)
         sat_node_demands = self.data[scn_name].node['demand'].filter(self.demand_node_name_list)
         sat_node_demands = sat_node_demands.applymap(hhelper)
@@ -241,7 +242,7 @@ class Curve():
         else:
             raise ValueError("unknown iPopulation value: "+repr(iPopulation))
 
-        s=sat_node_demands.sum(axis=1)/s4.sum(axis=1)
+        s = sat_node_demands.sum(axis=1) / s4.sum(axis=1)
 
         for time_index, val in s.items():
             if val < 0:

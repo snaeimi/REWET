@@ -15,8 +15,8 @@ class HydraulicSimulation():
         self.wn                    = wn
         self.nne_flow_criteria     = settings.process['nne_flow_limit']
         self.nne_pressure_criteria = settings.process['nne_pressure_limit']
-        self.minimum_pressure      = 8
-        self.required_pressure     = 25
+        # self.minimum_pressure      = 8
+        # self.required_pressure     = 25
         self.current_stop_time     = current_stop_time
         self.worker_rank           = worker_rank
         

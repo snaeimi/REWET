@@ -1,5 +1,9 @@
 ## Version History
 
+### 0.2.1-beta.1
+- More robust hydraulic simulation and result reporting
+- Minor bug and major big fixes
+
 ### 0.2.0-beta.15
 - Minor bug fix (Curve.py getDeliveredDemandRatio)
 

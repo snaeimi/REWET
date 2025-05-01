@@ -29,6 +29,7 @@ import rewet.Output.Helper as Helper
 class Map():
     def __init__(self):
         pass
+    
     #def loadShapeFile(shapeFileAddr='Northridge\GIS\Demand\demand_polygons.shp'):
     def loadShapeFile(self, shapeFileAddr='Northridge\GIS\Demand\demand_polygons.shp'):
         shape_file = gpd.read_file(shapeFileAddr)
@@ -52,11 +53,54 @@ class Map():
             point_name_list.append(name)
         
         s = gpd.GeoDataFrame(index=self.demand_node_name_list,
-                             geometry=point_list)
+                             geometry=point_list
+                             )
         
         return s
+    
+    def createGeopandasDataFrameForlinks(self):
+        
+        line_list = []
+        line_name_list = []
+        for pipe_name, pipe in self.wn.pipes():
+            point_A = shapely.geometry.Point(pipe.start_node.coordinates)
+            point_B = shapely.geometry.Point(pipe.end_node.coordinates)
+            line = shapely.geometry.LineString([point_A, point_B])
+            line_list.append(line)
+            line_name_list.append(pipe_name)
+                
+        s = gpd.GeoDataFrame(index=line_name_list,
+                             geometry=line_list
+                             )
+        
+        return s
+    
+    def createPipeMapDamage(self,
+                        scn):
+        
+        self.loadScneariodata(scn)
+        mapDataFrame = self.createGeopandasDataFrameForlinks()
+        pipe_data_table = self.registry[scn]._pipe_damage_table
+        mapDataFrame.loc[:, "Damage"] = "Undamaged"
+        
+        for ind, row in pipe_data_table.iterrows():
+            cur_pipe = row["Orginal_element"]
+            cur_damage_type = row["damage_type"]
+            
+            if mapDataFrame.loc[cur_pipe, "Damage"] == "break":
+                continue
+            
+            mapDataFrame.loc[cur_pipe, "Damage"] = cur_damage_type
+        
+        return mapDataFrame
+        
 
-    def getDLQNExceedenceProbabilityMap(self, data_frame, ihour , param):
+    def getDLQNExceedenceProbabilityMap(self,
+                                        data_frame,
+                                        ihour,
+                                        param
+                                        ):
+        
         data = data_frame.transpose()
         scn_prob_list =  self.scenario_prob
         #DLQN_dmg = pd.DataFrame(data=0, index=data.index, columns=data.columns)
@@ -149,27 +193,32 @@ class Map():
     def getDeliveredDemandMap(self,
                               scn_name,
                               time=None,
-                              decimals=0):
+                              decimals=0
+                              ):
+        
         self.loadScneariodata(scn_name)
         
         res         = self.data[scn_name]
-        map_res     = pd.Series(data=0 , index=self.demand_node_name_list, dtype=np.float64)
+        map_res     = pd.Series(data=0,
+                                index=self.demand_node_name_list,
+                                dtype=np.float64
+                                )
 
         demands     = self.getRequiredDemandForAllNodesandtime(scn_name)
         
         shared_nodes = set(self.demand_node_name_list).intersection(res.node['demand'].columns)
         shared_nodes = list(shared_nodes)
         
-        refined_res = res.node['demand'][shared_nodes]
-        
-        demands = demands[self.demand_node_name_list]
+        delivered = res.node['demand']
         
         if time is None:
+            delivered = delivered.iloc[0]
             demands = demands.iloc[0]
         else:
+            delivered = delivered.loc[time]
             demands = demands.loc[time]
         
-        map_res.loc[shared_nodes] = demands[shared_nodes]
+        map_res.loc[shared_nodes] = delivered[shared_nodes]
         
         map_res = map_res / demands[self.demand_node_name_list] * 100
         
@@ -186,7 +235,7 @@ class Map():
                                  iConsider_leak=False,
                                  leak_ratio=0,
                                  consistency_time_window=0):
-        #print(repr(LOS) + "   " + repr(iConsider_leak)+"  "+ repr(leak_ratio)+"   "+repr(consistency_time_window  ) )
+        
         self.loadScneariodata(scn_name)
         res         = self.data[scn_name]
         map_res     = pd.Series(data=0 , index=self.demand_node_name_list, dtype=np.int64)
@@ -405,30 +454,35 @@ class Map():
         polygon = gpd.read_file('Northridge\GIS\Demand\demand_polygons.shp')
         s = s.set_crs(crs=polygon.crs)
         joined_map = gpd.sjoin(polygon, s)
-        #return   joined_map
-        #joined_map.loc[map_res.index.to_list(), 'restoration_time'] = (map_res/3600/24).to_list()
-
+        
         return joined_map
 
-    def percentOfEffectNodes(self, scn_name, bsc='QN' , iConsider_leak=True, leak_ratio=0.75, consistency_time_window=7200):
+    def percentOfEffectNodes(self, scn_name,
+                             bsc='QN',
+                             iConsider_leak=True,
+                             leak_ratio=0.75,
+                             consistency_time_window=7200
+                             ):
+        
         self.loadScneariodata(scn_name)
-        res                = self.data[scn_name]
-        map_res            = pd.Series(data=0 , index=self.demand_node_name_list, dtype=np.int64)
+        res = self.data[scn_name]
+        map_res = pd.Series(data=0,
+                            index=self.demand_node_name_list,
+                            dtype=np.int64
+                            )
 
-        required_demand    = self.getRequiredDemandForAllNodesandtime(scn_name)
-        delivered_demand   = res.node['demand'][self.demand_node_name_list]
-        common_nodes_leak  = set(res.node['leak'].columns).intersection(set(self.demand_node_name_list))
-        leak_res           = res.node['leak'][common_nodes_leak]
+        required_demand = self.getRequiredDemandForAllNodesandtime(scn_name)
+        delivered_demand = res.node['demand'][self.demand_node_name_list]
+        common_nodes_leak = set(res.node['leak'].columns).intersection(set(self.demand_node_name_list))
+        leak_res = res.node['leak'][common_nodes_leak]
 
         common_nodes_demand = list( set(delivered_demand.columns).intersection(set(self.demand_node_name_list) ) )
-        delivered_demand    = delivered_demand[common_nodes_demand]
-        required_demand     = required_demand[common_nodes_demand]
+        delivered_demand = delivered_demand[common_nodes_demand]
+        required_demand = required_demand[common_nodes_demand]
 
         required_demand.sort_index(inplace=True)
         delivered_demand.sort_index(inplace=True)
         leak_res.sort_index(inplace=True)
-
-        #return delivered_demand, required_demand, leak_res
 
         if bsc=="DL":
             bsc_res_not_met_bool = (delivered_demand.fillna(0) <= required_demand * 0.1)
@@ -438,27 +492,22 @@ class Map():
             raise ValueError("Unknown BSC= "+str(bsc))
 
         if iConsider_leak :
-            #return leak_res, required_demand
             leak_res_non_available_time_list =  set(required_demand[leak_res.columns].index) - set(leak_res.index)
             if len(leak_res_non_available_time_list) > 0:
                 leak_res_non_available_time_list = list(leak_res_non_available_time_list)
                 temp_data = pd.DataFrame([[0 for i in leak_res.columns] for j in range( len(leak_res_non_available_time_list) ) ], index= leak_res_non_available_time_list, columns=leak_res.columns)
-                #leak_res.loc[leak_res_non_available_time_list, : ] = temp_data
                 leak_res = leak_res.append(temp_data)
                 leak_res.sort_index(inplace=True)
             leak_criteria_exceeded   = leak_res.fillna(0) >= leak_ratio * required_demand[leak_res.columns]
             combined_negative_result = (bsc_res_not_met_bool | leak_criteria_exceeded).dropna(axis=1)
-            #return combined_negative_result
             bsc_res_not_met_bool.loc[:, combined_negative_result.columns] = combined_negative_result
 
-        #end_time = delivered_demand.min()
         end_time = delivered_demand.index.max()
         time_beg_step_list = np.arange(0, end_time, consistency_time_window)
 
-        #time_beg_step_list = np.append(time_beg_step_list, [end_time])
         time_end_step_list = time_beg_step_list # + consistency_time_window
         window_bsc_not_met = pd.DataFrame(index=time_end_step_list, columns= bsc_res_not_met_bool.columns, dtype=bool)
-        #return bsc_res_not_met_bool#, delivered_demand, required_demand
+
         for step_time_beg in time_beg_step_list:
             step_time_end = step_time_beg + consistency_time_window
             window_data   = bsc_res_not_met_bool.loc[step_time_beg:step_time_end]
@@ -466,18 +515,14 @@ class Map():
                 window_data   = window_data.all()
                 window_bsc_not_met.loc[step_time_beg, window_data.index] = window_data
             else:
-               # print(step_time_beg)
                 window_bsc_not_met.drop(step_time_beg, inplace=True)
-        #return window_bsc_not_met
+
         pre_incident = (window_bsc_not_met.loc[:3600*3]).any()
         non_incident = pre_incident[pre_incident==False].index
 
         number_of_good_nodes = len(non_incident)
 
         not_met_node_name_list = window_bsc_not_met.any()
-
-        #("****************")
-        #print(not_met_node_name_list[not_met_node_name_list==True])
 
         not_met_node_name_list = not_met_node_name_list[not_met_node_name_list==True]
         not_met_node_name_list = not_met_node_name_list.index
@@ -501,8 +546,7 @@ class Map():
 
         number_of_bad_node_at_damage = window_bsc_not_met[non_incident].loc[14400].sum()
         percent_init = number_of_bad_node_at_damage / number_of_good_nodes * 100
-        #return window_bsc_not_met
-        #print(not_met_node_name_list)
+
         time_bsc_not_met_time  = window_bsc_not_met.sort_index(ascending=False).idxmax()
         map_res.loc[time_bsc_not_met_time.index] = time_bsc_not_met_time
 
@@ -513,6 +557,6 @@ class Map():
             warnings.warn("REWET WARNING: there are " + str(number_of_unreported_demand_nodes ) + "unreported nodes")
             map_res.loc[never_reported_nodes       ] = end_time
 
-        map_res = map_res/(3600*24)
+        map_res = map_res / (3600 * 24)
         percent = (map_res.loc[non_incident] > 0).sum() / number_of_good_nodes * 100
         return np.round(percent_init, 2) , np.round(percent, 2)

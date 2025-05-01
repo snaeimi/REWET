@@ -10,6 +10,7 @@ import sys
 import logging
 import pandas as pd
 import wntrfr
+import json
 import rewet.EnhancedWNTR.network.model
 from wntrfr.utils.ordered_set import OrderedSet
 from rewet import Damage
@@ -51,7 +52,10 @@ class Timeline():
         self._prev_isolated_junctions = OrderedSet()
         self._prev_isolated_links     = OrderedSet()
         self.first_leak_flag          = True
-
+        self.hydraulic_solver_priority = {
+            1: "EPANET",
+            2: "Enhanced_EPANET"
+            }
 
 
     def runLinearScenario(self, damage, settings, worker_rank=None):
@@ -202,66 +206,76 @@ class Timeline():
             #self.hyd_temp     = hyd_sim
             duration          = self.wn.options.time.duration
             report_time_step  = self.wn.options.time.report_timestep
-
-            try: # Run with modified EPANET V2.2
-                logger.info("Performing method 1")
-                rr, i_run_successful = hyd_sim.performSimulation(next_event_time,
-                                                                 True)
-
-            except Exception as epa_err_1:
-
-                if epa_err_1.args[0] == 'EPANET Error 110':
-                    logger.info("Method 1 failed. Performing method 2")
-                    try: # Remove Non-Demand Node by Python-Side iterative algorythm with closing
-                        #self.wn.options.time.duration        = duration
-                        #self.wn.options.time.report_timestep = report_time_step
-                        #hyd_sim.removeNonDemandNegativeNodeByPythonClose(1000)
-                        #rr, i_run_successful = hyd_sim.performSimulation(next_event_time, False)
-                        #hyd_sim.rollBackPipeClose()
-                        raise
-                    except Exception as epa_err_2:
-                        if True: #epa_err_2.args[0] == 'EPANET Error 110':
-                            try: # Extend result from teh reult at the begining of teh time step with modified EPANET V2.2
-                                #print("Method 2 failed. Performing method 3")
-                                self.wn.options.time.duration        = duration
-                                self.wn.options.time.report_timestep = report_time_step
-                                #hyd_sim.rollBackPipeClose()
-                                rr, i_run_successful = hyd_sim.estimateRun(next_event_time, True)
-                            except Exception as epa_err_3:
-                                if epa_err_3.args[0] == 'EPANET Error 110':
-                                    logger.info("Method 3 failed. Performing method 4")
-                                    try: # Extend result from teh reult at the begining of teh time step with modified EPANET V2.2
-                                        self.wn.options.time.duration        = duration
-                                        self.wn.options.time.report_timestep = report_time_step
-                                        rr, i_run_successful = hyd_sim.performSimulation(next_event_time, False)
-                                    except Exception as epa_err_4:
-                                        if epa_err_4.args[0] == 'EPANET Error 110':
-                                            try:
-                                                self.wn.options.time.duration        = duration
-                                                self.wn.options.time.report_timestep = report_time_step
-                                                logger.info("Method 4 failed. Performing method 5")
-                                                # Extend result from teh reult at the begining of teh time step with modified EPANET V2.2
-                                                rr, i_run_successful = hyd_sim.estimateRun(next_event_time, False)
-                                            except Exception as epa_err_5:
-                                                if epa_err_5.args[0] == 'EPANET Error 110':
-                                                    try:
-                                                        print("Method 5 failed. Performing method 6")
-                                                        self.wn.options.time.duration        = duration
-                                                        self.wn.options.time.report_timestep = report_time_step
-                                                        rr, i_run_successful = hyd_sim.estimateWithoutRun(self.registry.result, next_event_time)
-                                                    except Exception as epa_err_6:
-                                                        logger.info("ERROR in rank="+repr(worker_rank)+" and time="+repr(current_stop_time))
-                                                        raise epa_err_6
-                                                else:
-                                                    raise epa_err_5
-                                        else:
-                                            raise epa_err_4
-                                else:
-                                    raise epa_err_3
-                        else:
-                            raise epa_err_2
+            
+            successful_run = False
+            epanet_exception = None
+            for hydraulic_solver_i in range(1, 5, 1):
+                if hydraulic_solver_i in self.hydraulic_solver_priority:
+                    hydraulic_solver_name = (
+                        self.hydraulic_solver_priority[hydraulic_solver_i]
+                        )
                 else:
-                    raise epa_err_1
+                    continue
+                
+                print(f"method {hydraulic_solver_i}: {hydraulic_solver_name}")
+                
+                self.wn.options.time.duration = duration
+                self.wn.options.time.report_timestep = report_time_step
+                
+                i_run_successful = None
+                try:
+                    successful_run = True
+                    if hydraulic_solver_name == "Enhanced_EPANET":
+                        logger.info("Performing method Enhanced_EPANET")
+                        rr, i_run_successful = hyd_sim.performSimulation(
+                            next_event_time,
+                            True
+                            )
+                    
+                    elif hydraulic_solver_name == "EPANET":
+                        logger.info("Performing method EPANET")
+                        rr, i_run_successful = hyd_sim.performSimulation(
+                            next_event_time,
+                            False
+                            )
+                        
+                    elif hydraulic_solver_name == "ESTIMATERUNENHANCED":
+                        logger.info("Performing method Estimate Run Enhanced")
+                        rr, i_run_successful = hyd_sim.estimateRun(
+                            next_event_time,
+                            True
+                            )
+                    
+                    elif hydraulic_solver_name == "ESTIMATERUN":
+                        logger.info("Performing method Estimate Run")
+                        rr, i_run_successful = hyd_sim.estimateRun(
+                            next_event_time,
+                            False
+                            )
+                    
+                    elif hydraulic_solver_name == "ESTIMATEWITHOUT":
+                        logger.info("Performing method Estimate Without Run")
+                        rr, i_run_successful = hyd_sim.estimateWithoutRun(
+                            self.registry.result,
+                            next_event_time
+                            )
+                        
+                except Exception as epa_err:
+                    successful_run = False
+                    epanet_exception = epa_err
+                    print(epa_err.args[0])
+                    if epa_err.args[0] == 'EPANET Error 110':
+                        logger.info(f"Method {hydraulic_solver_name} "
+                                    "failed.")
+                
+                if successful_run is True:
+                    break
+                
+            if successful_run is False:
+                raise epanet_exception 
+                
+                        
+           
             self._prev_isolated_junctions = hyd_sim._prev_isolated_junctions
             self._prev_isolated_links     = hyd_sim._prev_isolated_links
             logger.info('***** Finish Running at time '+ repr(current_stop_time)+'  '+repr(i_run_successful)+' *****')
@@ -276,8 +290,6 @@ class Timeline():
                 #self.wp.unlinkBreackage(self.registry)
                 self.wn.resetExplicitLeak()
 
-
-
 # =============================================================================
         #self.resoration._registry.updateTankTimeSeries(self.wn, current_stop_time)
         #TODO: This section either must be expanded to all elemnt types or must be deleted
@@ -285,124 +297,7 @@ class Timeline():
 
         return self.registry.result
 
-# =============================================================================
-#     def KeepLinearResult(self, result, isolated_nodes, node_attributes=None, link_attributes=None, iCheck=False):#, iNeedTimeCorrection=False, start_time=None):
-#         # TODO: Move "if self._linear_result == None:" to the next condition ("just_initialized_flag")
-#         if self.registry.if_first_event_occured == False:
-#             self.registry.pre_event_demand_met = pd.concat( [self.registry.pre_event_demand_met, result.node['demand'] ] )
-#
-#         if node_attributes == None:
-#             node_attributes = ['pressure','head','demand','quality']
-#         if link_attributes == None:
-#             link_attributes = ['linkquality', 'flowrate', 'headloss', 'velocity', 'status', 'setting', 'frictionfact', 'rxnrate']
-#
-#         just_initialized_flag = False
-#         if self.registry.result == None:
-#             just_initialized_flag = True
-#             self.registry.result   = result
-#
-#             node_result_type_elimination_list = set( result.node.keys() ) - set(node_attributes)
-#             link_result_type_elimination_list = set( result.link.keys() ) - set(link_attributes)
-#
-#             for node_result_type in node_result_type_elimination_list:
-#                 self.registry.result.node.pop(node_result_type)
-#
-#             for link_result_type in link_result_type_elimination_list:
-#                 self.registry.result.link.pop(link_result_type)
-#
-#             self.registry.result.node['leak'] = pd.DataFrame(dtype=float)
-#
-#         active_pipe_damages  = self.registry.active_pipe_damages
-#
-#         temp_active = active_pipe_damages.copy()
-#         for virtual_demand_node in temp_active:
-#             if virtual_demand_node in isolated_nodes or active_pipe_damages[virtual_demand_node] in isolated_nodes:
-#                 temp_active.pop(virtual_demand_node)
-#
-#         virtual_demand_nodes = list(temp_active.keys() )
-#         real_demand_nodes    = list(temp_active.values() )
-#
-#         if len(temp_active) > 0:
-#             #this must be here in the case that a node which is not isolated at
-#             # this step does not have a result. This can happen if the result is
-#             #simulated without run. For example, in the latest valid result
-#             #some nodes were isolated, but not in the current run.
-#             available_nodes_in_current_result = result.node['demand'].columns.to_list()
-#             not_available_virtual_node_names = set(virtual_demand_nodes) - set(available_nodes_in_current_result)
-#             if len(not_available_virtual_node_names):
-#                 not_available_real_node_names = [temp_active[virtual_node_name] for virtual_node_name in not_available_virtual_node_names]
-#                 virtual_demand_nodes = set(virtual_demand_nodes) - not_available_virtual_node_names
-#                 real_demand_nodes    = set(real_demand_nodes) - set(not_available_real_node_names)
-#                 virtual_demand_nodes = list(virtual_demand_nodes)
-#                 real_demand_nodes    = list(real_demand_nodes)
-#
-#             result.node['demand'][real_demand_nodes] = result.node['demand'][virtual_demand_nodes]
-#             result.node['demand'].drop(virtual_demand_nodes, axis =1, inplace=True)
-#
-#         active_nodal_damages = self.registry.active_nodal_damages
-#         temp_active = active_nodal_damages.copy()
-#
-#         for virtual_demand_node in temp_active:
-#             if virtual_demand_node in isolated_nodes or temp_active[virtual_demand_node] in isolated_nodes:
-#                 temp_active.pop(virtual_demand_node)
-#
-#         virtual_demand_nodes = list(temp_active.keys() )
-#         real_demand_nodes    = list(temp_active.values() )
-#
-#         if len(temp_active) > 0:
-#             #this must be here in the case that a node which is not isolated at
-#             # this step does not have a result. This can happen if the result is
-#             #simulated without run. For example, in the latest valid result
-#             #some nodes were isolated, but not in the current run.
-#             available_nodes_in_current_result = result.node['demand'].columns.to_list()
-#             not_available_virtual_node_names = set(virtual_demand_nodes) - set(available_nodes_in_current_result)
-#             if len(not_available_virtual_node_names):
-#                 not_available_real_node_names = [temp_active[virtual_node_name] for virtual_node_name in not_available_virtual_node_names]
-#                 virtual_demand_nodes = set(virtual_demand_nodes) - not_available_virtual_node_names
-#                 real_demand_nodes    = set(real_demand_nodes) - set(not_available_real_node_names)
-#                 virtual_demand_nodes = list(virtual_demand_nodes)
-#                 real_demand_nodes    = list(real_demand_nodes)
-#
-#             non_isolated_pairs  = dict(zip(virtual_demand_nodes, real_demand_nodes))
-#             result.node['leak'] = result.node['demand'][virtual_demand_nodes].rename(non_isolated_pairs, axis=1)
-#
-#         if just_initialized_flag == False:
-#             self.registry.result.maximum_trial_time.extend(result.maximum_trial_time)
-#
-#             saved_max_time = self.registry.result.node[list(self.registry.result.node.keys())[0]].index.max()
-#             to_be_saved_min_time = result.node[list(result.node.keys())[0]].index.min()
-#
-#             if abs(to_be_saved_min_time - saved_max_time) != 0:
-#                 raise ValueError("saved result and to be saved result are not the same. "+repr(saved_max_time) + "   "+repr(to_be_saved_min_time))
-#
-#             for att in node_attributes:
-#                 if len(active_nodal_damages) == 0 and att == 'leak':
-#                     continue
-#
-#                 leak_first_time_result = None
-#                 _leak_flag = False
-#                 if att == 'leak' and 'leak' in result.node: # the second condition is not needed. It's there only for assurance
-#
-#                     former_nodes_list = set(self.registry.result.node['leak'].columns)
-#                     to_add_nodes_list = set(result.node[att].columns)
-#                     complete_result_node_list  = list(to_add_nodes_list - former_nodes_list)
-#                     if len(complete_result_node_list) > 0:
-#                         _leak_flag = True
-#
-#                     leak_first_time_result     = result.node['leak'][complete_result_node_list].iloc[0]
-#
-#                 if att in result.node:
-#                     result.node[att].drop(result.node[att].index[0], inplace=True)
-#                     self.registry.result.node[att] = pd.concat([self.registry.result.node[att], result.node[att]])
-#
-#                 if _leak_flag:
-#                     self.registry.result.node['leak'].loc[leak_first_time_result.name, leak_first_time_result.index] = leak_first_time_result
-#                     self.registry.result.node['leak'] = self.registry.result.node['leak'].sort_index()
-#
-#             for att in link_attributes:
-#                 result.link[att].drop(result.link[att].index[0], inplace=True)
-#                 self.registry.result.link[att] = pd.concat([self.registry.result.link[att], result.link[att]])
-# =============================================================================
+
 
     def dumpPartOfResult(self):
         limit_size = self.registry.settings["limit_result_file_size"]

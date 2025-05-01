@@ -137,7 +137,11 @@ class EpanetSimulator(EpanetSimulator):
             Optionally specify a filename for the hydraulics file other than the `file_prefix`
 
         """
-        solver_parameters_list = [(1,10, 0), (10, 100, 0), (10,100, 0.01)]
+        solver_parameters_list = [(1, 10, 0),
+                                  (10, 100, 0),
+                                  (10, 100, 0.01),
+                                  (10, 1000, 0.01)]
+        
         #solver_parameters_list = [(10,100, 0.01), (10, 100, 0), (1,10, 0)]
         #balanced_system = False
         run_successful= False
@@ -148,7 +152,7 @@ class EpanetSimulator(EpanetSimulator):
             self._wn.options.hydraulic.checkfreq = solver_parameter[0]
             self._wn.options.hydraulic.maxcheck  = solver_parameter[1]
             self._wn.options.hydraulic.damplimit = solver_parameter[2]
-            self._wn.options.hydraulic.unbalanced_value = 100
+            self._wn.options.hydraulic.unbalanced_value = 1000
 
             inpfile = file_prefix + '.inp'
             write_inpfile(self._wn, inpfile, units=self._wn.options.hydraulic.inpfile_units, version=version)
@@ -169,8 +173,8 @@ class EpanetSimulator(EpanetSimulator):
 
                 except Exception as err:
                     enData.ENclose()
-                    if err.args[0] == 'EPANET Error 110':
-                        print(enData.errcode)
+                    if "Error 110" in err.args[0]:
+                        print(err.args[0], enData.errcode)
                         run_successful= False
                         if i < len(solver_parameters_list):
                             continue
@@ -181,6 +185,7 @@ class EpanetSimulator(EpanetSimulator):
                 else:
                     if enData.errcode < 100:
                         run_successful = True
+                        print(f"Error (Warning) code is: {enData.errcode}")
                     else:
                         run_successful = False
 
@@ -192,7 +197,9 @@ class EpanetSimulator(EpanetSimulator):
             try:
                 enData.ENsolveQ()
                 logger.debug('Solved quality')
+                # print(f"SolveQ Error code is: {enData.errcode}")
                 enData.ENreport()
+                # print(f"Report Error code is: {enData.errcode}")
                 logger.debug('Ran quality')
             except Exception as err:
                 enData.ENclose()
@@ -294,11 +301,11 @@ class EpanetSimulator(EpanetSimulator):
             if len(check_node_name_list) == 0:
                 break
             else:
-                print(len(check_node_name_list))
+                # print(len(check_node_name_list))
                 i = 0
                 for node_name in check_node_name_list:
-                    if i % 10 == 0:
-                        print(f"\t{i}")
+                    #if i % 10 == 0:
+                        # print(f"\t{i}")
                     i += 1
                     self._remove_zero_flow_elements(node_name,
                                                     isolated_junctions,
