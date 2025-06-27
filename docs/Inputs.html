@@ -1,0 +1,241 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="English" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inputs &mdash; REWET  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=fdc28d34" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=4b3d11ce"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            REWET
+              <img src="../_static/REWET_logo.jpg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Install</a></li>
+<li class="toctree-l1"><a class="reference internal" href="WorkflowDescription.html">Workflow Description</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Restoration_Plan_Config_File.html">Restoration Plan</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Future.html">Future Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cite.html">How To Cite</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">REWET</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Inputs</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/docs/Inputs.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="inputs">
+<h1>Inputs<a class="headerlink" href="#inputs" title="Link to this heading"></a></h1>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>REWET is under continuous development, which means that:
+1. The names of the input parameters may change.
+2. New methods of inputting data may be provided in the future.
+3. Some input data may be added or removed.</p>
+</div>
+<p>Therefore, please refer to the documentation for the specific version you are using.</p>
+<p>There are many inputs in REWET that you need to provide for it to run properly. In this section, we will go through them. However, an example project is set as the default values. As a result, you can browse the input values and learn what each variable does after reading this document.</p>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>To run REWET, you need to define:</p>
+<ol class="arabic">
+<li><dl>
+<dt><strong>Scenario Data</strong>: Scenario data mostly consist of damage data. In other words, users usually have different damage data for each scenario than other data such as hydraulic solver parameters. These data are defined in the scenario table. Each row in the scenario table defines:</dt><dd><ol class="arabic simple">
+<li><p>Scenario name,</p></li>
+<li><p>Pipe damage data name,</p></li>
+<li><p>Node-level damage data name,</p></li>
+<li><p>Pump damage data name,</p></li>
+<li><p>Tank damage data name,</p></li>
+<li><p>Probability (Optional. Required if you want to post-process a set of probabilistic scenarios using REWET).</p></li>
+</ol>
+<p>Each row can also have other scenario parameter data through parameter override. For more information on scenario table, <a class="reference internal" href="#scenario-table"><span class="std std-ref">Click Here</span></a>.</p>
+</dd>
+</dl>
+</li>
+<li><p><strong>Water Distribution Network</strong>: REWET needs to know the specifications of the water distribution network. Thus, an INP file must be provided.</p></li>
+<li><p><strong>Restoration Plan</strong>: The restoration plan defines the crews, jobs, priorities, and set of effects on the network after the effect.</p></li>
+<li><p><strong>Pipe and Node-level Damage Modeling</strong>.</p></li>
+<li><p><strong>Pipe, Node-level, Pump, Tank, General-node, and Reservoir Damage Discovery Model</strong>.</p></li>
+</ol>
+<p>The data required to run REWET's simulation enables the user to control all parts of the hydraulic, damage, and restoration simulation. While the amount of data required for running REWET may seem excessive, the simplicity and intuitiveness of the data help the user to learn how to use it proficiently. If you are not sure about parameters that require technical skills, in most cases, you can simply leave the data to their default values provided in REWET.</p>
+</section>
+<section id="input-settings">
+<h2>Input Settings<a class="headerlink" href="#input-settings" title="Link to this heading"></a></h2>
+<p>Input settings are the main data input point in REWET. All input data are either defined in the input settings data or in files whose locations are given in the input settings. There are two kinds of inputs:</p>
+<ol class="arabic simple">
+<li><p><strong>Process Settings</strong>: These are parameters that apply to all simulation scenarios. For instance, the time of the whole simulation for all scenarios is deemed to be the same. So, it is a process setting.</p></li>
+<li><p><strong>Scenario Settings</strong>: These are parameters that are specific to each scenario. You can define them for all scenarios as well. However, if you want to change the scenario-setting values, you can override those values in the scenarios table. In this way, you can easily change scenario-setting inputs.</p></li>
+</ol>
+<p>The list of process and scenario settings parameters are as follows:</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Please make sure to check the <a class="reference internal" href="#units-and-tips"><span class="std std-ref">Units and Tips</span></a> about input.</p>
+</div>
+<section id="how-to-provide-input">
+<h3>How to provide input<a class="headerlink" href="#how-to-provide-input" title="Link to this heading"></a></h3>
+<p>You can create a REWET input settings using a JSON formatted file. For example, if you want to change the runtime of the simulation, all you need to do is set <cite>RUN_TIME</cite> to your desired time.</p>
+<div class="highlight-JSON notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;RUN_TIME&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">36000</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>After saving the file in a proper location, you can pass the path to the file's location to REWET by running:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rewet.initial</span> <span class="kn">import</span> <span class="n">Starter</span>
+
+<span class="n">json_file_location</span> <span class="o">=</span> <span class="s2">&quot;./input.json&quot;</span>
+<span class="n">starter</span> <span class="o">=</span> <span class="n">Starter</span><span class="p">()</span>
+<span class="n">starter</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">json_file_location</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>REWET reads and overrides the values that are provided in the JSON file. In this way, when you are not sure about parameters (let's say hydraulic damage model), you can safely ignore those parameters.</p>
+</section>
+<section id="scenario-table">
+<h3>Scenario Table<a class="headerlink" href="#scenario-table" title="Link to this heading"></a></h3>
+<p>The scenario table is an Excel file (or Pandas DataFrame pickled into a binary file). The table is as follows:</p>
+<p>Scenario name is the scenario name. Pipe, node-level, pump, and tank damage data are the respective file names for the element type damages.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>All damage files must be in one directory! However, there is no necessity to keep the scenario table location in the same place as the damage files. For example, let's say we have input data in the following structure:</p>
+<ul class="simple">
+<li><dl class="simple">
+<dt>input_data</dt><dd><ul>
+<li><p>scenario_table.xlsx</p></li>
+<li><dl class="simple">
+<dt>damage_files</dt><dd><ul>
+<li><p>Net3-pipe-damage.xlsx</p></li>
+<li><p>Net3-node-damage.xlsx</p></li>
+<li><p>Net3-Pump-Damage.xlsx</p></li>
+<li><p>Net3-tank-damage.xlsx</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<p>Then by setting <code class="docutils literal notranslate"><span class="pre">pipe_damage_file_list</span></code> to <code class="docutils literal notranslate"><span class="pre">./input_data/scenario_table.xlsx</span></code> and
+<code class="docutils literal notranslate"><span class="pre">pipe_damage_file_directory</span></code> to <code class="docutils literal notranslate"><span class="pre">./input_data/damage_files</span></code>, REWET will look at the right places for the scenario table and damage files, whose names have been defined in the scenario table.</p>
+</div>
+</section>
+<section id="pipe-damage-data">
+<h3>Pipe Damage Data<a class="headerlink" href="#pipe-damage-data" title="Link to this heading"></a></h3>
+<p>Pipe damage data is a table in which each row defines a single damage location. There can be mutiple damage in mutiple locations. The tables are saved in excel or Pandas DataFrame pickled into a binary file. An example of such table is as follows:</p>
+<p>In the table above, <cite>time</cite> defines the time when the pipe damage occurs, <cite>pipe_id</cite> is the damaged pipe ID in the <strong>.inp</strong> file which you provide in the input settings. <cite>Damage_loc</cite> is a number between 0 and 1 (not 0 or 1), showing the relative location of the damage to the beginning of the pipe. The beginning of the pipe is the first node with which the pipe is defined in the <strong>.inp</strong> file. The type of damage can be either <strong>leak</strong> or <strong>break</strong>. <cite>Material</cite> shows the pipe material. The material defines which pipe damage model is used.</p>
+</section>
+<section id="node-level-damage-data">
+<h3>Node-level Damage Data<a class="headerlink" href="#node-level-damage-data" title="Link to this heading"></a></h3>
+<p>Node-level damage data is a table in which each row definss a damage location (a damaged demand node). An example of such table is as follows:</p>
+<p>In the table above, <cite>time</cite> defines the time when the node-level damage occurs, <cite>node_id</cite> is thw damaged demand ndoes ID in the <strong>.inp</strong> file which you provide in the input settings. <cite>Number_of_damages</cite> shows how many damages happened in the node-level damage location and
+<cite>node_Pipe_Length</cite> defiens what is teh total length of pipes in the damage location.</p>
+</section>
+<section id="pump-damage-data">
+<h3>Pump Damage Data<a class="headerlink" href="#pump-damage-data" title="Link to this heading"></a></h3>
+<p>Pipe damage data is a table in which a each row defiens a damaged pump. The tables are saved in excel or Pandas DataFrame pickled into a binary file. An example of such table is as follows:</p>
+<p>In the table above, <cite>time</cite> defines the time when the pump damage occurs, <cite>pump_id</cite> is teh dmaged pump ID in the <strong>.inp</strong> file which you provide in the input settings, and <cite>Restore_time</cite> is the time when the pump is restored.</p>
+</section>
+<section id="tank-damage-data">
+<h3>tank Damage Data<a class="headerlink" href="#tank-damage-data" title="Link to this heading"></a></h3>
+<p>Tank damage data is a table in which a each row defiens a damaged tank. The tables are saved in excel or Pandas DataFrame pickled into a binary file. An example of such table is as follows:</p>
+<p>In the table above, <cite>time</cite> defines the time when the tank damage occurs, <cite>tank_id</cite> is teh dmaged pump ID in the <strong>.inp</strong> file which you provide in the input settings, and <cite>Restore_time</cite> is the time when the pump is restored.</p>
+</section>
+</section>
+<section id="units-and-tips">
+<h2>Units and Tips<a class="headerlink" href="#units-and-tips" title="Link to this heading"></a></h2>
+<section id="units">
+<h3>Units<a class="headerlink" href="#units" title="Link to this heading"></a></h3>
+<p>Units used in REWET are SI units. Even units such as time are in seconds. This may lead to big and unintuitive numbers, especially when you are working with the results, but for a Python programmer, converting units should not be a difficult task, so we left that to the users.</p>
+</section>
+<section id="paths">
+<h3>Paths<a class="headerlink" href="#paths" title="Link to this heading"></a></h3>
+<p>It's best practice to provide paths as absolute values. Absolute paths are such as <code class="docutils literal notranslate"><span class="pre">&quot;C:Users/[username]/Desktop/bluh_bluh.ext&quot;</span></code> in Windows and <code class="docutils literal notranslate"><span class="pre">/user/bluh_bluh.ext</span></code> in Linux/MacOS systems. You are absolutely free to use relative paths as well. Relative paths are such as <code class="docutils literal notranslate"><span class="pre">&quot;./my_project/bluh_bluh.ext&quot;</span></code>. If you are using a relative path, please make sure that the path is relative to the current Python working directory.</p>
+</section>
+</section>
+<section id="power-users">
+<h2>Power Users<a class="headerlink" href="#power-users" title="Link to this heading"></a></h2>
+<p>The Settings module is the interface between the Input and Registry modules. One of the data that the Input module creates is an object of Settings, and then it is passed to the Registry module. Users who feel comfortable coding in Python may find it easier to modify the <cite>setting.py</cite> file directly instead of providing the input through REWET's input mechanism.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Sina Naeimi.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
