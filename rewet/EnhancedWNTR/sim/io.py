@@ -28,16 +28,16 @@ from collections import OrderedDict
 
 #from .time_utils import run_lineprofile
 
-import wntr
-import wntr.network
-import wntr.sim
-from wntr.network.base import Link
-from wntr.network.model import WaterNetworkModel
-from wntr.network.elements import Junction, Reservoir, Tank, Pipe, Pump, Valve
-from wntr.network.options import WaterNetworkOptions
-from wntr.network.model import Pattern, LinkStatus, Curve, Demands, Source
-from wntr.network.controls import TimeOfDayCondition, SimTimeCondition, ValueCondition, Comparison
-from wntr.network.controls import OrCondition, AndCondition, Control, ControlAction, _ControlType, Rule
+import wntrfr
+import wntrfr.network
+import wntrfr.sim
+from wntrfr.network.base import Link
+from wntrfr.network.model import WaterNetworkModel
+from wntrfr.network.elements import Junction, Reservoir, Tank, Pipe, Pump, Valve
+from wntrfr.network.options import WaterNetworkOptions
+from wntrfr.network.model import Pattern, LinkStatus, Curve, Demands, Source
+from wntrfr.network.controls import TimeOfDayCondition, SimTimeCondition, ValueCondition, Comparison
+from wntrfr.network.controls import OrCondition, AndCondition, Control, ControlAction, _ControlType, Rule
 
 from .util import FlowUnits, MassUnits, HydParam, QualParam, MixType, ResultType, EN
 from .util import to_si, from_si

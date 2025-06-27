@@ -188,6 +188,105 @@ class Curve():
         except:
             sum_amount = 0
         return sum_amount
+    
+    def getDetailedWaterLeakFromPipeInformation(self, scn_name):
+        self.loadScneariodata(scn_name)
+        res = self.data[scn_name]
+        reg = self.registry[scn_name]
+        wn = self.wn
+        
+        damage_data = []
+        for damage_location, row in reg._pipe_damage_table.iterrows():
+            damage_type = row["damage_type"]
+            pipe_id = row["Orginal_element"]
+            pipe_diameter = wn.get_link(pipe_id).diameter
+            
+            if damage_type=="break":
+                try:
+                    node_A = reg._pipe_break_history.loc[damage_location, "Node_A"]
+                except:
+                    node_A = 0
+                try:
+                    node_B = reg._pipe_break_history.loc[damage_location, "Node_B"]
+                except:
+                    node_B = 0
+                try:
+                    pipe_A = reg._pipe_break_history.loc[damage_location, "Pipe_A"]
+                except:
+                    pipe_A = 0
+                try:
+                    pipe_B = reg._pipe_break_history.loc[damage_location, "Pipe_B"]
+                except:
+                    pipe_B = 0
+                try:
+                    pipe_eod = wn.get_link(pipe_A).diameter
+                except:
+                    pipe_eod = pipe_diameter
+                try:
+                    pressure_a = res.node["pressure"].loc[:, node_A].iloc[0]
+                except:
+                    pressure_a = 0
+                try:
+                    pressure_b = res.node["pressure"].loc[:, node_B].iloc[0] * 1.422
+                except:
+                    pressure_b = 0
+                try:
+                    dicharge_a = res.node["demand"].loc[:, node_A].iloc[0]
+                except:
+                    dicharge_a = 0
+                try:
+                    dicharge_b = res.node["demand"].loc[:, node_B].iloc[0] * 2118.88 / 60
+                except:
+                    dicharge_b = 0
+                    
+            elif damage_type=="leak":
+                try:
+                    node_A = reg._pipe_leak_history.loc[:, damage_location, "Node_name"]
+                except:
+                    node_A = 0
+                try:
+                    pipe_A = reg._pipe_leak_history.loc[:, damage_location, "Pipe_A"]
+                except:
+                    pipe_A = 0
+                try:
+                    pipe_B = reg._pipe_leak_history.loc[:, damage_location, "Pipe_B"]
+                except:
+                    pipe_B = 0
+                try:
+                    pipe_eod = wn.get_link(pipe_B).diameter
+                except:
+                    pipe_eod = 0
+                try:
+                    pressure_a = res.node["pressure"].loc[:, node_A].iloc[0]
+                except:
+                    pressure_a = 0
+                try:
+                    dicharge_a = res.node["demand"].loc[:, node_A].iloc[0]
+                except:
+                    dicharge_a = 0
+                pressure_b = None
+                dicharge_b = None
+            
+            cur_pipe_data = {"Pipe ID": pipe_id,
+                             "Damage Type": damage_type,
+                             "Diamater": pipe_diameter * 100 / 2.54,
+                             "EoD": pipe_eod * 100 / 2.54,
+                             "Pressure1": pressure_a * 1.422,
+                             "Dischareg1": dicharge_a * 2118.88 / 60,
+                             "Pressure2": pressure_b,
+                             "Dischareg2": dicharge_b,
+                             }
+            
+            damage_data.append(cur_pipe_data)
+        
+        damage_data = pd.DataFrame.from_dict(damage_data)
+    
+        return damage_data
+        
+        
+                
+            
+        
 
     def getWaterLeakingFromPipe(self, scn_name, mode='all'):
         self.loadScneariodata(scn_name)

@@ -176,8 +176,16 @@ class Starter():
 
         """
         print(scenario_name + ' - ' + file_name + ' - ' + nodal_damage_file_name + ' - ' + str(pump_damage_file_name), flush=True)
-        if settings.process['number_of_proccessor'] > 1 and worker_rank == None:
-            raise ValueError('for multiple proccessor analysis, worker_rank_must be provided')
+        if worker_rank == None:
+            if settings.process['number_of_proccessor'] > 1:
+                msg = ('for multiple proccessor analysis, '
+                       'worker_rank_must be provided')
+                
+                raise ValueError(msg)
+            
+            else:
+                worker_rank = scenario_name
+                
 
         if type(file_name) != str:
             file_name = str(file_name) #for number-only names to convert from int/float to str

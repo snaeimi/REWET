@@ -185,7 +185,7 @@ class Settings():
             if key not in self:
                 raise ValueError(f"REWET settinsg does not have \"{key}\" as a settings key")
 
-            print(key, val)
+            #print(key, val)
             if key in ["pipe_damage_discovery_model", "node_damage_discovery_model",\
                        "pump_damage_discovery_model", "tank_damage_discovery_model"]\
                 and val["method"] == 'time_based':

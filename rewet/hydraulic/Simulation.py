@@ -70,17 +70,44 @@ class HydraulicSimulation():
     
     def isolateReservoirs(self, isolated_nodes):
         for reservoir_name, reservoir in self.wn.reservoirs():
-            if self.wn._node_reg.get_usage(reservoir_name) == None:
+            
+            usage = self.wn._node_reg.get_usage(reservoir_name)
+            if usage == None:
                 reservoir._is_isolated = True
                 isolated_nodes.add(reservoir_name)
+            else:
+                all_connected_links_isolated = True
+                for link_name in usage:
+                    if self.wn.get_link(link_name[0])._is_isolated == False:
+                        all_connected_links_isolated = False
+                        break
+                
+                if all_connected_links_isolated == True:
+                    reservoir._is_isolated = True
+                    isolated_nodes.add(reservoir_name)
+
+            
         return isolated_nodes
         
     
     def isolateTanks(self, isolated_nodes):
         for tank_name, tank in self.wn.tanks():
-            if self.wn._node_reg.get_usage(tank_name) == None:
+            
+            usage = self.wn._node_reg.get_usage(tank_name)
+            if usage == None:
                 tank._is_isolated = True
                 isolated_nodes.add(tank_name)
+            else:
+                all_connected_links_isolated = True
+                for link_name in usage:
+                    if self.wn.get_link(link_name[0])._is_isolated == False:
+                        all_connected_links_isolated = False
+                        break
+                
+                if all_connected_links_isolated == True:
+                    tank._is_isolated = True
+                    isolated_nodes.add(tank_name)
+                        
         return isolated_nodes
     
     def removeNonDemandNegativeNodeByPythonClose(self, maximum_iteration):

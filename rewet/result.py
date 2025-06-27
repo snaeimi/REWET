@@ -31,7 +31,9 @@ class Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
                  ignore_not_found=False,
                  to_neglect_file=None,
                  node_col='',
-                 iObject=False
+                 iObject=False,
+                 parallel=False,
+                 wn_path=None
                  ): #result_file_dir = None, iObject=False):
 
         if iObject==False:
@@ -69,12 +71,16 @@ class Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
         self._RequiredDemandForAllNodesandtime = {}
         self.demand_ratio             = self.project.project_settings.process['demand_ratio']
         self.scn_name_list_that_result_file_not_found = []
-        self.wn = wntrfr.network.WaterNetworkModel(self.project.project_settings.process['WN_INP']    )
-
+        
+        if wn_path is None:
+            self.wn = wntrfr.network.WaterNetworkModel(self.project.project_settings.process['WN_INP']    )
+        else:
+            self.wn = wntrfr.network.WaterNetworkModel(wn_path)
+            
         if not isinstance(result_directory, type(None) ):
             self.result_directory = result_directory
-        
-        self.result_directory            = self.project.project_settings.process['result_directory']
+        else:
+            self.result_directory            = self.project.project_settings.process['result_directory']
 
         to_neglect=[];
         if to_neglect_file != None and False: #sina hereeeee bug dadi amedane
@@ -90,6 +96,17 @@ class Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
         self.node_name_list   = self.wn.node_name_list.copy()
         ret_val = self.checkForNotExistingFile(ignore_not_found)
         self.prepareData()
+        
+        if parallel:
+            from mpi4py import MPI
+            import mpi4py
+            self.comm = MPI.COMM_WORLD
+            mpi4py.rc.recv_mprobe = False
+            self.work_counter = self.comm.rank
+        else:
+            self.comm = None
+            self.work_counter = None
+        
         return ret_val
 
     def readPorjectFile(self, project_file_addr):
@@ -368,7 +385,7 @@ class Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
         self._RequiredDemandForAllNodesandtime[scn_name] = req_node_demand.filter(self.demand_node_name_list)
         return self._RequiredDemandForAllNodesandtime[scn_name]
 
-        
+    @staticmethod
     def _getRequiredDemandForAllNodesandtime(undamaged_wn,
                                             demand_node_name_list,
                                             time_index,
@@ -623,10 +640,27 @@ class Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
         result = self.data[scn_name]
         demand_result = result.node["demand"]
         
+        demand_nodes = self.getRequiredDemandForAllNodesandtime(scn_name)
+        
+        sat_demands_ratio = self._get_scn_demand_satisfaction_ratio(demand_result,
+                                                                    demand_nodes,
+                                                                    detailed,
+                                                                    demand_node_list
+                                                                    )
+        
+        return sat_demands_ratio
+        
+    
+    @staticmethod
+    def _get_scn_demand_satisfaction_ratio(demand_result,
+                                           demand_nodes,
+                                           detailed=False,
+                                           demand_node_list=None):
+        
         available_node_list = demand_result.columns.tolist()
         available_node_list = set(available_node_list)
         
-        demand_nodes = self.getRequiredDemandForAllNodesandtime(scn_name)
+        
         
         if demand_node_list is not None:
             demand_nodes = demand_nodes.loc[:, demand_node_list]
@@ -637,7 +671,7 @@ class Result(Map, Raw_Data, Curve, Crew_Report, Result_Time):
         
         demand_nodes = demand_nodes.loc[demand_result.index, :]
         
-        sat_demands.fillna(0)
+        sat_demands = sat_demands.fillna(0)
         
         available_node_list = available_node_list.intersection(demand_nodes.columns.tolist())
         available_node_list = list(available_node_list)

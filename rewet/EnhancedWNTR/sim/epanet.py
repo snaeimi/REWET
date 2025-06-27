@@ -206,7 +206,13 @@ class EpanetSimulator(EpanetSimulator):
                 raise err
             enData.ENclose()
             logger.debug('Completed run')
-            result_data = self.reader.read(outfile)
+            try:
+                result_data = self.reader.read(outfile)
+            except Exception as err:
+                if i < len(solver_parameters_list):
+                    continue
+                else:
+                   raise err
 
             self._updateResultStartTime(result_data, start_time)
 
@@ -216,6 +222,13 @@ class EpanetSimulator(EpanetSimulator):
 
             for time in report_data.maximum_trial_time:
                 result_data.maximum_trial_time.append(time + start_time)
+            
+            avilable_time = (set(result_data.node["pressure"].index.tolist()) -
+                             set(report_data.maximum_trial_time))
+            
+            if not len(avilable_time) > 0:
+                run_successful = False
+            
             if run_successful:
                 break
 
