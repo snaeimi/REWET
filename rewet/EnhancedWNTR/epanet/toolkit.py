@@ -43,16 +43,25 @@ class ENepanet(wntrfr.epanet.toolkit.ENepanet):
             for lib in libnames:
                 try:
                     if os.name in ["nt", "dos"]:
+                        if 'arm' in platform.platform():
+                            raise NotImplementedError('ARM-based processors not supported')
                         libepanet = resource_filename(
                             __name__, "Windows/%s.dll" % lib
                         )
                         self.ENlib = ctypes.windll.LoadLibrary(libepanet)
                     elif sys.platform in ["darwin"]:
-                        libepanet = resource_filename(
-                            __name__, "Darwin/lib%s.dylib" % lib
-                        )
+                        if 'arm' in platform.platform():
+                            libepanet = resource_filename(
+                                __name__, "Darwin/arm_lib%s.dylib" % lib
+                            )
+                        else:
+                            libepanet = resource_filename(
+                                __name__, "Darwin/lib%s.dylib" % lib
+                            )
                         self.ENlib = ctypes.cdll.LoadLibrary(libepanet)
                     else:
+                        if 'arm' in platform.platform():
+                            raise NotImplementedError('ARM-based processors not supported')
                         libepanet = resource_filename(
                             __name__, "Linux/lib%s.so" % lib
                         )
