@@ -61,3 +61,9 @@
 - Refactored the code
 - added tests
 - added modified-EPANET compatibility for LINUX AMD64, and MacOS AMD64 (besides Windows AMD64 from the past)
+
+### 0.2.0-beta.2
+- Added ARM platform dupport for MacOS
+
+### 0.2.0-beta.3
+- Added setuptools<82 requirement
